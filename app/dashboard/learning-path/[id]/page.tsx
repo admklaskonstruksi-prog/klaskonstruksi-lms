@@ -203,4 +203,4 @@ export default async function LearningPathPage(props: Props) {
 
     </div>
   );
-}
+} 
