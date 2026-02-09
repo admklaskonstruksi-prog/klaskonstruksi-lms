@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warna Dasar Light Mode */
+    --background: 255 255 255; /* Putih */
+    --foreground: 23 23 23;    /* Hitam pekat untuk teks */
+    
+    /* Warna Utama: Sprite Green / Ruangguru Green vibe */
+    --primary: 0 201 167;      /* #00C9A7 (Hijau Mint Cerah) */
+    --primary-dark: 0 168 139; /* Versi lebih gelap untuk hover */
+    
+    --card: 255 255 255;
+    --card-foreground: 23 23 23;
+ 
+    --border: 229 231 235;     /* Abu-abu border */
+    --input: 229 231 235;
+    --ring: 0 201 167;
+  }
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+  font-family: 'Inter', sans-serif; /* Pastikan font bersih */
+}
+
+/* Custom Scrollbar yang lebih tipis dan bersih */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Utilitas Tambahan */
+@layer utilities {
+  .text-brand {
+    color: rgb(var(--primary));
+  }
+  .bg-brand {
+    background-color: rgb(var(--primary));
+  }
+  .border-brand {
+    border-color: rgb(var(--primary));
+  }
+}
