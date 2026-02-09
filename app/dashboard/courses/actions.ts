@@ -153,8 +153,9 @@ export async function saveLesson(formData: FormData) {
   revalidatePath("/dashboard/courses", "layout");
   return { success: true };
 }
+// Cuma import yang upload saja
+import { uploadVideoToBunny } from "./bunnyUtils";
 
-import { getBunnyVideos, uploadVideoToBunny } from "./bunnyUtils";
-
-export { getBunnyVideos, uploadVideoToBunny };
+// Cuma export yang upload saja
+export { uploadVideoToBunny };
 
