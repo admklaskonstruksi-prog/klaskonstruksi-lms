@@ -28,5 +28,5 @@ export async function signUp(formData: FormData) {
   }
 
   // Jika sukses, arahkan ke halaman login dengan pesan sukses
-  return redirect("/login?message=Pendaftaran berhasil! Silakan masuk dengan akun Anda.");
+  return redirect("/register/success");
 }
