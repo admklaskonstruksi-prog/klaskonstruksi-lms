@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { enrollUser } from "../actions"; // <-- IMPORT ACTION INI
+import { enrollUser } from "../actions";
 import { 
   Star, 
   StarHalf, 
@@ -13,19 +13,17 @@ import {
   Trophy, 
   ChevronRight, 
   ArrowLeft, 
-  Clock, 
   Target, 
   ArrowRight, 
   ChevronDown, 
   Users, 
   Loader2,
-  FileCheck,     // Ikon untuk Tugas
-  Infinity,      // Ikon untuk Akses Seumur Hidup
-  FileText       // Ikon untuk Teks Keterangan
+  FileCheck,
+  Infinity,
+  FileText
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// --- KOMPONEN BINTANG DINAMIS (Perbaikan visual) ---
 const RenderStars = ({ rating }: { rating: number }) => {
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
@@ -57,7 +55,6 @@ function getDurationText(duration: any) {
 }
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  // SOLUSI params error
   const resolvedParams = use(params);
   const courseId = resolvedParams.id;
 
@@ -131,7 +128,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         onSuccess: async function(result: any) {
           toast.success("Pembayaran Berhasil!");
           
-          // GUNAKAN SERVER ACTION ALIH-ALIH CLIENT INSERT
           const res = await enrollUser(course.id, course.price);
           
           if (res?.error) {
@@ -140,9 +136,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             return;
           }
 
-          // Refresh state router sebelum memindahkan halaman agar cache Next.js terbarui
-          router.refresh(); 
-          router.push("/dashboard/my-courses");
+          // PERBAIKAN 1: Gunakan window.location.href agar redirect lebih pasti
+          // dan otomatis membuang cache halaman sebelumnya
+          window.location.href = "/dashboard/my-courses";
         },
         onPending: function() { toast("Menunggu Pembayaran..."); },
         onError: function() { toast.error("Pembayaran Gagal"); setIsProcessing(false); },
@@ -166,7 +162,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] font-sans pb-24 selection:bg-[#00C9A7] selection:text-white">
-      
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 pt-8 pb-32 px-6 relative">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-12">
@@ -174,17 +169,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
              <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#00C9A7] font-bold text-sm mb-6 transition bg-gray-50 hover:bg-teal-50 px-5 py-2.5 rounded-full border border-gray-200 shadow-sm">
                 <ArrowLeft size={16} /> Kembali ke Jelajah
              </Link>
-
              <div className="flex items-center text-sm text-[#00C9A7] font-bold mb-4 gap-2">
                 <span>Program Klas</span>
                 <ChevronRight size={14} className="text-gray-400" />
                 <span className="text-gray-900">Detail Kelas</span>
              </div>
-
              <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-6 tracking-tight">
                 {course?.title}
              </h1>
-
              {course?.goals && (
                 <div className="mb-8 bg-teal-50/50 p-5 rounded-2xl border border-teal-100">
                    <h3 className="text-sm font-black text-[#00C9A7] uppercase tracking-widest mb-2 flex items-center gap-2">
@@ -195,7 +187,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                    </p>
                 </div>
              )}
-
              <div className="flex flex-wrap items-center gap-4 mb-4 text-sm bg-gray-50 inline-flex p-2 rounded-xl border border-gray-100">
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white shadow-sm text-[#00C9A7] font-bold rounded-lg border border-gray-100">
                    {course?.level || "Semua Level"}
@@ -257,7 +248,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     <div className="bg-white rounded-full p-4 shadow-2xl"><PlayCircle size={32} className="text-[#F97316] fill-current" /></div>
                  </div>
               </div>
-
               <div className="p-8">
                  <div className="mb-6 flex flex-col">
                     <span className="text-4xl font-black text-gray-900 tracking-tight">Rp {course?.price.toLocaleString("id-ID")}</span>
@@ -268,7 +258,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         </div>
                     )}
                  </div>
-
                  <button 
                     onClick={handlePayment}
                     disabled={isProcessing}
@@ -276,31 +265,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                  >
                     {isProcessing ? <Loader2 className="animate-spin" /> : <>Beli Kelas Sekarang <ArrowRight size={20} /></>}
                  </button>
-
-                 {/* --- UPDATE: FASILITAS EKSKLUSIF --- */}
                  <div className="mt-8 bg-teal-50/50 p-6 rounded-2xl border border-teal-100">
                     <h4 className="font-black text-gray-900 mb-4 text-sm uppercase tracking-wider">Fasilitas Eksklusif:</h4>
                     <ul className="space-y-4 text-sm text-gray-700 font-medium">
-                       <li className="flex items-start gap-3">
-                         <div className="mt-0.5 text-[#00C9A7]"><PlayCircle size={18} /></div> 
-                         Akses Video Selamanya
-                       </li>
-                       <li className="flex items-start gap-3">
-                         <div className="mt-0.5 text-[#00C9A7]"><FileCheck size={18} /></div> 
-                         Tugas
-                       </li>
-                       <li className="flex items-start gap-3">
-                         <div className="mt-0.5 text-[#00C9A7]"><Infinity size={18} /></div> 
-                         Akses penuh seumur hidup
-                       </li>
-                       <li className="flex items-start gap-3">
-                         <div className="mt-0.5 text-[#00C9A7]"><FileText size={18} /></div> 
-                         Teks Keterangan
-                       </li>
-                       <li className="flex items-start gap-3">
-                         <div className="mt-0.5 text-[#00C9A7]"><Trophy size={18} /></div> 
-                         Sertifikat penyelesaian
-                       </li>
+                       <li className="flex items-start gap-3"><div className="mt-0.5 text-[#00C9A7]"><PlayCircle size={18} /></div> Akses Video Selamanya</li>
+                       <li className="flex items-start gap-3"><div className="mt-0.5 text-[#00C9A7]"><FileCheck size={18} /></div> Tugas</li>
+                       <li className="flex items-start gap-3"><div className="mt-0.5 text-[#00C9A7]"><Infinity size={18} /></div> Akses penuh seumur hidup</li>
+                       <li className="flex items-start gap-3"><div className="mt-0.5 text-[#00C9A7]"><FileText size={18} /></div> Teks Keterangan</li>
+                       <li className="flex items-start gap-3"><div className="mt-0.5 text-[#00C9A7]"><Trophy size={18} /></div> Sertifikat penyelesaian</li>
                     </ul>
                  </div>
               </div>

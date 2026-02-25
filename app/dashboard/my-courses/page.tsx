@@ -4,6 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { PlayCircle, Clock, BookOpen } from "lucide-react";
 
+// Memaksa Next.js untuk selalu mengambil data terbaru dari database
+export const dynamic = "force-dynamic";
+
 export default async function MyCoursesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -30,7 +33,7 @@ export default async function MyCoursesPage() {
         <p className="text-gray-500 mt-2 font-medium">Lanjutkan progres belajar Anda untuk mencapai target karir.</p>
       </div>
 
-      {enrollments?.length === 0 ? (
+      {!enrollments || enrollments.length === 0 ? (
         <div className="text-center py-24 bg-white rounded-3xl border border-dashed border-gray-200">
            <BookOpen className="mx-auto text-gray-300 mb-4" size={60} />
            <p className="text-gray-500 font-bold text-lg">Anda belum memiliki kelas.</p>
@@ -48,8 +51,9 @@ export default async function MyCoursesPage() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500" 
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                   {/* PERBAIKAN 2: Ubah URL dari /learning/ menjadi /learning-path/ */}
                    <Link 
-                     href={`/dashboard/learning/${item.courses.id}`}
+                     href={`/dashboard/learning-path/${item.courses.id}`}
                      className="bg-white text-[#00C9A7] p-4 rounded-full shadow-2xl transform scale-75 group-hover:scale-100 transition-transform"
                    >
                      <PlayCircle size={32} fill="currentColor" className="text-white" />
@@ -65,19 +69,20 @@ export default async function MyCoursesPage() {
                   {item.courses.title}
                 </h3>
                 
-                {/* Progres Bar (Simulasi) */}
+                {/* PERBAIKAN 3: Ubah Progres Simulasi menjadi 0% */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-gray-400">Progres Belajar</span>
-                    <span className="text-[#00C9A7]">45%</span>
+                    <span className="text-[#00C9A7]">0%</span>
                   </div>
                   <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#00C9A7] rounded-full" style={{ width: '45%' }}></div>
+                    <div className="h-full bg-[#00C9A7] rounded-full" style={{ width: '0%' }}></div>
                   </div>
                 </div>
 
+                {/* PERBAIKAN 2: Ubah URL dari /learning/ menjadi /learning-path/ */}
                 <Link 
-                  href={`/dashboard/learning/${item.courses.id}`}
+                  href={`/dashboard/learning-path/${item.courses.id}`}
                   className="mt-6 w-full py-3 border-2 border-[#00C9A7] text-[#00C9A7] font-black rounded-xl hover:bg-[#00C9A7] hover:text-white transition-all text-center block text-sm"
                 >
                   Lanjutkan Belajar
