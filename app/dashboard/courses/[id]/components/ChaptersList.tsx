@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { createChapter, deleteChapter, createLesson, deleteLesson } from "../actions";
+// Pastikan import action Anda sesuai dengan nama file tempat Anda menyimpan createLesson
+import { createChapter, deleteChapter, deleteLesson } from "../actions";
+import { createLesson } from "../../lessons-actions"; 
 import { Plus, Trash2, FileText, ChevronDown, ChevronUp, Loader2, PlayCircle, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link"; 
@@ -27,32 +29,81 @@ export default function ChaptersList({ initialData, courseId }: { initialData: a
     setIsLoading(false);
   }
 
-  // --- HANDLER MATERI (VIDEO) ---
+  // --- HANDLER MATERI (VIDEO UPLOAD KE BUNNY) ---
   async function handleAddLesson(e: React.FormEvent<HTMLFormElement>, chapterId: string) {
     e.preventDefault();
     setIsLoading(true);
-    const toastId = toast.loading("Mengupload video ke Bunny.net...");
+    const toastId = toast.loading("Menyiapkan file video...");
     
-    // Ambil semua data form (termasuk file video)
-    const formData = new FormData(e.currentTarget);
-    formData.append("chapterId", chapterId);
-    formData.append("courseId", courseId);
+    try {
+        const formElement = e.currentTarget;
+        const formData = new FormData(formElement);
+        const file = formData.get("video") as File;
+        const title = formData.get("title") as string;
+        const description = formData.get("description") as string;
 
-    // Kirim langsung ke server action
-    const res = await createLesson(formData);
-    if (res?.error) {
-        toast.error(res.error, { id: toastId });
-    } else {
-        toast.success("Video materi berhasil diupload!", { id: toastId });
+        if (!file || file.size === 0) {
+            throw new Error("Silakan pilih file video terlebih dahulu!");
+        }
+
+        // 1. Dapatkan Slot Video & API Key dari backend Bunny kita
+        toast.loading("Mereservasi slot di Bunny.net...", { id: toastId });
+        const bunnyRes = await fetch("/api/bunny/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title })
+        });
+        
+        const bunnyData = await bunnyRes.json();
+        if (!bunnyRes.ok) throw new Error(bunnyData.error || "Gagal menghubungi Bunny.net");
+
+        const { videoId, libraryId, apiKey } = bunnyData;
+
+        // 2. Upload video LANGSUNG dari Browser ke Bunny.net (Bypass Vercel limit)
+        toast.loading("Mengupload video... Jangan tutup halaman ini.", { id: toastId });
+        const uploadRes = await fetch(`https://video.bunnycdn.com/library/${libraryId}/videos/${videoId}`, {
+            method: "PUT",
+            headers: {
+                "AccessKey": apiKey,
+                "Content-Type": "application/octet-stream"
+            },
+            body: file
+        });
+
+        if (!uploadRes.ok) throw new Error("Gagal mengupload file ke server Bunny.net");
+
+        // 3. Simpan data ke database Supabase
+        toast.loading("Menyimpan materi ke kurikulum...", { id: toastId });
+        
+        // Buat FormData baru khusus untuk database
+        const dbFormData = new FormData();
+        dbFormData.append("course_id", courseId);
+        dbFormData.append("chapter_id", chapterId); // Sangat Penting!
+        dbFormData.append("title", title);
+        dbFormData.append("description", description);
+        dbFormData.append("video_id", videoId); // Masukkan ID dari Bunny
+
+        const res = await createLesson(dbFormData);
+
+        if (res?.error) {
+            throw new Error(res.error);
+        }
+
+        toast.success("Video materi berhasil ditambahkan!", { id: toastId });
+        formElement.reset();
         setAddingLessonTo(null); // Tutup form
+        
+    } catch (error: any) {
+        toast.error(error.message || "Terjadi kesalahan saat upload", { id: toastId });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   return (
     <div className="space-y-6">
       
-      {/* BAGIAN 1: LIST BAB DAN MATERI (UDEMY STYLE) */}
+      {/* BAGIAN 1: LIST BAB DAN MATERI */}
       <div className="space-y-4">
         {initialData.length === 0 && (
             <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
@@ -79,7 +130,7 @@ export default function ChaptersList({ initialData, courseId }: { initialData: a
 
             {expandedChapter === chapter.id && (
                 <div className="p-4 space-y-3">
-                    {chapter.lessons?.map((lesson: any) => (
+                    {chapter.lessons?.sort((a: any, b: any) => a.position - b.position).map((lesson: any) => (
                         <div key={lesson.id} className="flex items-start justify-between bg-white border border-gray-100 p-4 rounded-lg hover:shadow-sm transition">
                             <div className="flex items-start gap-3">
                                 <PlayCircle size={20} className="text-[#00C9A7] mt-1 flex-shrink-0" />
@@ -106,7 +157,7 @@ export default function ChaptersList({ initialData, courseId }: { initialData: a
                                 <div className="flex-1 w-full flex justify-end gap-2 mt-2 sm:mt-0">
                                     <button type="button" onClick={() => setAddingLessonTo(null)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-md">Batal</button>
                                     <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm bg-gray-900 text-white rounded-md flex items-center gap-2">
-                                        {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Simpan Materi
+                                        {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Mulai Upload Video
                                     </button>
                                 </div>
                             </div>

@@ -25,8 +25,9 @@ export async function createLesson(formData: FormData) {
     return { error: "Forbidden: Admin only" };
   }
 
-  // Get form data
+  // Get form data (Menambahkan chapter_id yang dikirim dari Frontend)
   const courseId = formData.get("course_id") as string;
+  const chapterId = formData.get("chapter_id") as string; // KUNCI UTAMA
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const videoId = formData.get("video_id") as string;
@@ -35,19 +36,19 @@ export async function createLesson(formData: FormData) {
   const isPublished = formData.get("is_published") === "true";
 
   // Validation
-  if (!courseId) {
-    return { error: "Course ID is required" };
+  if (!courseId || !chapterId) {
+    return { error: "Course ID dan Chapter ID dibutuhkan" };
   }
 
   if (!title || title.trim().length < 2) {
     return { error: "Title must be at least 2 characters" };
   }
 
-  // Get next position
+  // Get next position berdasarkan chapter_id (bukan hanya course_id)
   const { data: lastLesson } = await supabase
     .from("lessons")
     .select("position")
-    .eq("course_id", courseId)
+    .eq("chapter_id", chapterId)
     .order("position", { ascending: false })
     .limit(1)
     .single();
@@ -59,6 +60,7 @@ export async function createLesson(formData: FormData) {
     .from("lessons")
     .insert({
       course_id: courseId,
+      chapter_id: chapterId, // Simpan ke chapter yang tepat
       title: title.trim(),
       description: description?.trim() || null,
       video_id: videoId || null,
