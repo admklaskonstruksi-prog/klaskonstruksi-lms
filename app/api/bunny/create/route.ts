@@ -6,8 +6,6 @@ export async function POST(request: Request) {
     
     // API Key tetap rahasia, ambil dari environment
     const apiKey = process.env.BUNNY_API_KEY;
-    
-    // KITA TULIS LANGSUNG LIBRARY ID-NYA DI SINI (ANTI-GAGAL)
     const libraryId = "594715"; 
 
     if (!apiKey) {
@@ -27,8 +25,12 @@ export async function POST(request: Request) {
       }
     );
 
+    // --- PERBAIKAN DEBUGGING: TAMPILKAN ERROR ASLI DARI BUNNY ---
     if (!response.ok) {
-      return NextResponse.json({ error: 'Bunny Refused' }, { status: response.status });
+      const errorText = await response.text();
+      return NextResponse.json({ 
+        error: `Bunny Refused (${response.status}): ${errorText}` 
+      }, { status: response.status });
     }
 
     const data = await response.json();
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
       apiKey: apiKey
     });
 
-  } catch (error) {
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: `Server Error: ${error.message}` }, { status: 500 });
   }
 }
