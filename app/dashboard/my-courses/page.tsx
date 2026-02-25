@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { PlayCircle, Clock, BookOpen } from "lucide-react";
+import { PlayCircle, BookOpen } from "lucide-react";
 
 // Memaksa Next.js untuk selalu mengambil data terbaru dari database
 export const dynamic = "force-dynamic";
@@ -53,16 +53,22 @@ export default async function MyCoursesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {enrollments?.map((item: any) => {
-            // HITUNG PERSENTASE OTOMATIS
+            // HITUNG PERSENTASE OTOMATIS & SISA MATERI
             const courseLessons = allLessons?.filter((l) => l.course_id === item.courses.id) || [];
             const completedLessons = allProgress?.filter((p) => p.course_id === item.courses.id) || [];
             
-            // Hindari pembagian dengan nol jika kelas belum ada materinya
-            const total = courseLessons.length > 0 ? courseLessons.length : 1; 
-            const progressPercent = Math.min(100, Math.round((completedLessons.length / total) * 100));
+            const totalLessonsCount = courseLessons.length;
+            const completedLessonsCount = completedLessons.length;
+            // Hitung sisa materi (pastikan tidak minus)
+            const remainingLessonsCount = Math.max(0, totalLessonsCount - completedLessonsCount); 
+            
+            // Hindari NaN jika kelas belum ada materinya sama sekali
+            const progressPercent = totalLessonsCount > 0 
+                ? Math.min(100, Math.round((completedLessonsCount / totalLessonsCount) * 100)) 
+                : 0;
 
             return (
-            <div key={item.courses.id} className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+            <div key={item.courses.id} className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group flex flex-col">
               <div className="relative aspect-video">
                 <Image 
                   src={item.courses.thumbnail_url || "https://picsum.photos/400/250"} 
@@ -80,7 +86,8 @@ export default async function MyCoursesPage() {
                 </div>
               </div>
               
-              <div className="p-6 flex flex-col h-full">
+              {/* Tambahkan flex-1 agar isi konten mengisi ruang kosong dengan merata */}
+              <div className="p-6 flex flex-col flex-1">
                 <span className="text-[10px] font-black text-[#00C9A7] bg-teal-50 px-2 py-1 rounded uppercase tracking-wider mb-3 inline-block self-start">
                   {item.courses.level || "Beginner"}
                 </span>
@@ -88,14 +95,22 @@ export default async function MyCoursesPage() {
                   {item.courses.title}
                 </h3>
                 
-                {/* BAR PROGRES DINAMIS */}
-                <div className="space-y-2 mt-auto">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-gray-400">Progres Belajar</span>
-                    <span className="text-[#00C9A7]">{progressPercent}%</span>
+                {/* --- BAR PROGRES DINAMIS DENGAN DETAIL SISA MATERI --- */}
+                <div className="space-y-2 mt-auto pt-4">
+                  <div className="flex justify-between items-end mb-1">
+                    <div>
+                       <p className="text-xs font-bold text-gray-400">Progres Belajar</p>
+                       <p className="text-[10px] text-gray-500 font-medium mt-1">
+                         <span className="text-gray-800 font-bold">{completedLessonsCount}</span> dari {totalLessonsCount} materi ({remainingLessonsCount} belum diputar)
+                       </p>
+                    </div>
+                    <span className="text-xl font-black text-[#00C9A7]">{progressPercent}%</span>
                   </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#00C9A7] rounded-full transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
+                  <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#00C9A7] rounded-full transition-all duration-1000 ease-out relative" style={{ width: `${progressPercent}%` }}>
+                       {/* Efek kilap kecil pada bar progress */}
+                       <div className="absolute top-0 right-0 bottom-0 w-4 bg-white/20"></div>
+                    </div>
                   </div>
                 </div>
 

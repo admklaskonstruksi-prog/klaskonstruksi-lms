@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Star, StarHalf, Search } from "lucide-react"; 
+import SmartOnboardingModal from "./components/SmartOnboardingModal";
 
 export default async function DashboardPage({ searchParams }: { searchParams?: Promise<any> | any }) {
   const supabase = await createClient();
@@ -135,20 +136,16 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {courses?.map((course) => {
-            // Cek apakah kelas ini sudah dibeli
             const isOwned = ownedCourseIds.includes(course.id);
             
             return (
             <Link 
-              // Jika sudah dibeli, klik langsung mengarah ke ruang belajar, bukan checkout
               href={isOwned ? `/dashboard/learning-path/${course.id}` : `/dashboard/checkout/${course.id}`} 
               key={course.id} 
-              // Jika sudah dibeli, jadikan sedikit transparan / abu-abu (grayscale)
               className={`flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 group ${isOwned ? 'opacity-80 grayscale-[40%] hover:grayscale-0' : 'hover:shadow-xl hover:border-[#F97316]/50'}`}
             >
               
               <div className="relative aspect-video w-full bg-gray-100 border-b border-gray-100 overflow-hidden">
-                {/* Gambar Thumbnail */}
                 {course.thumbnail_url ? (
                   <Image src={course.thumbnail_url} alt={course.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
@@ -160,7 +157,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                    </div>
                 )}
                 
-                {/* Jika sudah dimiliki, tampilkan Overlay "SUDAH DIMILIKI" */}
                 {isOwned && (
                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10 backdrop-blur-[1px]">
                      <span className="bg-white text-[#F97316] font-black px-4 py-2 rounded-lg shadow-lg text-sm">
@@ -206,7 +202,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                      )}
                    </div>
                    
-                   {/* Tambahkan Teks Indikator di pojok kanan bawah jika sudah dimiliki */}
                    {isOwned && (
                      <span className="text-[11px] font-bold text-[#00C9A7] bg-teal-50 px-2 py-1 rounded">Masuk Kelas</span>
                    )}
@@ -216,6 +211,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
           )})}
         </div>
       )}
+
+      {/* --- KOMPONEN ONBOARDING DIMASUKKAN DI SINI --- */}
+      <SmartOnboardingModal 
+        categories={categories || []} 
+        isCompleted={profile?.onboarding_completed || false} 
+      />
+
     </div>
   );
 }
