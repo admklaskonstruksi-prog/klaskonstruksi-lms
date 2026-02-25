@@ -11,11 +11,11 @@ export async function enrollUser(courseId: string, amount: number) {
   if (!user) return { error: "Anda belum login." };
 
   // 2. Simpan Data ke Tabel
-  // Kita pakai 'upsert' agar kalau sudah punya, tidak error duplikat
   const { error } = await supabase.from("enrollments").upsert({
     user_id: user.id,
     course_id: courseId,
     amount_paid: amount,
+    status: "active" // Tambahkan status aktif
   }, {
     onConflict: 'user_id, course_id' // Abaikan jika data kembar
   });
@@ -25,9 +25,10 @@ export async function enrollUser(courseId: string, amount: number) {
     return { error: error.message };
   }
 
-  // 3. Refresh Halaman Terkait
+  // 3. Refresh Halaman Terkait (Sangat Penting untuk menghapus Cache Next.js!)
   revalidatePath(`/dashboard/learning-path/${courseId}`);
   revalidatePath(`/dashboard/checkout/${courseId}`);
+  revalidatePath(`/dashboard/my-courses`); 
   
   return { success: true };
 }

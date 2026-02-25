@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { enrollUser } from "../actions"; // <-- IMPORT ACTION INI
 import { 
   Star, 
   StarHalf, 
@@ -129,11 +130,18 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       (window as any).snap.pay(token, {
         onSuccess: async function(result: any) {
           toast.success("Pembayaran Berhasil!");
-          await supabase.from("enrollments").insert({
-            user_id: user.id,
-            course_id: course.id,
-            status: "active"
-          });
+          
+          // GUNAKAN SERVER ACTION ALIH-ALIH CLIENT INSERT
+          const res = await enrollUser(course.id, course.price);
+          
+          if (res?.error) {
+            toast.error("Gagal mendaftarkan kelas: " + res.error);
+            setIsProcessing(false);
+            return;
+          }
+
+          // Refresh state router sebelum memindahkan halaman agar cache Next.js terbarui
+          router.refresh(); 
           router.push("/dashboard/my-courses");
         },
         onPending: function() { toast("Menunggu Pembayaran..."); },
