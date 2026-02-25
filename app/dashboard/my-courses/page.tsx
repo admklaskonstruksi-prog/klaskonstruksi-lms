@@ -26,6 +26,17 @@ export default async function MyCoursesPage() {
     `)
     .eq("user_id", user.id);
 
+  // Ambil seluruh progres siswa ini
+  const { data: allProgress } = await supabase
+    .from("user_progress")
+    .select("course_id, lesson_id")
+    .eq("user_id", user.id);
+
+  // Ambil total materi yang ada di tiap kelas (untuk pembagi persentase)
+  const { data: allLessons } = await supabase
+    .from("lessons")
+    .select("course_id, id");
+
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto font-sans">
       <div className="mb-10">
@@ -41,7 +52,16 @@ export default async function MyCoursesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {enrollments?.map((item: any) => (
+          {enrollments?.map((item: any) => {
+            // HITUNG PERSENTASE OTOMATIS
+            const courseLessons = allLessons?.filter((l) => l.course_id === item.courses.id) || [];
+            const completedLessons = allProgress?.filter((p) => p.course_id === item.courses.id) || [];
+            
+            // Hindari pembagian dengan nol jika kelas belum ada materinya
+            const total = courseLessons.length > 0 ? courseLessons.length : 1; 
+            const progressPercent = Math.min(100, Math.round((completedLessons.length / total) * 100));
+
+            return (
             <div key={item.courses.id} className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
               <div className="relative aspect-video">
                 <Image 
@@ -51,7 +71,6 @@ export default async function MyCoursesPage() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500" 
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                   {/* PERBAIKAN 2: Ubah URL dari /learning/ menjadi /learning-path/ */}
                    <Link 
                      href={`/dashboard/learning-path/${item.courses.id}`}
                      className="bg-white text-[#00C9A7] p-4 rounded-full shadow-2xl transform scale-75 group-hover:scale-100 transition-transform"
@@ -61,35 +80,38 @@ export default async function MyCoursesPage() {
                 </div>
               </div>
               
-              <div className="p-6">
-                <span className="text-[10px] font-black text-[#00C9A7] bg-teal-50 px-2 py-1 rounded uppercase tracking-wider mb-3 inline-block">
+              <div className="p-6 flex flex-col h-full">
+                <span className="text-[10px] font-black text-[#00C9A7] bg-teal-50 px-2 py-1 rounded uppercase tracking-wider mb-3 inline-block self-start">
                   {item.courses.level || "Beginner"}
                 </span>
                 <h3 className="text-xl font-bold text-gray-900 leading-tight mb-4 group-hover:text-[#00C9A7] transition-colors line-clamp-2">
                   {item.courses.title}
                 </h3>
                 
-                {/* PERBAIKAN 3: Ubah Progres Simulasi menjadi 0% */}
-                <div className="space-y-2">
+                {/* BAR PROGRES DINAMIS */}
+                <div className="space-y-2 mt-auto">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-gray-400">Progres Belajar</span>
-                    <span className="text-[#00C9A7]">0%</span>
+                    <span className="text-[#00C9A7]">{progressPercent}%</span>
                   </div>
                   <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#00C9A7] rounded-full" style={{ width: '0%' }}></div>
+                    <div className="h-full bg-[#00C9A7] rounded-full transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
                   </div>
                 </div>
 
-                {/* PERBAIKAN 2: Ubah URL dari /learning/ menjadi /learning-path/ */}
                 <Link 
                   href={`/dashboard/learning-path/${item.courses.id}`}
-                  className="mt-6 w-full py-3 border-2 border-[#00C9A7] text-[#00C9A7] font-black rounded-xl hover:bg-[#00C9A7] hover:text-white transition-all text-center block text-sm"
+                  className={`mt-6 w-full py-3 border-2 font-black rounded-xl transition-all text-center block text-sm ${
+                    progressPercent >= 100 
+                      ? "border-gray-200 text-gray-500 hover:bg-gray-100" 
+                      : "border-[#00C9A7] text-[#00C9A7] hover:bg-[#00C9A7] hover:text-white"
+                  }`}
                 >
-                  Lanjutkan Belajar
+                  {progressPercent >= 100 ? "Ulangi Materi" : "Lanjutkan Belajar"}
                 </Link>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

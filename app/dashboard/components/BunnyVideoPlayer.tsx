@@ -15,12 +15,7 @@ export default function BunnyVideoPlayer({ videoId, title }: BunnyPlayerProps) {
 
   return (
     <div className="w-full flex flex-col h-full bg-black">
-      {/* --- DEBUGGER: Baris ini untuk mengecek apakah ID dari database masuk. 
-          Nanti bisa dihapus kalau video sudah jalan --- */}
-      <div className="bg-red-500 text-white text-[10px] p-1 text-center">
-        DEBUG - Mencoba memutar Video ID: {videoId}
-      </div>
-
+  
       <div className="relative w-full flex-1 min-h-[300px] md:min-h-[450px]">
         <iframe
           src={embedUrl}

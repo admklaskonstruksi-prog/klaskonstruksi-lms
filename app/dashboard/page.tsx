@@ -12,6 +12,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
 
+  // --- CEK KELAS YANG SUDAH DIBELI ---
+  const { data: myEnrollments } = await supabase
+    .from("enrollments")
+    .select("course_id")
+    .eq("user_id", user.id);
+  const ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];
+
   const sp = await searchParams; 
   const categoryFilter = sp?.category || "semua";
   const sortFilter = sp?.sort || "terbaru";
@@ -127,24 +134,43 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
          </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {courses?.map((course) => (
-            <Link href={`/dashboard/checkout/${course.id}`} key={course.id} className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl hover:border-[#F97316]/50 transition-all duration-300 group">
+          {courses?.map((course) => {
+            // Cek apakah kelas ini sudah dibeli
+            const isOwned = ownedCourseIds.includes(course.id);
+            
+            return (
+            <Link 
+              // Jika sudah dibeli, klik langsung mengarah ke ruang belajar, bukan checkout
+              href={isOwned ? `/dashboard/learning-path/${course.id}` : `/dashboard/checkout/${course.id}`} 
+              key={course.id} 
+              // Jika sudah dibeli, jadikan sedikit transparan / abu-abu (grayscale)
+              className={`flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 group ${isOwned ? 'opacity-80 grayscale-[40%] hover:grayscale-0' : 'hover:shadow-xl hover:border-[#F97316]/50'}`}
+            >
               
               <div className="relative aspect-video w-full bg-gray-100 border-b border-gray-100 overflow-hidden">
+                {/* Gambar Thumbnail */}
                 {course.thumbnail_url ? (
                   <Image src={course.thumbnail_url} alt={course.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-medium">No Image</div>
                 )}
-                {course.sales_count > 100 && (
+                {course.sales_count > 100 && !isOwned && (
                    <div className="absolute top-3 left-3 bg-[#eceb98] text-[#3d3c0a] text-[10px] font-black px-2.5 py-1 rounded shadow-sm tracking-wide uppercase">
                      TERLARIS
+                   </div>
+                )}
+                
+                {/* Jika sudah dimiliki, tampilkan Overlay "SUDAH DIMILIKI" */}
+                {isOwned && (
+                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10 backdrop-blur-[1px]">
+                     <span className="bg-white text-[#F97316] font-black px-4 py-2 rounded-lg shadow-lg text-sm">
+                       SUDAH DIMILIKI
+                     </span>
                    </div>
                 )}
               </div>
 
               <div className="p-4 flex flex-col flex-1">
-                 {/* Kategori & Level di sini */}
                  <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 mb-2 uppercase tracking-wider">
                     <span className="bg-orange-50 text-[#F97316] px-2 py-0.5 rounded-sm">{course.level || "ALL LEVEL"}</span>
                  </div>
@@ -168,19 +194,26 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                    {course.sales_count > 0 && <span className="text-gray-500 font-medium">{course.sales_count} Terjual</span>}
                  </div>
 
-                 <div className="pt-3 border-t border-gray-100 flex items-end gap-2">
-                   {course.price > 0 ? (
-                     <>
-                       <span className="font-black text-gray-900 text-lg">Rp {course.price.toLocaleString("id-ID")}</span>
-                       {course.strike_price > 0 && <span className="text-gray-400 line-through text-xs mb-1 font-medium">Rp {course.strike_price.toLocaleString("id-ID")}</span>}
-                     </>
-                   ) : (
-                     <span className="font-black text-[#F97316] text-lg">Gratis</span>
+                 <div className="pt-3 border-t border-gray-100 flex items-end justify-between gap-2 mt-auto">
+                   <div>
+                     {course.price > 0 ? (
+                       <>
+                         <span className="font-black text-gray-900 text-lg">Rp {course.price.toLocaleString("id-ID")}</span>
+                         {!isOwned && course.strike_price > 0 && <span className="text-gray-400 line-through text-xs mb-1 font-medium ml-2">Rp {course.strike_price.toLocaleString("id-ID")}</span>}
+                       </>
+                     ) : (
+                       <span className="font-black text-[#F97316] text-lg">Gratis</span>
+                     )}
+                   </div>
+                   
+                   {/* Tambahkan Teks Indikator di pojok kanan bawah jika sudah dimiliki */}
+                   {isOwned && (
+                     <span className="text-[11px] font-bold text-[#00C9A7] bg-teal-50 px-2 py-1 rounded">Masuk Kelas</span>
                    )}
                  </div>
               </div>
             </Link>
-          ))}
+          )})}
         </div>
       )}
     </div>
