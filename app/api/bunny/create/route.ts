@@ -3,15 +3,15 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { title } = await request.json();
+    
+    // API Key tetap rahasia, ambil dari environment
     const apiKey = process.env.BUNNY_API_KEY;
-    const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
+    
+    // KITA TULIS LANGSUNG LIBRARY ID-NYA DI SINI (ANTI-GAGAL)
+    const libraryId = "594715"; 
 
-    // --- PERUBAHAN DEBUGGING ---
-    // Kode ini akan memberi tahu kita persis variabel mana yang tidak terbaca oleh Vercel
-    if (!apiKey || !libraryId) {
-      return NextResponse.json({ 
-        error: `Config Missing! BUNNY_API_KEY: ${apiKey ? 'Ada ✅' : 'KOSONG ❌'} | NEXT_PUBLIC_BUNNY_LIBRARY_ID: ${libraryId ? 'Ada ✅' : 'KOSONG ❌'}` 
-      }, { status: 500 });
+    if (!apiKey) {
+      return NextResponse.json({ error: 'BUNNY_API_KEY di Vercel masih kosong!' }, { status: 500 });
     }
 
     // 1. Minta Slot Video Baru ke Bunny
