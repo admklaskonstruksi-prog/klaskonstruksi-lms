@@ -10,11 +10,25 @@ interface Category {
   name: string;
 }
 
-export default function CreateCourseForm({ categories }: { categories: Category[] }) {
+interface SubCategory extends Category {
+  main_category_id: string;
+}
+
+export default function CreateCourseForm({ 
+    mainCategories, 
+    subCategories, 
+    levels 
+}: { 
+    mainCategories: Category[], 
+    subCategories: SubCategory[], 
+    levels: Category[] 
+}) {
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  
+  // State untuk melacak Main Kategori yang dipilih
+  const [selectedMainCat, setSelectedMainCat] = useState<string>("");
 
-  // Fungsi preview gambar sebelum upload
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -34,8 +48,12 @@ export default function CreateCourseForm({ categories }: { categories: Category[
       alert("Error: " + result.error);
       setIsLoading(false);
     } 
-    // Jika sukses, dia akan redirect otomatis
   }
+
+  // Filter sub kategori berdasarkan main kategori yang dipilih
+  const filteredSubCategories = subCategories.filter(
+      sub => sub.main_category_id === selectedMainCat
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -59,13 +77,7 @@ export default function CreateCourseForm({ categories }: { categories: Category[
               )}
             </div>
             <div className="flex-1">
-              <input
-                type="file"
-                name="thumbnail"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 transition-all cursor-pointer"
-              />
+              <input type="file" name="thumbnail" accept="image/*" onChange={handleImageChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 transition-all cursor-pointer"/>
               <p className="text-xs text-gray-400 mt-2">Disarankan ukuran 1280x720px (Format: JPG, PNG).</p>
             </div>
           </div>
@@ -77,25 +89,53 @@ export default function CreateCourseForm({ categories }: { categories: Category[
           <input name="title" required type="text" placeholder="Contoh: Mekanika Teknik Dasar" className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none" />
         </div>
 
-        {/* Kategori & Level */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Hierarki Kategori & Level */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Main Kategori */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
-            <select name="category_id" className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white">
-              <option value="">-- Pilih Kategori --</option>
-              {categories.map((cat) => (
+            <label className="block text-sm font-medium text-gray-700 mb-2">Main Kategori</label>
+            <select 
+                name="main_category_id" 
+                required
+                value={selectedMainCat}
+                onChange={(e) => setSelectedMainCat(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white"
+            >
+              <option value="">-- Pilih Main Kategori --</option>
+              {mainCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
           </div>
+
+          {/* Sub Kategori */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
-            <select name="level" className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white">
-              <option value="Beginner">Pemula</option>
-              <option value="Intermediate">Menengah</option>
-              <option value="Advanced">Mahir</option>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
+            <select 
+                name="sub_category_id" 
+                required
+                disabled={!selectedMainCat} 
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">-- Pilih Sub Kategori --</option>
+              {filteredSubCategories.map((sub) => (
+                <option key={sub.id} value={sub.id}>{sub.name}</option>
+              ))}
             </select>
           </div>
+
+          {/* Level Dinamis dari Database */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
+            <select name="level_id" required className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white">
+              <option value="">-- Pilih Level --</option>
+              {levels.map((lvl) => (
+                  <option key={lvl.id} value={lvl.id}>{lvl.name}</option>
+              ))}
+            </select>
+          </div>
+
         </div>
 
         {/* Deskripsi */}
@@ -105,10 +145,8 @@ export default function CreateCourseForm({ categories }: { categories: Category[
         </div>
       </div>
 
-      {/* SECTION 2: Pengaturan Jual */}
+      {/* SECTION 2: Pengaturan Jual (Sama seperti sebelumnya) */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
-        
-        {/* Harga */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Harga Kelas</label>
           <div className="relative">
@@ -118,7 +156,6 @@ export default function CreateCourseForm({ categories }: { categories: Category[
           <p className="text-xs text-gray-400 mt-1">Isi 0 jika kelas ini Gratis.</p>
         </div>
 
-        {/* Status Publish */}
         <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
           <div>
             <h4 className="font-medium text-gray-900">Langsung Tayangkan?</h4>
@@ -129,27 +166,12 @@ export default function CreateCourseForm({ categories }: { categories: Category[
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
           </label>
         </div>
-
       </div>
 
       {/* FOOTER ACTIONS */}
       <div className="flex justify-end gap-4">
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-lg font-medium transition-all flex items-center gap-2 shadow-lg disabled:opacity-70"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="animate-spin w-5 h-5" />
-              Menyimpan...
-            </>
-          ) : (
-            <>
-              Lanjut ke Materi
-              <ArrowRight size={18} />
-            </>
-          )}
+        <button type="submit" disabled={isLoading} className="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-lg font-medium transition-all flex items-center gap-2 shadow-lg disabled:opacity-70">
+          {isLoading ? <><Loader2 className="animate-spin w-5 h-5" /> Menyimpan...</> : <><ArrowRight size={18} /> Simpan Kelas</>}
         </button>
       </div>
 

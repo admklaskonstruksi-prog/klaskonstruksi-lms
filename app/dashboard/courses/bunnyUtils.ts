@@ -1,5 +1,5 @@
-const ACCESS_KEY = "6ab143c7-803b-417e-ad1dfa14b027-99d6-4c35";
-const LIBRARY_ID = "594715";
+const ACCESS_KEY = "f5401951-085f-4ff8-801f9e4de7f5-91e9-446e";
+const LIBRARY_ID = "606426";
 const BASE_URL = `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos`;
 
 export async function uploadVideoToBunny(file: File, title: string): Promise<string | null> {

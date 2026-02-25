@@ -3,39 +3,70 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function createCategory(formData: FormData) {
-  const supabase = await createClient();
+// --- MAIN CATEGORY ACTIONS ---
+export async function createMainCategory(formData: FormData) {
   const name = formData.get("name") as string;
-  
   if (!name) return { error: "Nama kategori wajib diisi" };
 
-  const { error } = await supabase.from("categories").insert({ name });
+  const supabase = await createClient();
+  const { error } = await supabase.from("main_categories").insert([{ name }]);
 
   if (error) return { error: error.message };
-  
   revalidatePath("/dashboard/categories");
-  return { success: true };
+  revalidatePath("/dashboard/courses/create");
 }
 
-export async function deleteCategory(formData: FormData) {
-  const supabase = await createClient();
+export async function deleteMainCategory(formData: FormData) {
   const id = formData.get("id") as string;
-
-  // 1. Cek apakah kategori dipakai oleh course?
-  const { count } = await supabase
-    .from("courses")
-    .select("*", { count: 'exact', head: true })
-    .eq("category_id", id);
-
-  if (count && count > 0) {
-    return { error: `Gagal! Kategori ini sedang digunakan oleh ${count} kelas.` };
-  }
-
-  // 2. Hapus jika aman
-  const { error } = await supabase.from("categories").delete().eq("id", id);
+  const supabase = await createClient();
+  const { error } = await supabase.from("main_categories").delete().eq("id", id);
 
   if (error) return { error: error.message };
-
   revalidatePath("/dashboard/categories");
-  return { success: true };
+}
+
+// --- SUB CATEGORY ACTIONS ---
+export async function createSubCategory(formData: FormData) {
+  const name = formData.get("name") as string;
+  const main_category_id = formData.get("main_category_id") as string;
+  
+  if (!name || !main_category_id) return { error: "Nama dan Main Kategori wajib diisi" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("sub_categories").insert([{ name, main_category_id }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/categories");
+  revalidatePath("/dashboard/courses/create");
+}
+
+export async function deleteSubCategory(formData: FormData) {
+  const id = formData.get("id") as string;
+  const supabase = await createClient();
+  const { error } = await supabase.from("sub_categories").delete().eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/categories");
+}
+
+// --- LEVEL ACTIONS ---
+export async function createLevel(formData: FormData) {
+  const name = formData.get("name") as string;
+  if (!name) return { error: "Nama level wajib diisi" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("course_levels").insert([{ name }]);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/categories");
+  revalidatePath("/dashboard/courses/create");
+}
+
+export async function deleteLevel(formData: FormData) {
+  const id = formData.get("id") as string;
+  const supabase = await createClient();
+  const { error } = await supabase.from("course_levels").delete().eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/categories");
 }

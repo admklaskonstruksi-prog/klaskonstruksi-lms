@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import ChaptersList from "./components/ChaptersList"; 
-import EditCourseForm from "./components/EditCourseForm"; // <--- Import Komponen Baru
+import EditCourseForm from "./components/EditCourseForm"; 
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -26,29 +26,28 @@ export default async function CourseSetupPage(props: Props) {
 
   if (!course) return redirect("/dashboard/courses");
 
-  // 3. Ambil Data Modul
+  // 3. Ambil Data Modul (Chapter) DAN Materi (Lessons) di dalamnya
   const { data: chapters } = await supabase
     .from("chapters")
-    .select("*")
+    .select("*, lessons(*)") // Menarik data tabel berelasi
     .eq("course_id", id)
     .order("position", { ascending: true });
 
-  // 4. Ambil Kategori (Buat Dropdown di Form Edit)
-  const { data: categories } = await supabase.from("categories").select("*").order("name");
+  // Urutkan lessons berdasarkan posisi agar rapi
+  chapters?.forEach(ch => {
+    if (ch.lessons) ch.lessons.sort((a: any, b: any) => a.position - b.position);
+  });
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Kelola Kelas</h1>
-        <p className="text-gray-500">Edit detail kelas dan atur materi pembelajaran di sini.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Kelola Kelas & Modul</h1>
+        <p className="text-gray-500">Edit detail spesifik kelas dan susun materi pembelajaran Anda di bawah.</p>
       </div>
 
       {/* --- BAGIAN 1: FORM EDIT DETAIL KELAS --- */}
-      <EditCourseForm 
-        course={course} 
-        categories={categories || []} 
-      />
+      <EditCourseForm course={course} />
 
       <hr className="my-8 border-gray-200" />
 
@@ -58,7 +57,9 @@ export default async function CourseSetupPage(props: Props) {
            <span className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm">2</span>
            Kurikulum & Materi
         </h2>
-        <p className="text-gray-500 text-sm mb-4 pl-10">Susun bab dan upload video materi di sini.</p>
+        <p className="text-gray-500 text-sm mb-4 pl-10">
+          Buat <b>Bab/Bagian</b> (misal: Pengantar), lalu tambahkan <b>Video Materi</b> di dalamnya.
+        </p>
         
         <div className="pl-0 md:pl-10">
             <ChaptersList 

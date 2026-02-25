@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { Plus, Trash2, Pencil, BookOpen, AlertCircle } from "lucide-react";
 import { revalidatePath } from "next/cache";
-// IMPORT INI PENTING (Sesuaikan path-nya jika perlu)
 import { deleteVideoFromBunny } from "./bunnyUtils"; 
+// IMPORT KOMPONEN TOGGLE YANG BARU DIBUAT
+import PublishToggle from "./components/PublishToggle"; 
 
 export default async function AdminCoursesPage() {
   const supabase = await createClient();
@@ -35,16 +36,13 @@ export default async function AdminCoursesPage() {
     const supabase = await createClient();
     
     try {
-        // 1. AMBIL SEMUA CHAPTER DULU (Cari ID Videonya)
         const { data: chapters } = await supabase
             .from("chapters")
             .select("video_id")
             .eq("course_id", courseId);
 
-        // 2. LOOPING HAPUS VIDEO DI BUNNY.NET
         if (chapters && chapters.length > 0) {
             console.log(`Menghapus ${chapters.length} video dari Bunny...`);
-            // Kita pakai Promise.all biar ngebut (hapus barengan)
             await Promise.all(
                 chapters.map(async (chapter) => {
                     if (chapter.video_id) {
@@ -54,8 +52,6 @@ export default async function AdminCoursesPage() {
             );
         }
 
-        // 3. BARU HAPUS KELASNYA DI DATABASE
-        // (Data chapters akan ikut terhapus otomatis karena Cascade SQL tadi)
         const { error } = await supabase.from("courses").delete().eq("id", courseId);
         
         if (error) throw error;
@@ -68,9 +64,7 @@ export default async function AdminCoursesPage() {
   // ---------------------------------------------------------
 
   return (
-    // ... (SISA KODE TAMPILAN DI BAWAH SAMA PERSIS SEPERTI SEBELUMNYA)
     <div className="p-6 max-w-7xl mx-auto">
-      {/* ... Header, Error State, Empty State sama ... */}
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
@@ -104,7 +98,6 @@ export default async function AdminCoursesPage() {
         </div>
       )}
 
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses?.map((course) => (
           <div key={course.id} className="group bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
@@ -118,17 +111,12 @@ export default async function AdminCoursesPage() {
                     <span className="text-xs font-medium">No Image</span>
                   </div>
                )}
-               <div className="absolute top-3 left-3">
-                 <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-full shadow-sm ${course.is_published ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'}`}>
-                    {course.is_published ? "Tayang" : "Draft"}
-                 </span>
-               </div>
             </div>
 
             {/* KONTEN */}
             <div className="p-5 flex flex-col flex-1">
               <div className="mb-auto">
-                <h3 className="font-bold text-gray-900 text-lg leading-tight line-clamp-2 mb-2 group-hover:text-blue-600 transition-colors">
+                <h3 className="font-bold text-gray-900 text-lg leading-tight line-clamp-2 mb-2 group-hover:text-[#00C9A7] transition-colors">
                   {course.title}
                 </h3>
                 <p className="text-sm text-gray-500 line-clamp-2">
@@ -138,12 +126,19 @@ export default async function AdminCoursesPage() {
               
               {/* TOMBOL AKSI */}
               <div className="flex items-center gap-3 pt-5 mt-4 border-t border-gray-100">
+                
+                {/* 1. TOGGLE LIVE / DRAFT CEPAT */}
+                <div className="bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-100 flex-shrink-0">
+                    <PublishToggle courseId={course.id} initialStatus={course.is_published} />
+                </div>
+
+                {/* 2. TOMBOL KELOLA MATERI */}
                 <a href={`/dashboard/courses/${course.id}`} className="flex-1 bg-gray-900 text-white text-sm font-medium py-2.5 rounded-lg text-center hover:bg-black transition-colors flex items-center justify-center gap-2">
-                  <Pencil size={14} /> Kelola Materi
+                  <Pencil size={14} /> Kelola
                 </a>
 
-                {/* FORM HAPUS */}
-                <form action={deleteCourse}>
+                {/* 3. FORM HAPUS */}
+                <form action={deleteCourse} className="flex-shrink-0">
                     <input type="hidden" name="course_id" value={course.id} />
                     <button type="submit" className="bg-red-50 text-red-600 p-2.5 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors border border-red-100" title="Hapus Kelas & Video">
                         <Trash2 size={18} />

@@ -159,3 +159,17 @@ import { uploadVideoToBunny } from "./bunnyUtils";
 // Cuma export yang upload saja
 export { uploadVideoToBunny };
 
+// --- TAMBAHAN BARU: TOGGLE STATUS KELAS CEPAT ---
+export async function toggleCourseStatus(courseId: string, newStatus: boolean) {
+  const supabase = await createClient();
+  
+  const { error } = await supabase
+    .from("courses")
+    .update({ is_published: newStatus })
+    .eq("id", courseId);
+
+  if (error) return { error: error.message };
+  
+  revalidatePath("/dashboard/courses"); // Refresh halaman list kelas
+  return { success: true };
+}
