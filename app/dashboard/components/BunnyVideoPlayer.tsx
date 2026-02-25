@@ -6,7 +6,7 @@ interface BunnyPlayerProps {
 }
 
 export default function BunnyVideoPlayer({ videoId, title }: BunnyPlayerProps) {
-  const LIBRARY_ID = "594715"; 
+  const LIBRARY_ID = "606426"; 
 
   if (!videoId) return <div className="p-10 text-white">Video ID tidak ditemukan.</div>;
 
