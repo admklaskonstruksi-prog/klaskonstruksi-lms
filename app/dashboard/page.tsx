@@ -11,6 +11,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return redirect("/login");
 
+  // Tarik data profil, termasuk role (hak akses)
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
 
   // --- CEK KELAS YANG SUDAH DIBELI ---
@@ -45,6 +46,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   const { data: courses } = await query;
   const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
 
+  // Cek apakah user adalah admin (Pastikan huruf kecil untuk pencocokan yang aman)
+  const isAdmin = profile?.role?.toLowerCase() === 'admin';
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans selection:bg-[#F97316] selection:text-white">
       
@@ -53,7 +57,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
         <h1 className="text-2xl font-bold text-gray-900">
           Halo, <span className="text-[#F97316]">{profile?.full_name || 'Siswa'}</span> 👋
         </h1>
-        <p className="text-gray-500 mt-1">Siap melanjutkan pembelajaran hari ini?</p>
+        <p className="text-gray-500 mt-1">
+           {isAdmin ? "Selamat datang di panel kontrol Admin." : "Siap melanjutkan pembelajaran hari ini?"}
+        </p>
       </div>
 
       {/* FILTER & PENCARIAN */}
@@ -213,10 +219,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
       )}
 
       {/* --- KOMPONEN ONBOARDING DIMASUKKAN DI SINI --- */}
-      <SmartOnboardingModal 
-        categories={categories || []} 
-        isCompleted={profile?.onboarding_completed || false} 
-      />
+      {/* HANYA MUNCUL JIKA USER BUKAN ADMIN */}
+      {!isAdmin && (
+        <SmartOnboardingModal 
+          categories={categories || []} 
+          isCompleted={profile?.onboarding_completed || false} 
+        />
+      )}
 
     </div>
   );
