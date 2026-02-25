@@ -77,10 +77,17 @@ export async function saveCourseContent(formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   
-  // Tangkap data
   const goals = formData.get("goals") as string; 
   const keypoints = formData.get("keypoints") as string; 
-  const price = Number(formData.get("price"));
+  
+  const price = Number(formData.get("price")) || 0;
+  const strike_price = Number(formData.get("strike_price")) || 0; 
+  
+  // --- TANGKAP 3 DATA BARU ---
+  const rating = Number(formData.get("rating")) || 0; 
+  const review_count = Number(formData.get("review_count")) || 0; 
+  const sales_count = Number(formData.get("sales_count")) || 0; 
+  
   const is_published = formData.get("is_published") === "on";
 
   const thumbnailFile = formData.get("thumbnail") as File;
@@ -99,13 +106,10 @@ export async function saveCourseContent(formData: FormData) {
   const { error } = await supabase
     .from("courses")
     .update({ 
-        title, 
-        description, 
-        goals,        
-        keypoints,    
-        price, 
-        is_published, 
-        thumbnail_url 
+        title, description, goals, keypoints,    
+        price, strike_price,
+        rating, review_count, sales_count, // <--- Simpan ke Database
+        is_published, thumbnail_url 
     })
     .eq("id", courseId);
 
@@ -113,5 +117,6 @@ export async function saveCourseContent(formData: FormData) {
 
   revalidatePath(`/dashboard/courses/${courseId}`);
   revalidatePath("/dashboard/courses"); 
+  revalidatePath("/dashboard");
   return { success: true };
 }

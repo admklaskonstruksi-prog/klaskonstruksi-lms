@@ -13,6 +13,10 @@ interface CourseData {
   goals: string | null;
   keypoints: string | null;
   price: number;
+  strike_price?: number;
+  rating?: number;        // <--- Tambahan
+  review_count?: number;  // <--- Tambahan
+  sales_count?: number;   // <--- Tambahan
   is_published: boolean;
   thumbnail_url: string | null;
 }
@@ -78,10 +82,9 @@ export default function EditCourseForm({ course }: { course: CourseData }) {
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
       
-      {/* HEADER: SEKARANG HANYA JUDUL, TANPA TOMBOL SAVE */}
       <div className="p-6 border-b border-gray-100 bg-gray-50">
         <h3 className="font-bold text-gray-800">Edit Informasi Kelas</h3>
-        <p className="text-sm text-gray-500">Kategori dan Level telah diatur di awal pembuatan kelas.</p>
+        <p className="text-sm text-gray-500">Kelola detail, harga, dan rating visual kelas.</p>
       </div>
 
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -115,6 +118,30 @@ export default function EditCourseForm({ course }: { course: CourseData }) {
                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00C9A7]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00C9A7]"></div>
               </label>
            </div>
+
+           {/* --- KOTAK SOCIAL PROOF (RATING & REVIEW) --- */}
+           <div className="bg-orange-50/50 p-4 rounded-lg border border-orange-100 space-y-4">
+               <div>
+                 <h4 className="text-sm font-bold text-orange-900">Social Proof (Visual Opsional)</h4>
+                 <p className="text-xs text-orange-700">Tampilkan angka ini untuk menarik minat pembeli.</p>
+               </div>
+               
+               <div className="grid grid-cols-3 gap-3">
+                   <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Bintang (0-5)</label>
+                      <input name="rating" type="number" step="0.1" defaultValue={course.rating || 0} className="w-full px-3 py-1.5 border border-orange-200 rounded-md outline-none text-sm" />
+                   </div>
+                   <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Jml Review</label>
+                      <input name="review_count" type="number" defaultValue={course.review_count || 0} className="w-full px-3 py-1.5 border border-orange-200 rounded-md outline-none text-sm" />
+                   </div>
+                   <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Terjual</label>
+                      <input name="sales_count" type="number" defaultValue={course.sales_count || 0} className="w-full px-3 py-1.5 border border-orange-200 rounded-md outline-none text-sm" />
+                   </div>
+               </div>
+           </div>
+
         </div>
 
         <div className="space-y-4">
@@ -123,9 +150,15 @@ export default function EditCourseForm({ course }: { course: CourseData }) {
               <input name="title" defaultValue={course.title} required type="text" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition" />
            </div>
 
-           <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Harga (Rp)</label>
-              <input name="price" type="number" defaultValue={course.price} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition" />
+           <div className="grid grid-cols-2 gap-4">
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Harga Jual (Rp)</label>
+                  <input name="price" type="number" defaultValue={course.price} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition" />
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Harga Coret (Rp)</label>
+                  <input name="strike_price" type="number" defaultValue={course.strike_price || 0} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-400 outline-none transition" />
+               </div>
            </div>
 
            <div>
@@ -153,7 +186,6 @@ export default function EditCourseForm({ course }: { course: CourseData }) {
         </div>
       </div>
 
-      {/* FOOTER: TOMBOL SAVE PINDAH KE SINI */}
       <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end">
         <button type="submit" disabled={isLoading} className="bg-black text-white px-8 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-gray-800 disabled:opacity-50 transition w-full md:w-auto shadow-lg shadow-gray-200">
           {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}

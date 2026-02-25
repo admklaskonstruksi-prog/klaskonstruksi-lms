@@ -1,215 +1,239 @@
 import { createClient } from "@/utils/supabase/server";
-import { BookOpen, Users, DollarSign, TrendingUp } from "lucide-react";
-import StudentMarketplace from "@/app/dashboard/components/StudentMarketplace"; 
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { Star, StarHalf, Search } from "lucide-react"; 
 
-// --- KOMPONEN HELPER (KARTU STATISTIK ADMIN) ---
-function AdminStatCard({ title, value, icon: Icon, color }: any) {
-  const colors: any = {
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    green: "bg-green-50 text-green-600 border-green-100",
-    purple: "bg-purple-50 text-purple-600 border-purple-100",
-    yellow: "bg-yellow-50 text-yellow-600 border-yellow-100",
-  };
-  
-  return (
-    <div className={`p-6 rounded-2xl border flex items-center gap-4 ${colors[color] || colors.blue}`}>
-      <div className={`p-3 rounded-xl bg-white shadow-sm`}>
-        <Icon className="w-6 h-6" />
-      </div>
-      <div>
-        <p className="text-xs uppercase tracking-wider font-bold opacity-70">{title}</p>
-        <p className="text-2xl font-bold">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-export default async function DashboardPage() {
+// Kita tambahkan searchParams untuk menangkap URL (Filter & Sort)
+export default async function DashboardPage({ searchParams }: { searchParams?: Promise<any> | any }) {
   const supabase = await createClient();
-  
-  // 1. Cek User Session
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return redirect("/login");
-  }
 
-  // 2. Fetch Profile untuk Cek Role
+  // 1. Cek User Login
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return redirect("/login");
+
+  // 2. Ambil data Profile untuk nama user
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role")
+    .select("*")
     .eq("id", user.id)
     .single();
 
-  const isAdmin = profile?.role === "admin";
+  // 3. TANGKAP PARAMETER URL (Filter Kategori, Sorting, dan Pencarian)
+  // (Aman untuk Next.js 14 maupun Next.js 15)
+  const sp = await searchParams; 
+  const categoryFilter = sp?.category || "semua";
+  const sortFilter = sp?.sort || "terbaru";
+  const searchQ = sp?.q || "";
 
-  // === DATA FETCHING VARIABLES ===
-  // Variabel untuk Admin
-  let analyticsData = { 
-    stats: { courses: 0, users: 0, revenue: 0, enrollments: 0 },
-    recentCourses: [] as any[]
-  };
+  // 4. MEMBANGUN QUERY DATABASE SECARA DINAMIS
+  let query = supabase.from("courses").select("*").eq("is_published", true);
 
-  // Variabel untuk Siswa
-  let studentCourses: any[] = [];
-  let categories: any[] = [];
-
-  // === LOGIC CABANG (ADMIN VS SISWA) ===
-  if (isAdmin) {
-    // --- ADMIN LOGIC ---
-    
-    // Hitung Total Kelas
-    const { count: totalCourses } = await supabase.from("courses").select("*", { count: 'exact', head: true });
-    
-    // Hitung Total User (Kecuali Admin)
-    const { count: totalUsers } = await supabase
-        .from("profiles")
-        .select("*", { count: 'exact', head: true })
-        .neq('role', 'admin');
-    
-    // Hitung Revenue (Total Harga dari Enrollment)
-    const { data: enrollmentData } = await supabase.from("enrollments").select("courses(price)");
-    const totalRevenue = enrollmentData?.reduce((acc, curr: any) => acc + (curr.courses?.price || 0), 0) || 0;
-    
-    // Hitung Total Enrollment
-    const { count: totalEnrollments } = await supabase.from("enrollments").select("*", { count: 'exact', head: true });
-
-    analyticsData.stats = {
-        courses: totalCourses || 0,
-        users: totalUsers || 0,
-        revenue: totalRevenue,
-        enrollments: totalEnrollments || 0
-    };
-
-    // Ambil 5 Kelas Terbaru untuk Tabel Admin
-    const { data: recentCourses } = await supabase
-        .from("courses")
-        .select("*, categories(name)")
-        .order("created_at", { ascending: false })
-        .limit(5);
-        
-    analyticsData.recentCourses = recentCourses || [];
-
-  } else {
-    // --- STUDENT LOGIC (DIPERBARUI) ---
-    // Mengambil data yang dibutuhkan oleh <StudentMarketplace />
-    
-    // 1. Ambil Semua Course (Lengkap dengan Nama Kategori)
-    const { data: coursesData } = await supabase
-      .from("courses")
-      .select(`
-        *,
-        categories (name)
-      `)
-      .order("created_at", { ascending: false });
-    
-    studentCourses = coursesData || [];
-
-    // 2. Ambil Semua Kategori untuk Filter
-    const { data: categoriesData } = await supabase
-      .from("categories")
-      .select("*")
-      .order("name");
-      
-    categories = categoriesData || [];
+  // Jika Kategori dipilih (dan bukan "semua")
+  if (categoryFilter !== "semua") {
+    query = query.eq("main_category_id", categoryFilter);
   }
 
+  // Jika ada kata kunci pencarian
+  if (searchQ) {
+    query = query.ilike("title", `%${searchQ}%`);
+  }
+
+  // Jika filter Sorting diklik
+  if (sortFilter === "terpopuler") {
+    query = query.order("sales_count", { ascending: false }); // Urutkan penjualan terbanyak
+  } else {
+    query = query.order("created_at", { ascending: false });  // Urutkan kelas terbaru
+  }
+
+  // Eksekusi Query Kelas
+  const { data: courses } = await query;
+
+  // 5. AMBIL DAFTAR KATEGORI ASLI DARI DATABASE UNTUK TOMBOL
+  const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
+
   return (
-    <div>
-      {/* HEADER DASHBOARD */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-           <h1 className="text-2xl font-bold text-gray-900">
-             Halo, <span className="text-[#00C9A7]">{profile?.full_name || "Pengguna"}</span> 👋
-           </h1>
-           <p className="text-gray-500 text-sm mt-1">
-             {isAdmin ? "Panel kontrol administrator sistem." : "Siap melanjutkan pembelajaran hari ini?"}
-           </p>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+      
+      {/* --- BAGIAN 1: HEADER & SAPAAN --- */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Halo, <span className="text-[#00C9A7]">{profile?.full_name || 'Siswa'}</span> 👋
+        </h1>
+        <p className="text-gray-500 mt-1">Siap melanjutkan pembelajaran hari ini?</p>
+      </div>
+
+      {/* --- BAGIAN 2: PENCARIAN & KATEGORI DINAMIS --- */}
+      <div className="mb-10">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Jelajah Kelas</h2>
+        <div className="flex flex-col md:flex-row gap-4">
+          
+          {/* Form Pencarian (Mengubah URL tanpa JavaScript) */}
+          <form method="GET" className="relative flex-1 flex items-center">
+             {/* Simpan filter saat ini agar tidak hilang saat mencari */}
+             <input type="hidden" name="category" value={categoryFilter} />
+             <input type="hidden" name="sort" value={sortFilter} />
+             
+             <div className="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-white flex items-center focus-within:ring-2 focus-within:ring-[#00C9A7] transition-all">
+               <Search size={20} className="text-gray-400 absolute left-3" />
+               <input
+                 type="text"
+                 name="q"
+                 defaultValue={searchQ}
+                 placeholder="Cari kelas yang ingin Anda pelajari..."
+                 className="w-full py-3 pl-10 pr-3 outline-none text-sm text-gray-700 bg-transparent"
+               />
+               <button type="submit" className="hidden">Cari</button>
+             </div>
+          </form>
+
+          {/* Tombol Filter Kategori (Otomatis dari Database) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+            
+            <Link 
+              href={`?category=semua&sort=${sortFilter}&q=${searchQ}`}
+              className={`px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition ${
+                categoryFilter === "semua" ? "bg-[#00C9A7] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Semua
+            </Link>
+
+            {categories?.map((cat) => (
+              <Link 
+                key={cat.id}
+                href={`?category=${cat.id}&sort=${sortFilter}&q=${searchQ}`}
+                className={`px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition ${
+                  categoryFilter === cat.id ? "bg-[#00C9A7] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {cat.name}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
-      {isAdmin ? (
-        // --- TAMPILAN ADMIN ---
-        <div className="space-y-8">
-            
-            {/* 1. KARTU STATISTIK */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <AdminStatCard title="Total Kelas" value={analyticsData.stats.courses} icon={BookOpen} color="blue" />
-                <AdminStatCard title="Total Pengguna" value={analyticsData.stats.users} icon={Users} color="green" />
-                <AdminStatCard title="Total Penjualan" value={analyticsData.stats.enrollments} icon={TrendingUp} color="purple" />
-                <AdminStatCard title="Pendapatan" value={`Rp ${(analyticsData.stats.revenue / 1000).toLocaleString()}k`} icon={DollarSign} color="yellow" />
-            </div>
+      <hr className="my-8 border-gray-100" />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* 2. SHORTCUT CARD (MENU CEPAT) */}
-                <div className="lg:col-span-1 bg-[#00C9A7] text-white rounded-2xl p-6 shadow-lg relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-                      <h3 className="font-bold mb-4 relative z-10 text-lg">Shortcut Cepat</h3>
-                      <div className="space-y-3 relative z-10">
-                         <Link href="/dashboard/analytics/sales" className="block p-3 bg-white/10 hover:bg-white/20 rounded-xl transition cursor-pointer">
-                             <p className="text-xs text-green-100 opacity-80 mb-1">Cek Keuangan</p>
-                             <div className="flex justify-between items-center">
-                                 <span className="font-bold">Laporan Penjualan</span>
-                                 <TrendingUp size={16} />
-                             </div>
-                         </Link>
-                         <Link href="/dashboard/analytics/users" className="block p-3 bg-white/10 hover:bg-white/20 rounded-xl transition cursor-pointer">
-                             <p className="text-xs text-green-100 opacity-80 mb-1">Cek Pengguna</p>
-                             <div className="flex justify-between items-center">
-                                 <span className="font-bold">Analitik Pengguna</span>
-                                 <Users size={16} />
-                             </div>
-                         </Link>
-                      </div>
-                </div>
+      {/* --- BAGIAN 3: DAFTAR KELAS (GAYA UDEMY) --- */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+           Kursus untuk membantu Anda memulai
+        </h2>
+        <p className="text-gray-600 text-sm">
+           Jelajahi kursus dari para ahli dunia nyata yang berpengalaman.
+        </p>
+      </div>
 
-                {/* 3. TABEL KELAS TERBARU (Limit 5) */}
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                        <h3 className="font-bold text-gray-800">Kelas Terbaru</h3>
-                        <Link href="/dashboard/courses/create" className="text-xs font-bold text-[#00C9A7] hover:underline">+ Buat Baru</Link>
-                    </div>
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
-                            <tr>
-                                <th className="px-6 py-4">Nama Kelas</th>
-                                <th className="px-6 py-4">Harga</th>
-                                <th className="px-6 py-4 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {analyticsData.recentCourses.map((course) => (
-                                <tr key={course.id} className="hover:bg-gray-50/50">
-                                    <td className="px-6 py-4 font-bold text-gray-800">{course.title}</td>
-                                    <td className="px-6 py-4">
-                                        {course.price === 0 ? "GRATIS" : `Rp ${(course.price / 1000).toLocaleString()}k`}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Link href={`/dashboard/courses/${course.id}`} className="text-[#00C9A7] font-bold text-xs hover:underline">Kelola</Link>
-                                    </td>
-                                </tr>
-                            ))}
-                            {analyticsData.recentCourses.length === 0 && (
-                                <tr>
-                                    <td colSpan={3} className="px-6 py-8 text-center text-gray-400 italic">
-                                        Belum ada kelas.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+      {/* Tabs Filter Sort (Terpopuler / Terbaru) */}
+      <div className="flex items-center gap-6 border-b border-gray-200 mb-6 overflow-x-auto scrollbar-hide">
+        <Link 
+           href={`?category=${categoryFilter}&sort=terpopuler&q=${searchQ}`}
+           className={`pb-3 text-sm whitespace-nowrap transition-colors ${
+             sortFilter === "terpopuler" ? "text-black font-bold border-b-2 border-black" : "text-gray-500 hover:text-black font-medium"
+           }`}
+        >
+           Terpopuler
+        </Link>
+        <Link 
+           href={`?category=${categoryFilter}&sort=terbaru&q=${searchQ}`}
+           className={`pb-3 text-sm whitespace-nowrap transition-colors ${
+             sortFilter === "terbaru" ? "text-black font-bold border-b-2 border-black" : "text-gray-500 hover:text-black font-medium"
+           }`}
+        >
+           Terbaru
+        </Link>
+      </div>
+
+      {/* Grid Kelas */}
+      {courses?.length === 0 ? (
+         <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            Tidak ada kelas yang sesuai dengan filter Anda.
+         </div>
       ) : (
-        // --- TAMPILAN SISWA (MARKETPLACE) ---
-        // Mengirim data courses & categories yang sudah difetch di atas
-        <StudentMarketplace 
-            courses={studentCourses} 
-            categories={categories} 
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+          {courses?.map((course) => (
+            
+            <Link href={`/dashboard/checkout/${course.id}`} key={course.id} className="flex flex-col gap-1 cursor-pointer group w-full">
+              
+              <div className="relative aspect-video w-full border border-gray-200 overflow-hidden mb-1 rounded-md">
+                {course.thumbnail_url ? (
+                  <Image 
+                    src={course.thumbnail_url} 
+                    alt={course.title} 
+                    fill 
+                    className="object-cover group-hover:opacity-90 transition-opacity" 
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-medium">
+                    No Image
+                  </div>
+                )}
+              </div>
+
+              <h3 className="font-bold text-gray-900 text-[15px] leading-tight line-clamp-2 mt-1 group-hover:text-[#00C9A7] transition-colors">
+                {course.title}
+              </h3>
+
+              <p className="text-xs text-gray-500 mt-0.5">Klas Konstruksi</p>
+
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs mt-0.5">
+                {course.rating > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold text-[#b4690e]">{course.rating}</span>
+                    <div className="flex text-[#b4690e]">
+                      <Star size={12} fill="currentColor" strokeWidth={0} />
+                      <Star size={12} fill="currentColor" strokeWidth={0} />
+                      <Star size={12} fill="currentColor" strokeWidth={0} />
+                      <Star size={12} fill="currentColor" strokeWidth={0} />
+                      <StarHalf size={12} fill="currentColor" strokeWidth={0} />
+                    </div>
+                    {course.review_count > 0 && (
+                      <span className="text-gray-500">({course.review_count.toLocaleString("id-ID")})</span>
+                    )}
+                  </div>
+                )}
+                
+                {course.rating > 0 && course.sales_count > 0 && (
+                  <span className="text-gray-300 hidden sm:inline">•</span>
+                )}
+
+                {course.sales_count > 0 && (
+                   <span className="text-gray-500 font-medium">
+                     {course.sales_count.toLocaleString("id-ID")} Terjual
+                   </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 mt-1">
+                {course.price > 0 ? (
+                  <>
+                    <span className="font-bold text-gray-900 text-base">
+                      Rp {course.price.toLocaleString("id-ID")}
+                    </span>
+                    {course.strike_price > 0 && (
+                        <span className="text-gray-500 line-through text-sm">
+                          Rp {course.strike_price.toLocaleString("id-ID")}
+                        </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="font-bold text-gray-900 text-base">Gratis</span>
+                )}
+              </div>
+
+              <div className="mt-1">
+                <span className="bg-[#eceb98] text-[#3d3c0a] text-[10px] font-bold px-2 py-1 rounded-sm inline-block">
+                  Terlaris
+                </span>
+              </div>
+
+            </Link>
+          ))}
+        </div>
       )}
+
     </div>
   );
 }
