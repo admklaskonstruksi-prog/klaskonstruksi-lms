@@ -4,15 +4,23 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { ArrowLeft, Lock } from "lucide-react";
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { message: string };
+  searchParams: Promise<{ message?: string; redirect?: string }>;
 }) {
+  // 1. SOLUSI ERROR: Await searchParams untuk Next.js 15
+  const sp = await searchParams;
+  const message = sp?.message;
+  
+  // 2. Tangkap URL tujuan jika user diarahkan dari halaman checkout
+  const redirectUrl = sp?.redirect || "/dashboard";
+
   const signIn = async (formData: FormData) => {
     "use server";
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
+    const nextUrl = formData.get("redirectUrl") as string; // Ambil tujuan dari form
     const supabase = await createClient();
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -24,7 +32,8 @@ export default function LoginPage({
       return redirect("/login?message=Login Gagal: " + error.message);
     }
 
-    return redirect("/dashboard");
+    // Arahkan kembali ke halaman kelas yang tadi mau dibeli
+    return redirect(nextUrl);
   };
 
   const signUp = async (formData: FormData) => {
@@ -40,7 +49,6 @@ export default function LoginPage({
       options: {
         emailRedirectTo: `${origin}/auth/callback`,
         data: {
-            // Otomatis pakai nama dari email (misal: budi@gmail.com -> Budi)
             full_name: email.split("@")[0], 
         }
       },
@@ -54,11 +62,12 @@ export default function LoginPage({
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-white">
+    <div className="min-h-screen flex flex-col md:flex-row bg-white font-sans selection:bg-[#F97316] selection:text-white">
       
-      {/* Kolom Kiri: Image/Branding */}
-      <div className="hidden md:flex md:w-1/2 bg-[#00C9A7] items-center justify-center p-12 relative overflow-hidden">
-         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=2531&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-multiply"></div>
+      {/* Kolom Kiri: Image/Branding (Warna Disamakan ke Orange) */}
+      <div className="hidden md:flex md:w-1/2 bg-[#F97316] items-center justify-center p-12 relative overflow-hidden">
+         {/* Menggunakan URL gambar permanen dari picsum */}
+         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://picsum.photos/id/1040/1000/1000')] bg-cover bg-center opacity-20 mix-blend-multiply"></div>
          <div className="relative z-10 text-white max-w-lg">
             <h2 className="text-4xl font-bold mb-6">Bangun Masa Depanmu.</h2>
             <p className="text-lg opacity-90">
@@ -69,7 +78,7 @@ export default function LoginPage({
 
       {/* Kolom Kanan: Form */}
       <div className="flex-1 flex items-center justify-center p-8 relative">
-        <Link href="/" className="absolute top-8 right-8 flex items-center gap-2 text-gray-400 hover:text-gray-900 transition">
+        <Link href="/" className="absolute top-8 right-8 flex items-center gap-2 text-gray-400 hover:text-[#F97316] transition">
             <ArrowLeft size={16} /> Kembali ke Home
         </Link>
 
@@ -79,14 +88,15 @@ export default function LoginPage({
                 <p className="text-gray-500 text-sm mt-2">Masuk atau daftar untuk mulai belajar.</p>
             </div>
 
-            {searchParams?.message && (
+            {message && (
                 <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
-                    <Lock size={16} /> {searchParams.message}
+                    <Lock size={16} /> {message}
                 </div>
             )}
 
             <form className="space-y-5">
-                {/* Input Nama Dihapus, sekarang hanya Email & Password */}
+                {/* Input Hidden untuk menangkap URL redirect */}
+                <input type="hidden" name="redirectUrl" value={redirectUrl} />
                 
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
@@ -95,7 +105,7 @@ export default function LoginPage({
                         type="email"
                         required
                         placeholder="nama@email.com"
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition"
                     />
                 </div>
 
@@ -106,14 +116,14 @@ export default function LoginPage({
                         type="password"
                         required
                         placeholder="••••••••"
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition"
                     />
                 </div>
 
                 <div className="flex gap-4 pt-2">
                     <button
                         formAction={signIn}
-                        className="flex-1 py-3 bg-[#00C9A7] text-white font-bold rounded-xl hover:bg-[#00b894] transition shadow-lg shadow-green-100"
+                        className="flex-1 py-3 bg-[#F97316] text-white font-bold rounded-xl hover:bg-[#EA580C] transition shadow-lg shadow-orange-500/30"
                     >
                         Masuk
                     </button>
@@ -127,7 +137,7 @@ export default function LoginPage({
             </form>
             
             <p className="text-center text-xs text-gray-400 mt-6">
-                &copy; 2026 KlasKonstruksi V2. All rights reserved.
+                &copy; {new Date().getFullYear()} KlasKonstruksi V2. All rights reserved.
             </p>
         </div>
       </div>

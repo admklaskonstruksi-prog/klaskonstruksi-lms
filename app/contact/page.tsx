@@ -11,7 +11,7 @@ export default function ContactPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white font-sans selection:bg-[#F97316] selection:text-white">
+    <div className="min-h-screen bg-white font-sans selection:bg-[#00C9A7] selection:text-white">
       
       {/* --- NAVBAR (Disamakan dengan Homepage) --- */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
@@ -30,28 +30,28 @@ export default function ContactPage() {
             </Link>
 
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/" className="text-gray-600 hover:text-[#F97316] font-medium transition-colors">
+              <Link href="/" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Beranda
               </Link>
-              <Link href="/#program" className="text-gray-600 hover:text-[#F97316] font-medium transition-colors">
+              <Link href="/#program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Program Klas
               </Link>
-              <Link href="/#mentor" className="text-gray-600 hover:text-[#F97316] font-medium transition-colors">
+              <Link href="/#mentor" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Daftar Mentor
               </Link>
             </div>
 
             <div className="hidden md:flex items-center gap-3">
-              <Link href="/login" className="px-5 py-2.5 text-gray-600 font-bold hover:text-[#F97316] transition-colors">
+              <Link href="/login" className="px-5 py-2.5 text-gray-600 font-bold hover:text-[#00C9A7] transition-colors">
                 Masuk
               </Link>
-              <Link href="/register" className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#F97316]/30 flex items-center gap-2 hover:-translate-y-0.5">
+              <Link href="/register" className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#00C9A7]/30 flex items-center gap-2 hover:-translate-y-0.5">
                 Daftar Sekarang <ArrowRight size={16} />
               </Link>
             </div>
 
             <div className="md:hidden flex items-center">
-              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-500 hover:text-[#F97316] focus:outline-none">
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-500 hover:text-[#00C9A7] focus:outline-none">
                 {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
               </button>
             </div>
@@ -61,12 +61,12 @@ export default function ContactPage() {
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-2xl">
             <div className="px-4 pt-2 pb-6 space-y-2">
-              <Link href="/" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#F97316] hover:bg-gray-50 rounded-lg">Beranda</Link>
-              <Link href="/#program" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#F97316] hover:bg-gray-50 rounded-lg">Program Klas</Link>
-              <Link href="/#mentor" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#F97316] hover:bg-gray-50 rounded-lg">Daftar Mentor</Link>
+              <Link href="/" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Beranda</Link>
+              <Link href="/#program" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Program Klas</Link>
+              <Link href="/#mentor" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Daftar Mentor</Link>
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
                 <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
-                <Link href="/register" className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
+                <Link href="/register" className="w-full text-center py-3 bg-[#00C9A7] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
               </div>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function ContactPage() {
             
             {/* Info Kontak (Maps Sudah Dihapus) */}
             <div className="space-y-8">
-                <div className="bg-[#F97316] rounded-3xl p-8 md:p-10 text-white shadow-xl relative overflow-hidden">
+                <div className="bg-[#00C9A7] rounded-3xl p-8 md:p-10 text-white shadow-xl relative overflow-hidden">
                     <div className="relative z-10">
                         <h3 className="text-2xl font-bold mb-6">Informasi Kontak</h3>
                         <div className="space-y-6">
@@ -125,20 +125,20 @@ export default function ContactPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Nama Depan</label>
-                            <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F97316]" placeholder="Budi" />
+                            <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" placeholder="Budi" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Nama Belakang</label>
-                            <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F97316]" placeholder="Santoso" />
+                            <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" placeholder="Santoso" />
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
-                        <input type="email" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F97316]" placeholder="nama@email.com" />
+                        <input type="email" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" placeholder="nama@email.com" />
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Pesan Anda</label>
-                        <textarea rows={4} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F97316]" placeholder="Tulis pesan atau pertanyaan Anda disini..."></textarea>
+                        <textarea rows={4} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" placeholder="Tulis pesan atau pertanyaan Anda disini..."></textarea>
                     </div>
                     <button type="button" className="w-full py-4 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition flex items-center justify-center gap-2">
                         <Send size={18} /> Kirim Pesan
@@ -150,7 +150,7 @@ export default function ContactPage() {
       </main>
 
       {/* --- FOOTER (Disamakan dengan Homepage) --- */}
-      <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#F97316]">
+      <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#00C9A7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
           
           <div className="md:col-span-2">
@@ -171,19 +171,19 @@ export default function ContactPage() {
           <div>
             <h4 className="font-bold text-lg mb-6 text-white">Menu Navigasi</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><Link href="/" className="hover:text-[#F97316] transition-colors">Beranda</Link></li>
-              <li><Link href="/#program" className="hover:text-[#F97316] transition-colors">Program Klas</Link></li>
-              <li><Link href="/#mentor" className="hover:text-[#F97316] transition-colors">Daftar Mentor</Link></li>
+              <li><Link href="/" className="hover:text-[#00C9A7] transition-colors">Beranda</Link></li>
+              <li><Link href="/#program" className="hover:text-[#00C9A7] transition-colors">Program Klas</Link></li>
+              <li><Link href="/#mentor" className="hover:text-[#00C9A7] transition-colors">Daftar Mentor</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-bold text-lg mb-6 text-white">Informasi Lain</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><Link href="/about" className="hover:text-[#F97316] transition-colors">Tentang Kami</Link></li>
-              <li><Link href="/contact" className="hover:text-[#F97316] transition-colors">Hubungi Kami</Link></li>
-              <li><Link href="#" className="hover:text-[#F97316] transition-colors">Syarat & Ketentuan</Link></li>
-              <li><Link href="#" className="hover:text-[#F97316] transition-colors">Kebijakan Privasi</Link></li>
+              <li><Link href="/about" className="hover:text-[#00C9A7] transition-colors">Tentang Kami</Link></li>
+              <li><Link href="/contact" className="hover:text-[#00C9A7] transition-colors">Hubungi Kami</Link></li>
+              <li><Link href="#" className="hover:text-[#00C9A7] transition-colors">Syarat & Ketentuan</Link></li>
+              <li><Link href="#" className="hover:text-[#00C9A7] transition-colors">Kebijakan Privasi</Link></li>
             </ul>
           </div>
 

@@ -1,58 +1,46 @@
 import { NextResponse } from "next/server";
 import Midtrans from "midtrans-client";
-import { createClient } from "@/utils/supabase/server";
 
 const snap = new Midtrans.Snap({
   isProduction: false,
   serverKey: process.env.MIDTRANS_SERVER_KEY || "",
-  clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "",
+  clientKey: process.env.MIDTRANS_CLIENT_KEY || "",
 });
 
 export async function POST(request: Request) {
   try {
-    const { courseId, price, courseTitle } = await request.json();
+    const body = await request.json();
     
-    // LOG DEBUGGING (Cek di Terminal)
-    console.log("🚀 Menerima Request Pembayaran:", { courseId, price, courseTitle });
+    // Pastikan nama variabel di sini SAMA dengan yang dikirim frontend
+    // Kita gunakan nama 'title' agar lebih simpel
+    const { courseId, price, title, userEmail, userName } = body;
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        console.error("❌ User tidak login");
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Pastikan harga bulat (Midtrans menolak desimal)
-    const grossAmount = Math.round(Number(price));
+    // Log data untuk debugging di terminal
+    console.log("Memproses transaksi untuk:", title);
 
     const parameter = {
       transaction_details: {
-        order_id: `ORDER-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        gross_amount: grossAmount,
-      },
-      customer_details: {
-        email: user.email,
-        first_name: user.user_metadata?.full_name || "Student",
+        order_id: `KLAS-${Date.now()}-${courseId?.substring(0, 4) || 'TRX'}`,
+        gross_amount: price,
       },
       item_details: [{
-         id: courseId,
-         price: grossAmount,
-         quantity: 1,
-         name: courseTitle.substring(0, 50),
-      }]
+        id: courseId || "id-unknown",
+        price: price,
+        quantity: 1,
+        // Gunakan Optional Chaining dan Default Value agar tidak crash
+        name: (title || "Kursus Klas Konstruksi").substring(0, 50), 
+      }],
+      customer_details: {
+        first_name: userName || "Siswa",
+        email: userEmail || "no-email@klas.id",
+      },
+      enabled_payments: ["credit_card", "gopay", "shopeepay", "permata_va", "bca_va", "bni_va", "other_va"],
     };
 
-    console.log("⏳ Meminta Token ke Midtrans...");
-    const transaction = await snap.createTransaction(parameter);
-    console.log("✅ Token Diterima:", transaction.token);
-    
-    return NextResponse.json({ token: transaction.token });
-
+    const token = await snap.createTransactionToken(parameter);
+    return NextResponse.json({ token });
   } catch (error: any) {
-    // INI YANG MUNCUL DI TERMINAL
-    console.error("💥 CRITICAL MIDTRANS ERROR:", error.message);
-    console.error("Detail:", error); // Lihat log lengkap
+    console.error("CRITICAL MIDTRANS ERROR:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
