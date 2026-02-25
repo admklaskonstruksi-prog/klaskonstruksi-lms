@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { PlayCircle, CheckCircle, Lock, ChevronDown, ChevronRight, Menu } from "lucide-react";
+import { useState, useEffect } from "react";
+import { PlayCircle, CheckCircle, ChevronDown, ChevronRight, BookOpen, Star, ArrowRight } from "lucide-react";
 import BunnyVideoPlayer from "@/app/dashboard/components/BunnyVideoPlayer"; 
+import Link from "next/link";
+import Image from "next/image";
 
 interface CoursePlayerProps {
   course: any;
   chapters: any[];
+  relatedCourses: any[];
 }
 
-export default function CoursePlayer({ course, chapters }: CoursePlayerProps) {
-  // State untuk materi yang sedang aktif (Default: Materi pertama dari Bab pertama)
-  // Kita cari materi pertama yang ada
-  const firstLesson = chapters.find(c => c.lessons.length > 0)?.lessons[0];
+export default function CoursePlayer({ course, chapters, relatedCourses }: CoursePlayerProps) {
+  // Cari materi pertama yang memiliki video dari seluruh bab yang ada
+  const firstLesson = chapters.find(c => c.lessons?.length > 0)?.lessons[0];
   
   const [activeLesson, setActiveLesson] = useState<any>(firstLesson || null);
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>(
@@ -22,110 +24,183 @@ export default function CoursePlayer({ course, chapters }: CoursePlayerProps) {
 
   // Toggle Buka/Tutup Bab
   const toggleChapter = (chapterId: string) => {
-    setExpandedChapters(prev => ({
-      ...prev,
-      [chapterId]: !prev[chapterId]
-    }));
+    setExpandedChapters(prev => ({ ...prev, [chapterId]: !prev[chapterId] }));
   };
 
+  // Pastikan materi pertama termuat jika halaman di-refresh
+  useEffect(() => {
+    if (!activeLesson && firstLesson) {
+        setActiveLesson(firstLesson);
+    }
+  }, [firstLesson, activeLesson]);
+
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] gap-6">
+    <div className="flex flex-col lg:flex-row h-screen bg-gray-50 overflow-hidden font-sans">
       
-      {/* --- AREA KIRI: VIDEO PLAYER --- */}
-      <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar">
-        <div className="bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
-          {activeLesson ? (
-            <BunnyVideoPlayer 
-              videoId={activeLesson.video_id} 
-              title={activeLesson.title} 
-            />
-          ) : (
-            <div className="aspect-video bg-gray-900 flex items-center justify-center text-gray-500">
-              <p>Belum ada materi yang tersedia.</p>
-            </div>
-          )}
+      {/* KIRI: VIDEO PLAYER AREA */}
+      <div className="flex-1 flex flex-col overflow-y-auto">
+        
+        {/* Header Mobile */}
+        <div className="lg:hidden p-4 bg-white border-b flex items-center gap-2">
+            <Link href="/dashboard/my-courses" className="text-sm font-medium text-gray-500 hover:text-black">
+                ← Kembali
+            </Link>
+            <span className="font-bold truncate">{course.title}</span>
         </div>
 
-        {/* Judul & Deskripsi Materi Aktif */}
-        <div className="mt-6 bg-white p-6 rounded-2xl border border-gray-200">
-           <h1 className="text-2xl font-bold text-gray-800 mb-2">
-             {activeLesson?.title || course.title}
-           </h1>
-           <p className="text-gray-500 leading-relaxed">
-             {activeLesson?.description || "Tidak ada deskripsi untuk materi ini."}
-           </p>
+        {/* --- VIDEO PLAYER --- */}
+        <div className="bg-black w-full aspect-video relative flex items-center justify-center group">
+            {activeLesson?.video_id ? (
+                <BunnyVideoPlayer 
+                    // KEY INI SANGAT PENTING: Memaksa iframe me-reload video baru saat diklik
+                    key={activeLesson.video_id} 
+                    videoId={activeLesson.video_id} 
+                    title={activeLesson.title} 
+                />
+            ) : (
+                <div className="text-center text-gray-500 flex flex-col items-center">
+                    <PlayCircle size={48} className="mb-4 opacity-50" />
+                    <p className="mb-1 font-medium text-white">Video belum tersedia</p>
+                    <p className="text-xs">Materi ini mungkin berupa teks atau sedang disiapkan</p>
+                </div>
+            )}
+        </div>
 
-           {/* Tombol Aksi (Nanti bisa ditambah fungsi Mark as Complete) */}
-           <div className="mt-6 flex gap-3">
-              <button className="px-6 py-2.5 bg-[#00C9A7] text-white font-bold rounded-xl hover:bg-[#00b894] transition flex items-center gap-2">
-                 <CheckCircle size={18} /> Tandai Selesai
-              </button>
-           </div>
+        {/* INFO & REKOMENDASI */}
+        <div className="p-6 md:p-8 pb-20">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-8 border-b border-gray-200 pb-8">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                        {activeLesson ? activeLesson.title : "Pilih Materi"}
+                    </h1>
+                    <p className="text-gray-500 text-sm flex items-center gap-2">
+                       <BookOpen size={14}/> {course.title}
+                    </p>
+                    {activeLesson?.description && (
+                        <p className="text-gray-600 mt-4 text-sm leading-relaxed max-w-3xl">
+                            {activeLesson.description}
+                        </p>
+                    )}
+                </div>
+                
+                {/* Tombol Selesai */}
+                <button className="bg-[#00C9A7] hover:bg-[#00b596] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#00C9A7]/20 transition-all active:scale-95 shrink-0 whitespace-nowrap">
+                    <CheckCircle size={20} />
+                    Tandai Selesai
+                </button>
+            </div>
+
+            {/* --- FITUR REKOMENDASI (Cross-Selling) --- */}
+            {relatedCourses && relatedCourses.length > 0 && (
+                <div className="mt-8">
+                    <div className="flex items-center gap-2 mb-6">
+                        <Star className="text-yellow-400 fill-yellow-400" />
+                        <h3 className="text-lg font-bold text-gray-900">Rekomendasi Kelas Serupa</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {relatedCourses.map((relCourse: any) => (
+                            <Link href={`/dashboard/checkout/${relCourse.id}`} key={relCourse.id} className="group block bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1">
+                                <div className="aspect-video relative bg-gray-100">
+                                    {relCourse.thumbnail_url && (
+                                        <Image src={relCourse.thumbnail_url} alt={relCourse.title} fill className="object-cover" />
+                                    )}
+                                </div>
+                                <div className="p-4">
+                                    <h4 className="font-bold text-gray-900 line-clamp-2 text-sm group-hover:text-[#00C9A7] mb-2">{relCourse.title}</h4>
+                                    <div className="flex justify-between items-center text-xs text-gray-500">
+                                        <span className="font-bold text-gray-900">
+                                            {relCourse.price === 0 ? "Gratis" : `Rp ${relCourse.price.toLocaleString("id-ID")}`}
+                                        </span>
+                                        <span className="flex items-center gap-1">Detail <ArrowRight size={10}/></span>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
       </div>
 
-      {/* --- AREA KANAN: DAFTAR MATERI (PLAYLIST) --- */}
-      <div className="w-full lg:w-96 bg-white border border-gray-200 rounded-2xl flex flex-col h-full overflow-hidden shadow-sm">
-         <div className="p-4 border-b border-gray-100 bg-gray-50">
-            <h3 className="font-bold text-gray-800">Daftar Materi</h3>
-            <p className="text-xs text-gray-400 mt-1">{course.title}</p>
-         </div>
-         
-         <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            {chapters.map((chapter, index) => (
-               <div key={chapter.id} className="border border-gray-100 rounded-xl overflow-hidden">
-                  {/* Header Bab */}
-                  <button 
-                    onClick={() => toggleChapter(chapter.id)}
-                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition text-left"
-                  >
-                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-gray-400 w-5 h-5 flex items-center justify-center border border-gray-200 rounded bg-white">
-                            {index + 1}
-                        </span>
-                        <span className="text-sm font-bold text-gray-700 line-clamp-1">{chapter.title}</span>
-                     </div>
-                     {expandedChapters[chapter.id] ? <ChevronDown size={16} className="text-gray-400"/> : <ChevronRight size={16} className="text-gray-400"/>}
-                  </button>
+      {/* KANAN: SIDEBAR MATERI (Playlist Accordion) */}
+      <div className="w-full lg:w-96 bg-white border-l border-gray-200 h-auto lg:h-full overflow-y-auto flex-shrink-0 shadow-xl z-20">
+        <div className="p-5 border-b border-gray-100 bg-gray-50 sticky top-0 z-10 flex items-center justify-between">
+            <div>
+                <h2 className="font-bold text-gray-900 text-lg">Daftar Materi</h2>
+                <p className="text-xs text-gray-500 mt-1">{chapters.length} Bab Pembelajaran</p>
+            </div>
+            <Link href="/dashboard/my-courses" className="hidden lg:flex text-xs font-bold text-gray-500 hover:text-[#00C9A7] hover:border-[#00C9A7] transition border border-gray-200 px-3 py-1.5 rounded-lg bg-white shadow-sm">
+                Tutup Kelas
+            </Link>
+        </div>
 
-                  {/* List Lesson dalam Bab */}
-                  {expandedChapters[chapter.id] && (
-                     <div className="bg-white">
-                        {chapter.lessons.length > 0 ? (
-                            chapter.lessons.map((lesson: any) => (
-                                <button 
-                                    key={lesson.id}
-                                    onClick={() => setActiveLesson(lesson)}
-                                    className={`w-full flex items-start gap-3 p-3 text-left transition hover:bg-green-50 ${
-                                        activeLesson?.id === lesson.id 
-                                        ? "bg-green-50 border-l-4 border-[#00C9A7]" 
-                                        : "border-l-4 border-transparent"
-                                    }`}
-                                >
-                                    {/* Icon Status (Nanti bisa diganti CheckCircle jika sudah selesai) */}
-                                    <PlayCircle 
-                                        size={16} 
-                                        className={`mt-0.5 shrink-0 ${activeLesson?.id === lesson.id ? "text-[#00C9A7] fill-green-100" : "text-gray-400"}`} 
-                                    />
-                                    
-                                    <div>
-                                        <p className={`text-xs font-medium ${activeLesson?.id === lesson.id ? "text-[#00C9A7] font-bold" : "text-gray-600"}`}>
-                                            {lesson.title}
-                                        </p>
-                                        <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
-                                            Video • {lesson.video_id ? "Siap" : "Proses"}
-                                        </p>
-                                    </div>
-                                </button>
-                            ))
-                        ) : (
-                            <p className="text-[10px] text-gray-400 italic p-3 text-center">Belum ada materi.</p>
-                        )}
-                     </div>
-                  )}
-               </div>
+        <div className="divide-y divide-gray-100 pb-20">
+            {chapters.length === 0 && (
+                <div className="p-10 text-center flex flex-col items-center justify-center h-64 text-gray-400">
+                    <BookOpen className="w-12 h-12 mb-3 opacity-20" />
+                    <p className="text-sm font-medium">Belum ada materi.</p>
+                </div>
+            )}
+
+            {chapters.map((chapter: any, index: number) => (
+                <div key={chapter.id} className="bg-white">
+                    {/* Header Bab */}
+                    <button 
+                        onClick={() => toggleChapter(chapter.id)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-teal-50/50 transition text-left outline-none"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-[#00C9A7] bg-teal-50 w-7 h-7 flex items-center justify-center rounded-lg">
+                                {index + 1}
+                            </span>
+                            <div>
+                                <span className="text-sm font-bold text-gray-800 line-clamp-1 pr-2">{chapter.title}</span>
+                                <span className="text-[10px] text-gray-400 font-bold block mt-0.5">{chapter.lessons?.length || 0} Materi</span>
+                            </div>
+                        </div>
+                        {expandedChapters[chapter.id] ? <ChevronDown size={16} className="text-gray-400 shrink-0"/> : <ChevronRight size={16} className="text-gray-400 shrink-0"/>}
+                    </button>
+
+                    {/* List Lesson (Video) di dalam Bab */}
+                    {expandedChapters[chapter.id] && (
+                        <div className="bg-gray-50/80 border-t border-gray-100">
+                            {chapter.lessons?.length > 0 ? (
+                                chapter.lessons.map((lesson: any, lessonIdx: number) => {
+                                    const isActive = activeLesson?.id === lesson.id;
+                                    return (
+                                        <button 
+                                            key={lesson.id}
+                                            onClick={() => setActiveLesson(lesson)}
+                                            className={`w-full flex items-start gap-3 p-4 text-left transition ${
+                                                isActive 
+                                                ? "bg-white border-l-4 border-[#00C9A7] shadow-sm" 
+                                                : "border-l-4 border-transparent hover:bg-gray-100"
+                                            }`}
+                                        >
+                                            <PlayCircle 
+                                                size={16} 
+                                                className={`mt-0.5 shrink-0 ${isActive ? "text-[#00C9A7] fill-teal-50" : "text-gray-300"}`} 
+                                            />
+                                            <div>
+                                                <p className={`text-xs ${isActive ? "text-gray-900 font-bold" : "text-gray-600 font-medium"}`}>
+                                                    {lessonIdx + 1}. {lesson.title}
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1 font-bold">
+                                                    {lesson.video_id ? "Video" : "Teks"} {isActive && <span className="text-[#00C9A7] ml-1 font-black">• Sedang Diputar</span>}
+                                                </p>
+                                            </div>
+                                        </button>
+                                    );
+                                })
+                            ) : (
+                                <p className="text-[11px] text-gray-400 p-4 text-center font-medium">Bab ini belum memiliki materi.</p>
+                            )}
+                        </div>
+                    )}
+                </div>
             ))}
-         </div>
+        </div>
       </div>
 
     </div>
