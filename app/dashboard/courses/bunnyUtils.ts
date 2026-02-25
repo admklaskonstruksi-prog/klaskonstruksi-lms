@@ -17,6 +17,7 @@ export async function uploadVideoToBunny(file: File, title: string): Promise<str
       headers: {
         AccessKey: ACCESS_KEY,
         "Content-Type": "application/json",
+        "Accept": "application/json"
       },
       body: JSON.stringify({ title: title || "Untitled Video" }),
     });
@@ -24,7 +25,7 @@ export async function uploadVideoToBunny(file: File, title: string): Promise<str
     if (!createResponse.ok) {
         const errorText = await createResponse.text();
         console.error("GAGAL CREATE VIDEO:", errorText);
-        throw new Error("Gagal Create Video di Bunny: " + createResponse.statusText);
+        throw new Error("Gagal Create Video di Bunny: " + errorText);
     }
     
     const entryData = await createResponse.json();
@@ -40,6 +41,7 @@ export async function uploadVideoToBunny(file: File, title: string): Promise<str
       headers: {
         AccessKey: ACCESS_KEY,
         "Content-Type": "application/octet-stream",
+        "Accept": "application/json"
       },
       body: buffer,
     });
@@ -47,7 +49,7 @@ export async function uploadVideoToBunny(file: File, title: string): Promise<str
     if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
         console.error("GAGAL UPLOAD BINARY:", errorText);
-        throw new Error("Gagal Upload File ke Bunny");
+        throw new Error("Gagal Upload File ke Bunny: " + errorText);
     }
 
     console.log("3. Upload Sukses!");
@@ -64,7 +66,10 @@ export async function deleteVideoFromBunny(videoId: string) {
     try {
         await fetch(`${BASE_URL}/${videoId}`, {
             method: 'DELETE',
-            headers: { AccessKey: ACCESS_KEY }
+            headers: { 
+                AccessKey: ACCESS_KEY,
+                "Accept": "application/json"
+            }
         });
     } catch (e) {
         console.log("Gagal hapus di bunny (abaikan)", e);

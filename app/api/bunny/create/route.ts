@@ -4,13 +4,9 @@ export async function POST(request: Request) {
   try {
     const { title } = await request.json();
     
-    // API Key tetap rahasia, ambil dari environment
-    const apiKey = process.env.BUNNY_API_KEY;
-    const libraryId = "594715"; 
-
-    if (!apiKey) {
-      return NextResponse.json({ error: 'BUNNY_API_KEY di Vercel masih kosong!' }, { status: 500 });
-    }
+    // Menggunakan kredensial yang Anda berikan
+    const apiKey = "f5401951-085f-4ff8-801f9e4de7f5-91e9-446e";
+    const libraryId = "606426"; 
 
     // 1. Minta Slot Video Baru ke Bunny
     const response = await fetch(
@@ -20,6 +16,7 @@ export async function POST(request: Request) {
         headers: {
           AccessKey: apiKey,
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ title: title || 'New Lesson' }),
       }
@@ -35,7 +32,7 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
-    // 2. BERIKAN SEMUA DATA PENTING KE FRONTEND
+    // 2. BERIKAN DATA KE FRONTEND
     return NextResponse.json({
       videoId: data.guid,
       libraryId: libraryId,
