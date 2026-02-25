@@ -26,6 +26,12 @@ export default async function CourseSetupPage(props: Props) {
 
   if (!course) return redirect("/dashboard/courses");
 
+  // --- TARIK DATA KATEGORI UNTUK DROPDOWN ---
+  const { data: categories } = await supabase
+    .from("main_categories")
+    .select("id, name")
+    .order("name");
+
   // 3. Ambil Data Modul (Chapter) DAN Materi (Lessons) di dalamnya
   const { data: chapters } = await supabase
     .from("chapters")
@@ -47,7 +53,8 @@ export default async function CourseSetupPage(props: Props) {
       </div>
 
       {/* --- BAGIAN 1: FORM EDIT DETAIL KELAS --- */}
-      <EditCourseForm course={course} />
+      {/* Kirim categories ke dalam form */}
+      <EditCourseForm course={course} categories={categories || []} />
 
       <hr className="my-8 border-gray-200" />
 

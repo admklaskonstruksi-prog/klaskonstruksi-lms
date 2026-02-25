@@ -83,12 +83,15 @@ export async function saveCourseContent(formData: FormData) {
   const price = Number(formData.get("price")) || 0;
   const strike_price = Number(formData.get("strike_price")) || 0; 
   
-  // --- TANGKAP 3 DATA BARU ---
   const rating = Number(formData.get("rating")) || 0; 
   const review_count = Number(formData.get("review_count")) || 0; 
   const sales_count = Number(formData.get("sales_count")) || 0; 
   
   const is_published = formData.get("is_published") === "on";
+
+  // --- TANGKAP 2 DATA BARU (LEVEL & KATEGORI) ---
+  const level = formData.get("level") as string;
+  const main_category_id = formData.get("main_category_id") as string;
 
   const thumbnailFile = formData.get("thumbnail") as File;
   let thumbnail_url = formData.get("old_thumbnail_url") as string; 
@@ -108,8 +111,9 @@ export async function saveCourseContent(formData: FormData) {
     .update({ 
         title, description, goals, keypoints,    
         price, strike_price,
-        rating, review_count, sales_count, // <--- Simpan ke Database
-        is_published, thumbnail_url 
+        rating, review_count, sales_count,
+        is_published, thumbnail_url,
+        level, main_category_id // <--- Simpan ke Database
     })
     .eq("id", courseId);
 

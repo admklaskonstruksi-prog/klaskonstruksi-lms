@@ -14,14 +14,17 @@ interface CourseData {
   keypoints: string | null;
   price: number;
   strike_price?: number;
-  rating?: number;        // <--- Tambahan
-  review_count?: number;  // <--- Tambahan
-  sales_count?: number;   // <--- Tambahan
+  rating?: number;        
+  review_count?: number;  
+  sales_count?: number;   
   is_published: boolean;
   thumbnail_url: string | null;
+  level?: string;            // <--- Tambahan
+  main_category_id?: string; // <--- Tambahan
 }
 
-export default function EditCourseForm({ course }: { course: CourseData }) {
+// Tambahkan categories di props
+export default function EditCourseForm({ course, categories = [] }: { course: CourseData, categories?: any[] }) {
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(course.thumbnail_url);
   const router = useRouter();
@@ -148,6 +151,28 @@ export default function EditCourseForm({ course }: { course: CourseData }) {
            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Judul Kelas</label>
               <input name="title" defaultValue={course.title} required type="text" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition" />
+           </div>
+
+           {/* --- TAMBAHAN KOTAK LEVEL & KATEGORI --- */}
+           <div className="grid grid-cols-2 gap-4">
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Level Kesulitan</label>
+                 <select name="level" defaultValue={course.level || "Beginner"} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer">
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="All Level">All Level</option>
+                 </select>
+              </div>
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Utama</label>
+                 <select name="main_category_id" defaultValue={course.main_category_id || ""} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer">
+                    <option value="" disabled>Pilih Kategori</option>
+                    {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                 </select>
+              </div>
            </div>
 
            <div className="grid grid-cols-2 gap-4">
