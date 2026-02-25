@@ -6,8 +6,12 @@ export async function POST(request: Request) {
     const apiKey = process.env.BUNNY_API_KEY;
     const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
 
+    // --- PERUBAHAN DEBUGGING ---
+    // Kode ini akan memberi tahu kita persis variabel mana yang tidak terbaca oleh Vercel
     if (!apiKey || !libraryId) {
-      return NextResponse.json({ error: 'Config Missing' }, { status: 500 });
+      return NextResponse.json({ 
+        error: `Config Missing! BUNNY_API_KEY: ${apiKey ? 'Ada ✅' : 'KOSONG ❌'} | NEXT_PUBLIC_BUNNY_LIBRARY_ID: ${libraryId ? 'Ada ✅' : 'KOSONG ❌'}` 
+      }, { status: 500 });
     }
 
     // 1. Minta Slot Video Baru ke Bunny
@@ -30,11 +34,10 @@ export async function POST(request: Request) {
     const data = await response.json();
 
     // 2. BERIKAN SEMUA DATA PENTING KE FRONTEND
-    // Kita kirim balik API Key agar Frontend bisa pakai untuk upload (Direct Upload)
     return NextResponse.json({
-      videoId: data.guid,     // ID Video dari Bunny
-      libraryId: libraryId,   // ID Library
-      apiKey: apiKey          // Kunci untuk upload
+      videoId: data.guid,
+      libraryId: libraryId,
+      apiKey: apiKey
     });
 
   } catch (error) {
