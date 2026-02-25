@@ -1,20 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { PlayCircle, CheckCircle, ChevronDown, ChevronRight, BookOpen, Star, ArrowRight } from "lucide-react";
+import { useState, useEffect, useTransition } from "react";
+import { PlayCircle, CheckCircle, ChevronDown, ChevronRight, BookOpen, Star, ArrowRight, Loader2 } from "lucide-react";
 import BunnyVideoPlayer from "@/app/dashboard/components/BunnyVideoPlayer"; 
 import Link from "next/link";
 import Image from "next/image";
+import toast from "react-hot-toast";
+import { toggleLessonComplete } from "../actions";
 
+// --- PERBAIKAN: Menambahkan completedLessonIds ke interface props ---
 interface CoursePlayerProps {
   course: any;
   chapters: any[];
   relatedCourses?: any[];
+  completedLessonIds?: string[]; 
 }
 
-export default function CoursePlayer({ course, chapters, relatedCourses = [] }: CoursePlayerProps) {
+export default function CoursePlayer({ 
+    course, 
+    chapters, 
+    relatedCourses = [], 
+    completedLessonIds = [] 
+}: CoursePlayerProps) {
   
-  // LOGIKA PINTAR: Cari video pertama, entah itu di dalam tabel "lessons" atau langsung di "chapters"
+  // LOGIKA PINTAR: Cari video pertama (di lessons atau di chapter)
   let initialLesson = null;
   for (const chapter of chapters) {
       if (chapter.lessons && chapter.lessons.length > 0) {
@@ -30,6 +39,9 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>(
     chapters.reduce((acc, chapter) => ({ ...acc, [chapter.id]: true }), {})
   );
+  
+  // State untuk efek loading saat tombol Tandai Selesai di-klik
+  const [isPending, startTransition] = useTransition();
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters(prev => ({ ...prev, [chapterId]: !prev[chapterId] }));
@@ -41,11 +53,29 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
     }
   }, [initialLesson, activeLesson]);
 
+  // Cek apakah materi yang sedang dibuka saat ini sudah ditandai selesai
+  const isCurrentlyCompleted = activeLesson ? completedLessonIds.includes(activeLesson.id) : false;
+
+  // Fungsi saat tombol "Tandai Selesai" diklik
+  const handleToggleComplete = () => {
+      if (!activeLesson) return;
+      startTransition(async () => {
+          const result = await toggleLessonComplete(course.id, activeLesson.id, !isCurrentlyCompleted);
+          if (result.error) {
+              toast.error(result.error);
+          } else {
+              toast.success(isCurrentlyCompleted ? "Batal selesai." : "Materi diselesaikan!");
+          }
+      });
+  };
+
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gray-50 overflow-hidden font-sans">
       
-      {/* AREA KIRI: VIDEO PLAYER */}
+      {/* AREA KIRI: VIDEO PLAYER & DETAIL */}
       <div className="flex-1 flex flex-col overflow-y-auto">
+        
+        {/* Header Mobile */}
         <div className="lg:hidden p-4 bg-white border-b flex items-center gap-2">
             <Link href="/dashboard/my-courses" className="text-sm font-medium text-gray-500 hover:text-black">
                 ← Kembali
@@ -80,17 +110,33 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
                        <BookOpen size={14}/> {course.title}
                     </p>
                     {activeLesson?.description && (
-                        <p className="text-gray-600 mt-4 text-sm leading-relaxed max-w-3xl">
+                        <p className="text-gray-600 mt-4 text-sm leading-relaxed max-w-3xl whitespace-pre-line">
                             {activeLesson.description}
                         </p>
                     )}
                 </div>
                 
-                <button className="bg-[#00C9A7] hover:bg-[#00b596] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#00C9A7]/20 transition-all active:scale-95 shrink-0 whitespace-nowrap">
-                    <CheckCircle size={20} /> Tandai Selesai
+                {/* --- TOMBOL TANDAI SELESAI DINAMIS --- */}
+                <button 
+                    onClick={handleToggleComplete}
+                    disabled={isPending || !activeLesson}
+                    className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shrink-0 whitespace-nowrap shadow-lg 
+                      ${isCurrentlyCompleted 
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-none border border-gray-200" 
+                        : "bg-[#00C9A7] hover:bg-[#00b596] text-white shadow-[#00C9A7]/20"
+                      }`}
+                >
+                    {isPending ? (
+                        <Loader2 className="animate-spin w-5 h-5" /> 
+                    ) : isCurrentlyCompleted ? (
+                        <><CheckCircle size={20} className="text-[#00C9A7]" /> Selesai</> 
+                    ) : (
+                        <><CheckCircle size={20} /> Tandai Selesai</>
+                    )}
                 </button>
             </div>
 
+            {/* Rekomendasi Kelas Serupa */}
             {relatedCourses && relatedCourses.length > 0 && (
                 <div className="mt-8">
                     <div className="flex items-center gap-2 mb-6">
@@ -138,7 +184,9 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
                 </div>
             )}
 
-            {chapters.map((chapter: any, index: number) => (
+            {chapters.map((chapter: any, index: number) => {
+                const isChapterCompleted = completedLessonIds.includes(chapter.id);
+                return (
                 <div key={chapter.id} className="bg-white">
                     <button 
                         onClick={() => toggleChapter(chapter.id)}
@@ -155,7 +203,11 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
                                 </span>
                             </div>
                         </div>
-                        {expandedChapters[chapter.id] ? <ChevronDown size={16} className="text-gray-400 shrink-0"/> : <ChevronRight size={16} className="text-gray-400 shrink-0"/>}
+                        <div className="flex items-center gap-2">
+                           {/* Ceklis hijau jika Bab (yang tidak ada lesson) sudah selesai */}
+                           {isChapterCompleted && (!chapter.lessons || chapter.lessons.length === 0) && <CheckCircle size={16} className="text-[#00C9A7] shrink-0"/>}
+                           {expandedChapters[chapter.id] ? <ChevronDown size={16} className="text-gray-400 shrink-0"/> : <ChevronRight size={16} className="text-gray-400 shrink-0"/>}
+                        </div>
                     </button>
 
                     {expandedChapters[chapter.id] && (
@@ -163,21 +215,27 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
                             {chapter.lessons?.length > 0 ? (
                                 chapter.lessons.map((lesson: any, lessonIdx: number) => {
                                     const isActive = activeLesson?.id === lesson.id;
+                                    const isLessonCompleted = completedLessonIds.includes(lesson.id);
+                                    
                                     return (
                                         <button 
                                             key={lesson.id}
                                             onClick={() => setActiveLesson(lesson)}
-                                            className={`w-full flex items-start gap-3 p-4 text-left transition ${isActive ? "bg-white border-l-4 border-[#00C9A7] shadow-sm" : "border-l-4 border-transparent hover:bg-gray-100"}`}
+                                            className={`w-full flex items-center justify-between p-4 text-left transition ${isActive ? "bg-white border-l-4 border-[#00C9A7] shadow-sm" : "border-l-4 border-transparent hover:bg-gray-100"}`}
                                         >
-                                            <PlayCircle size={16} className={`mt-0.5 shrink-0 ${isActive ? "text-[#00C9A7] fill-teal-50" : "text-gray-300"}`} />
-                                            <div>
-                                                <p className={`text-xs ${isActive ? "text-gray-900 font-bold" : "text-gray-600 font-medium"}`}>
-                                                    {lessonIdx + 1}. {lesson.title}
-                                                </p>
-                                                <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1 font-bold">
-                                                    {lesson.video_id ? "Video" : "Teks"} {isActive && <span className="text-[#00C9A7] ml-1 font-black">• Sedang Diputar</span>}
-                                                </p>
+                                            <div className="flex items-start gap-3">
+                                                <PlayCircle size={16} className={`mt-0.5 shrink-0 ${isActive ? "text-[#00C9A7] fill-teal-50" : "text-gray-300"}`} />
+                                                <div>
+                                                    <p className={`text-xs ${isActive ? "text-gray-900 font-bold" : "text-gray-600 font-medium"}`}>
+                                                        {lessonIdx + 1}. {lesson.title}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1 font-bold">
+                                                        {lesson.video_id ? "Video" : "Teks"} {isActive && <span className="text-[#00C9A7] ml-1 font-black">• Sedang Diputar</span>}
+                                                    </p>
+                                                </div>
                                             </div>
+                                            {/* Tampilkan Ceklis hijau jika materi sudah selesai */}
+                                            {isLessonCompleted && <CheckCircle size={16} className="text-[#00C9A7] shrink-0" />}
                                         </button>
                                     );
                                 })
@@ -200,7 +258,7 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
                         </div>
                     )}
                 </div>
-            ))}
+            )})}
         </div>
       </div>
     </div>
