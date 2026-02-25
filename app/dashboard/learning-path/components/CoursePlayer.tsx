@@ -21,7 +21,7 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
           initialLesson = chapter.lessons[0];
           break;
       } else if (chapter.video_id) {
-          initialLesson = chapter; // Fallback jika struktur DB masih menaruh video di chapter
+          initialLesson = chapter;
           break;
       }
   }
@@ -44,7 +44,7 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gray-50 overflow-hidden font-sans">
       
-      {/* --- AREA KIRI: VIDEO PLAYER --- */}
+      {/* AREA KIRI: VIDEO PLAYER */}
       <div className="flex-1 flex flex-col overflow-y-auto">
         <div className="lg:hidden p-4 bg-white border-b flex items-center gap-2">
             <Link href="/dashboard/my-courses" className="text-sm font-medium text-gray-500 hover:text-black">
@@ -53,7 +53,7 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
             <span className="font-bold truncate">{course.title}</span>
         </div>
 
-        {/* --- KOMPONEN PEMUTAR VIDEO --- */}
+        {/* KOMPONEN PEMUTAR VIDEO */}
         <div className="bg-black w-full aspect-video relative flex items-center justify-center group border-b border-gray-800 shadow-xl">
             {activeLesson?.video_id ? (
                 <BunnyVideoPlayer 
@@ -118,7 +118,7 @@ export default function CoursePlayer({ course, chapters, relatedCourses = [] }: 
         </div>
       </div>
 
-      {/* --- AREA KANAN: DAFTAR MATERI (PLAYLIST) --- */}
+      {/* AREA KANAN: DAFTAR MATERI (PLAYLIST) */}
       <div className="w-full lg:w-[400px] bg-white border-l border-gray-200 h-auto lg:h-full overflow-y-auto flex-shrink-0 shadow-xl z-20">
         <div className="p-5 border-b border-gray-100 bg-gray-50 sticky top-0 z-10 flex items-center justify-between">
             <div>
