@@ -2,7 +2,6 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 
 export async function signInAction(formData: FormData) {
   const email = formData.get("email") as string;
@@ -45,12 +44,16 @@ export async function signUpAction(formData: FormData) {
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
-  const origin = (await headers()).get("origin");
+  
+  // Tentukan URL callback secara eksplisit
+  // Jika NEXT_PUBLIC_SITE_URL di env Anda tidak ada, ia akan menggunakan localhost:3000
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const redirectUrl = `${siteUrl}/auth/callback`;
   
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: redirectUrl,
     },
   });
 

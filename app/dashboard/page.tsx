@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, StarHalf, Search, Users, Wallet, BookOpen, TrendingUp, BarChart3, Award, ArrowUpRight } from "lucide-react"; 
+import { Star, StarHalf, Search, Users, Wallet, BookOpen, TrendingUp, BarChart3, Award, ArrowUpRight, FilterX } from "lucide-react"; 
 import SmartOnboardingModal from "./components/SmartOnboardingModal";
 
 export const dynamic = "force-dynamic";
@@ -16,14 +16,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   const isAdmin = profile?.role?.toLowerCase() === 'admin';
 
+  // ============================================================================
+  // TAMPILAN KHUSUS ADMIN (RINGKASAN ANALITIK)
+  // ============================================================================
   if (isAdmin) {
-    // 1. Tarik Jumlah Siswa
     const { count: totalStudents } = await supabase.from("profiles").select("*", { count: "exact", head: true }).neq("role", "admin");
-    
-    // 2. Tarik Jumlah Kelas Aktif
     const { count: activeCourses } = await supabase.from("courses").select("*", { count: "exact", head: true }).eq("is_published", true);
 
-    // 3. TARIK DATA PENJUALAN ASLI (REAL) DARI ENROLLMENTS
     const { data: realEnrollments } = await supabase
       .from("enrollments")
       .select("course_id, courses(id, title, price, thumbnail_url)");
@@ -31,7 +30,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     let totalRevenue = 0;
     let totalSales = realEnrollments?.length || 0;
 
-    // Kalkulasi Pendapatan dan Leaderboard Asli
     const courseStats: Record<string, any> = {};
 
     realEnrollments?.forEach((e: any) => {
@@ -46,7 +44,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
        courseStats[c.id].real_sales += 1;
     });
 
-    // Urutkan kelas terlaris berdasarkan penjualan real
     const topCourses = Object.values(courseStats)
        .sort((a, b) => b.real_sales - a.real_sales)
        .slice(0, 4);
@@ -178,7 +175,10 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     );
   }
 
-  // === TAMPILAN USER BIASA TETAP SAMA ===
+  // ============================================================================
+  // TAMPILAN SISWA (ETALASE KELAS DENGAN FILTER SMART ONBOARDING)
+  // ============================================================================
+  
   const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
   const ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];
 
@@ -186,17 +186,42 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   const categoryFilter = sp?.category || "semua";
   const sortFilter = sp?.sort || "terbaru";
   const searchQ = sp?.q || "";
+  
+  // Tangkap parameter LEVEL dari URL (hasil dari Smart Onboarding)
+  const levelFilter = sp?.level || "semua";
 
-  let query = supabase.from("courses").select("*").eq("is_published", true);
+  // Ambil data referensi untuk filter dan tampilan
+  const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
+  const { data: allLevels } = await supabase.from("course_levels").select("id, name");
 
+  // Query kelas yang diperbarui: Tarik data relasi Main Kategori, Sub Kategori, & Level
+  let query = supabase.from("courses").select(`
+    *,
+    main_categories!main_category_id(id, name),
+    sub_categories!sub_category_id(id, name),
+    course_levels!level_id(id, name)
+  `).eq("is_published", true);
+
+  // 1. Filter Kategori
   if (categoryFilter !== "semua") query = query.eq("main_category_id", categoryFilter);
+  
+  // 2. Filter Pencarian
   if (searchQ) query = query.ilike("title", `%${searchQ}%`);
 
+  // 3. Filter Level (Hasil Redirect Smart Onboarding)
+  if (levelFilter !== "semua") {
+      // Cari ID level di database yang cocok dengan text (misal: "Beginner")
+      const matchedLevel = allLevels?.find(l => l.name.toLowerCase() === levelFilter.toLowerCase());
+      if (matchedLevel) {
+          query = query.eq("level_id", matchedLevel.id);
+      }
+  }
+
+  // 4. Sorting
   if (sortFilter === "terpopuler") query = query.order("sales_count", { ascending: false });
   else query = query.order("created_at", { ascending: false }); 
 
   const { data: courses } = await query;
-  const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans selection:bg-[#F97316] selection:text-white">
@@ -211,6 +236,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
           <form method="GET" className="relative flex-1 flex items-center">
              <input type="hidden" name="category" value={categoryFilter} />
              <input type="hidden" name="sort" value={sortFilter} />
+             {/* Pertahankan level filter jika user melakukan pencarian manual */}
+             <input type="hidden" name="level" value={levelFilter} />
+             
              <div className="relative w-full border border-gray-200 rounded-xl overflow-hidden bg-white flex items-center focus-within:ring-2 focus-within:ring-[#F97316] transition-all shadow-sm">
                <Search size={20} className="text-gray-400 absolute left-4" />
                <input type="text" name="q" defaultValue={searchQ} placeholder="Cari kelas yang ingin Anda pelajari..." className="w-full py-3.5 pl-12 pr-4 outline-none text-sm text-gray-700 bg-transparent font-medium" />
@@ -219,9 +247,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
           </form>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-            <Link href={`?category=semua&sort=${sortFilter}&q=${searchQ}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>Semua</Link>
+            <Link href={`?category=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>Semua</Link>
             {categories?.map((cat) => (
-              <Link key={cat.id} href={`?category=${cat.id}&sort=${sortFilter}&q=${searchQ}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>{cat.name}</Link>
+              <Link key={cat.id} href={`?category=${cat.id}&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>{cat.name}</Link>
             ))}
           </div>
         </div>
@@ -229,22 +257,37 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
       <hr className="my-8 border-gray-100" />
 
+      {/* INDIKATOR JIKA SEDANG DIFILTER OLEH SMART ONBOARDING */}
+      {levelFilter !== "semua" && (
+         <div className="mb-6 bg-teal-50 border border-[#00C9A7]/30 p-4 rounded-xl flex items-center justify-between">
+            <div>
+               <h3 className="font-bold text-[#00C9A7] text-sm">Rekomendasi Pintar Aktif ✨</h3>
+               <p className="text-xs text-gray-600 mt-1">Menampilkan kelas khusus tingkat <strong className="uppercase">{levelFilter}</strong> sesuai profil Anda.</p>
+            </div>
+            <Link href={`?category=${categoryFilter}&sort=${sortFilter}&q=${searchQ}&level=semua`} className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-red-500 hover:border-red-200 transition">
+               <FilterX size={14} /> Hapus Filter
+            </Link>
+         </div>
+      )}
+
       <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
            <h2 className="text-2xl font-bold text-gray-900 mb-2">Pilihan Program Terbaik</h2>
            <p className="text-gray-500 text-sm">Tingkatkan skill Anda dengan materi siap kerja.</p>
         </div>
         <div className="flex items-center gap-4 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-           <Link href={`?category=${categoryFilter}&sort=terpopuler&q=${searchQ}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terpopuler" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terpopuler</Link>
-           <Link href={`?category=${categoryFilter}&sort=terbaru&q=${searchQ}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terbaru" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terbaru</Link>
+           <Link href={`?category=${categoryFilter}&sort=terpopuler&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terpopuler" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terpopuler</Link>
+           <Link href={`?category=${categoryFilter}&sort=terbaru&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terbaru" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terbaru</Link>
         </div>
       </div>
 
       {courses?.length === 0 ? (
-         <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tidak ada kelas yang sesuai filter Anda.</div>
+         <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+            Tidak ada kelas yang sesuai filter Anda.
+         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {courses?.map((course) => {
+          {courses?.map((course: any) => {
             const isOwned = ownedCourseIds.includes(course.id);
             return (
             <Link href={isOwned ? `/dashboard/learning-path/${course.id}` : `/dashboard/checkout/${course.id}`} key={course.id} className={`flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 group ${isOwned ? 'opacity-80 grayscale-[40%] hover:grayscale-0' : 'hover:shadow-xl hover:border-[#F97316]/50'}`}>
@@ -263,17 +306,37 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                    </div>
                 )}
               </div>
+              
               <div className="p-4 flex flex-col flex-1">
+                 {/* KATEGORI & SUB KATEGORI (Permintaan No 2) */}
+                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-wider line-clamp-1">
+                    <span className="text-[#00C9A7] bg-teal-50 px-2 py-0.5 rounded">{course.main_categories?.name || "Kategori"}</span>
+                    {course.sub_categories?.name && (
+                        <>
+                           <span>•</span>
+                           <span className="truncate">{course.sub_categories.name}</span>
+                        </>
+                    )}
+                 </div>
+
                  <h3 className="font-bold text-gray-900 text-base leading-snug line-clamp-2 mb-2 group-hover:text-[#F97316] transition-colors">{course.title}</h3>
-                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs mb-4 mt-auto">
-                   {course.rating > 0 && (
+                 
+                 {/* RATING & LEVEL */}
+                 <div className="flex flex-wrap items-center justify-between gap-y-2 text-xs mb-4 mt-auto border-t border-gray-50 pt-3">
+                   {course.rating > 0 ? (
                      <div className="flex items-center gap-1">
                        <span className="font-bold text-[#b4690e]">{course.rating}</span>
                        <div className="flex text-[#b4690e]"><Star size={12} fill="currentColor" strokeWidth={0} /><StarHalf size={12} fill="currentColor" strokeWidth={0} /></div>
                        {course.review_count > 0 && <span className="text-gray-500">({course.review_count})</span>}
                      </div>
-                   )}
+                   ) : <div></div>}
+                   
+                   {/* INDIKATOR LEVEL (Permintaan No 2) */}
+                   <span className="bg-orange-50 text-[#F97316] font-black px-2 py-1 rounded-md text-[10px] uppercase">
+                       {course.course_levels?.name || "All Level"}
+                   </span>
                  </div>
+
                  <div className="pt-3 border-t border-gray-100 flex items-end justify-between gap-2 mt-auto">
                    <div>
                      {course.price > 0 ? (
@@ -288,7 +351,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
         </div>
       )}
 
+      {/* TAMPILKAN POPUP SMART ONBOARDING UNTUK SISWA BARU */}
       <SmartOnboardingModal categories={categories || []} isCompleted={profile?.onboarding_completed || false} />
+
     </div>
   );
 }

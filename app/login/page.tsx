@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { signInAction, signUpAction, signInWithGoogle } from "./actions";
-import { Loader2, Chrome } from "lucide-react";
+import { Loader2, Chrome, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 
 export default function LoginPage() {
@@ -10,8 +10,10 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [isPending, startTransition] = useTransition();
+  
+  // STATE BARU UNTUK TOGGLE PASSWORD
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Handler untuk Login & Register dengan Email
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg("");
@@ -34,11 +36,9 @@ export default function LoginPage() {
     });
   };
 
-  // PERBAIKAN: Handler terpisah khusus untuk Google Login
   const handleGoogleLogin = async () => {
     setErrorMsg("");
     const res = await signInWithGoogle();
-    // Jika ada error saat memanggil Google, tampilkan di notifikasi merah
     if (res?.error) setErrorMsg(res.error);
   };
 
@@ -97,18 +97,35 @@ export default function LoginPage() {
                       </>
                   )}
 
-                  {/* INPUT UMUM (EMAIL & PASSWORD) */}
+                  {/* INPUT UMUM (EMAIL) */}
                   <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
                       <input type="email" name="email" required placeholder="nama@email.com" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
                   </div>
                   
+                  {/* INPUT PASSWORD DENGAN IKON MATA */}
                   <div>
                       <div className="flex justify-between items-center mb-1">
                           <label className="block text-sm font-bold text-gray-700">Password</label>
                           {!isRegister && <button type="button" className="text-xs font-bold text-[#F97316] hover:underline">Lupa Password?</button>}
                       </div>
-                      <input type="password" name="password" required placeholder="••••••••" minLength={6} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
+                      <div className="relative">
+                          <input 
+                              type={showPassword ? "text" : "password"} 
+                              name="password" 
+                              required 
+                              placeholder="••••••••" 
+                              minLength={6} 
+                              className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" 
+                          />
+                          <button 
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                          >
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                      </div>
                   </div>
 
                   {/* TOMBOL SUBMIT */}
@@ -124,7 +141,7 @@ export default function LoginPage() {
                   <div className="flex-1 border-t border-gray-200"></div>
               </div>
 
-              {/* PERBAIKAN: LOGIN GOOGLE (Tanpa Tag Form) */}
+              {/* LOGIN GOOGLE */}
               <button 
                   type="button" 
                   onClick={handleGoogleLogin}
@@ -137,7 +154,7 @@ export default function LoginPage() {
               <p className="text-center mt-8 text-sm font-medium text-gray-600">
                   {isRegister ? "Sudah punya akun?" : "Belum punya akun?"}
                   <button 
-                      onClick={() => { setIsRegister(!isRegister); setErrorMsg(""); setSuccessMsg(""); }} 
+                      onClick={() => { setIsRegister(!isRegister); setErrorMsg(""); setSuccessMsg(""); setShowPassword(false); }} 
                       className="text-[#F97316] font-bold ml-2 hover:underline"
                   >
                       {isRegister ? "Masuk di sini" : "Daftar Baru"}
