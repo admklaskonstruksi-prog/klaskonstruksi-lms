@@ -19,11 +19,12 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
   const searchQ = sp?.q || "";
   const sortFilter = sp?.sort || "terbaru";
 
-  // Tarik data relasi kompleks (Kategori & Sub Kategori)
+  // PERBAIKAN: Tambahkan relasi course_levels di query select
   let query = supabase.from("courses").select(`
     *,
     main_categories ( id, name ),
     sub_categories ( id, name ),
+    course_levels ( id, name ), 
     chapters ( id )
   `);
 
@@ -34,7 +35,12 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
   if (sortFilter === "harga-tinggi") query = query.order("price", { ascending: false });
   if (sortFilter === "harga-rendah") query = query.order("price", { ascending: true });
 
-  const { data: courses } = await query;
+  const { data: courses, error } = await query;
+
+  // Jika ada error query, log ke server console untuk mempermudah debug
+  if (error) {
+    console.error("Error fetching courses:", error);
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
@@ -92,11 +98,11 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {courses?.length === 0 ? (
+            {!courses || courses.length === 0 ? (
                 <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-400">Belum ada kelas yang ditemukan.</td>
                 </tr>
-            ) : courses?.map((course) => (
+            ) : courses.map((course: any) => (
               <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
                 
                 <td className="px-6 py-4">
@@ -119,8 +125,13 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
 
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-1">
-                     <span className="text-gray-900 font-semibold text-xs">{course.main_categories?.name || "-"}</span>
-                     <span className="text-gray-400 text-[11px] font-medium">{course.sub_categories?.name || "Sub kategori belum diatur"}</span>
+                     {/* Gunakan optional chaining (?.) dengan hati-hati */}
+                     <span className="text-gray-900 font-semibold text-xs">
+                        {course.main_categories?.name || "Kategori belum diatur"}
+                     </span>
+                     <span className="text-gray-400 text-[11px] font-medium">
+                        {course.sub_categories?.name || "Sub kategori belum diatur"}
+                     </span>
                   </div>
                 </td>
 
@@ -129,8 +140,10 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                      <span className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
                         <LayoutList size={14} className="text-gray-400"/> {course.chapters?.length || 0} Bab/Modul
                      </span>
+                     
+                     {/* PERBAIKAN: Ambil nama level dari relasi course_levels */}
                      <span className="text-[11px] font-bold bg-orange-50 text-[#F97316] px-2 py-0.5 rounded w-max uppercase">
-                        {course.level || "ALL LEVEL"}
+                        {course.course_levels?.name || "BELUM DIATUR"}
                      </span>
                   </div>
                 </td>

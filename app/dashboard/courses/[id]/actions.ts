@@ -57,6 +57,26 @@ export async function createLesson(formData: FormData) {
   return { success: true };
 }
 
+// --- FUNGSI BARU UNTUK EDIT MATERI/LESSON ---
+export async function updateLesson(formData: FormData) {
+  const supabase = await createClient();
+  const lessonId = formData.get("lessonId") as string;
+  const courseId = formData.get("courseId") as string;
+  const title = formData.get("title") as string;
+  const description = formData.get("description") as string;
+  const videoId = formData.get("videoId") as string; 
+
+  const { error } = await supabase.from("lessons").update({
+    title, 
+    description, 
+    video_id: videoId,
+  }).eq("id", lessonId);
+
+  if (error) return { error: error.message };
+  revalidatePath(`/dashboard/courses/${courseId}`);
+  return { success: true };
+}
+
 export async function deleteLesson(lessonId: string, courseId: string) {
   const supabase = await createClient();
   const { data: lesson } = await supabase.from("lessons").select("video_id").eq("id", lessonId).single();
@@ -89,7 +109,6 @@ export async function saveCourseContent(formData: FormData) {
   
   const is_published = formData.get("is_published") === "on";
 
-  // --- TANGKAP DATA RELASI ID (LEVEL, KATEGORI, SUB KATEGORI) ---
   const level_id = formData.get("level_id") as string;
   const main_category_id = formData.get("main_category_id") as string;
   const sub_category_id = formData.get("sub_category_id") as string; 
@@ -106,7 +125,6 @@ export async function saveCourseContent(formData: FormData) {
     }
   }
 
-  // Update ke DB
   const { error } = await supabase
     .from("courses")
     .update({ 
