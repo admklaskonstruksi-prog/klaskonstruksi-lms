@@ -1,55 +1,59 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
-export async function login(formData: FormData) {
+export async function signInAction(formData: FormData) {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  
   const supabase = await createClient();
-
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
-
-  const { error } = await supabase.auth.signInWithPassword(data);
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath("/", "layout");
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  
+  if (error) return { error: "Email atau password salah." };
   redirect("/dashboard");
 }
 
-export async function signup(formData: FormData) {
-  const supabase = await createClient();
-
+export async function signUpAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const fullName = formData.get("fullName") as string;
+  const full_name = formData.get("full_name") as string;
+  const phone = formData.get("phone") as string;
+  const address = formData.get("address") as string;
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
+  const supabase = await createClient();
+
+  // 1. Daftarkan user ke sistem Auth Supabase
+  const { data, error } = await supabase.auth.signUp({ email, password });
+
+  if (error) return { error: error.message };
+
+  // 2. Simpan data lengkap ke tabel profiles
+  if (data.user) {
+    await supabase.from("profiles").upsert({
+      id: data.user.id,
+      full_name,
+      phone,
+      address,
+      role: 'siswa' // Otomatis jadi siswa
+    });
+  }
+
+  return { success: "Pendaftaran berhasil! Silakan masuk dengan akun Anda." };
+}
+
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin");
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
     options: {
-      data: {
-        full_name: fullName || email.split("@")[0],
-      },
+      redirectTo: `${origin}/auth/callback`,
     },
   });
 
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath("/", "layout");
-  redirect("/login?message=Check your email to confirm your account");
-}
-
-export async function logout() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  revalidatePath("/", "layout");
-  redirect("/login");
+  if (error) return { error: error.message };
+  if (data.url) redirect(data.url);
 }
