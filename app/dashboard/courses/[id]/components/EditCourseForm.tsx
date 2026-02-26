@@ -19,27 +19,28 @@ interface CourseData {
   sales_count?: number;   
   is_published: boolean;
   thumbnail_url: string | null;
-  level?: string;            
-  main_category_id?: string; 
-  sub_category_id?: string;  // <--- Tambahan
+  level_id?: string;         // Sesuai DB
+  main_category_id?: string; // Sesuai DB
+  sub_category_id?: string;  // Sesuai DB
 }
 
 interface Props {
   course: CourseData;
   categories?: any[];
-  subCategories?: any[]; // <--- Tambahan
+  subCategories?: any[];
+  levels?: any[]; 
 }
 
-export default function EditCourseForm({ course, categories = [], subCategories = [] }: Props) {
+export default function EditCourseForm({ course, categories = [], subCategories = [], levels = [] }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(course.thumbnail_url);
   
-  // State untuk filtering Sub Kategori dinamis
+  // State untuk filter Sub Kategori dinamis
   const [selectedMainCat, setSelectedMainCat] = useState(course.main_category_id || "");
   
   const router = useRouter();
 
-  // Filter sub kategori berdasarkan main kategori yang dipilih
+  // Filter otomatis sub kategori
   const filteredSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
   let initialKeypoints: string[] = [""];
@@ -135,7 +136,6 @@ export default function EditCourseForm({ course, categories = [], subCategories 
               </label>
            </div>
 
-           {/* --- KOTAK SOCIAL PROOF --- */}
            <div className="bg-orange-50/50 p-4 rounded-lg border border-orange-100 space-y-4">
                <div>
                  <h4 className="text-sm font-bold text-orange-900">Social Proof (Visual Opsional)</h4>
@@ -157,7 +157,6 @@ export default function EditCourseForm({ course, categories = [], subCategories 
                    </div>
                </div>
            </div>
-
         </div>
 
         <div className="space-y-4">
@@ -166,10 +165,10 @@ export default function EditCourseForm({ course, categories = [], subCategories 
               <input name="title" defaultValue={course.title} required type="text" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition" />
            </div>
 
-           {/* --- KOTAK KATEGORI UTAMA & SUB KATEGORI DINAMIS --- */}
+           {/* --- KOTAK HIRARKI KATEGORI --- */}
            <div className="grid grid-cols-2 gap-4">
               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Utama</label>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Main Kategori</label>
                  <select 
                     name="main_category_id" 
                     value={selectedMainCat}
@@ -177,7 +176,7 @@ export default function EditCourseForm({ course, categories = [], subCategories 
                     required 
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer"
                  >
-                    <option value="" disabled>Pilih Kategori</option>
+                    <option value="" disabled>-- Pilih Main Kategori --</option>
                     {categories.map((cat) => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
@@ -189,10 +188,10 @@ export default function EditCourseForm({ course, categories = [], subCategories 
                  <select 
                     name="sub_category_id" 
                     defaultValue={course.sub_category_id || ""}
-                    disabled={!selectedMainCat} // Kunci jika main kategori belum dipilih
+                    disabled={!selectedMainCat} 
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
                  >
-                    <option value="">-- Kosongkan / Opsional --</option>
+                    <option value="">-- Kosongkan --</option>
                     {filteredSubCats.map((sub) => (
                         <option key={sub.id} value={sub.id}>{sub.name}</option>
                     ))}
@@ -200,15 +199,20 @@ export default function EditCourseForm({ course, categories = [], subCategories 
               </div>
            </div>
 
-           {/* LEVEL KESULITAN & HARGA DIGABUNG */}
+           {/* --- KOTAK LEVEL & HARGA --- */}
            <div className="grid grid-cols-3 gap-4">
               <div>
                  <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                 <select name="level" defaultValue={course.level || "Beginner"} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer">
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                    <option value="All Level">All Level</option>
+                 <select 
+                    name="level_id" 
+                    defaultValue={course.level_id || ""} 
+                    required 
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer"
+                  >
+                    <option value="" disabled>-- Pilih Level --</option>
+                    {levels.map((lvl) => (
+                        <option key={lvl.id} value={lvl.id}>{lvl.name}</option>
+                    ))}
                  </select>
               </div>
                <div>

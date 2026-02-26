@@ -26,11 +26,10 @@ export default async function CourseSetupPage(props: Props) {
 
   if (!course) return redirect("/dashboard/courses");
 
-  // --- TARIK DATA KATEGORI UNTUK DROPDOWN ---
-  const { data: categories } = await supabase
-    .from("main_categories")
-    .select("id, name")
-    .order("name");
+  // --- TARIK DATA UNTUK SEMUA DROPDOWN ---
+  const { data: mainCategories } = await supabase.from("main_categories").select("id, name").order("name");
+  const { data: subCategories } = await supabase.from("sub_categories").select("id, name, main_category_id").order("name");
+  const { data: courseLevels } = await supabase.from("course_levels").select("id, name").order("name");
 
   // 3. Ambil Data Modul (Chapter) DAN Materi (Lessons) di dalamnya
   const { data: chapters } = await supabase
@@ -45,7 +44,7 @@ export default async function CourseSetupPage(props: Props) {
   });
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto font-sans">
       
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Kelola Kelas & Modul</h1>
@@ -53,8 +52,13 @@ export default async function CourseSetupPage(props: Props) {
       </div>
 
       {/* --- BAGIAN 1: FORM EDIT DETAIL KELAS --- */}
-      {/* Kirim categories ke dalam form */}
-      <EditCourseForm course={course} categories={categories || []} />
+      {/* Kirim semua data referensi ke komponen form */}
+      <EditCourseForm 
+          course={course} 
+          categories={mainCategories || []} 
+          subCategories={subCategories || []} 
+          levels={courseLevels || []} 
+      />
 
       <hr className="my-8 border-gray-200" />
 

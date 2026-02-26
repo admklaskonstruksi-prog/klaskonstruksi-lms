@@ -89,10 +89,10 @@ export async function saveCourseContent(formData: FormData) {
   
   const is_published = formData.get("is_published") === "on";
 
-  // --- TANGKAP 3 DATA BARU (LEVEL, KATEGORI, SUB KATEGORI) ---
-  const level = formData.get("level") as string;
+  // --- TANGKAP DATA RELASI ID (LEVEL, KATEGORI, SUB KATEGORI) ---
+  const level_id = formData.get("level_id") as string;
   const main_category_id = formData.get("main_category_id") as string;
-  const sub_category_id = formData.get("sub_category_id") as string; // <--- TAMBAHAN SUB KATEGORI
+  const sub_category_id = formData.get("sub_category_id") as string; 
 
   const thumbnailFile = formData.get("thumbnail") as File;
   let thumbnail_url = formData.get("old_thumbnail_url") as string; 
@@ -114,8 +114,9 @@ export async function saveCourseContent(formData: FormData) {
         price, strike_price,
         rating, review_count, sales_count,
         is_published, thumbnail_url,
-        level, main_category_id, 
-        sub_category_id: sub_category_id || null // <--- Simpan Sub Kategori, jika kosong jadikan null
+        level_id: level_id || null, 
+        main_category_id: main_category_id || null, 
+        sub_category_id: sub_category_id || null 
     })
     .eq("id", courseId);
 
