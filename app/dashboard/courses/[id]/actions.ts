@@ -145,3 +145,20 @@ export async function saveCourseContent(formData: FormData) {
   revalidatePath("/dashboard");
   return { success: true };
 }
+
+// ==========================================
+// FUNGSI UNTUK TOGGLE STATUS LIVE / DRAFT
+// ==========================================
+export async function toggleCoursePublish(courseId: string, currentStatus: boolean) {
+    const supabase = await createClient();
+    const { error } = await supabase
+        .from("courses")
+        .update({ is_published: !currentStatus })
+        .eq("id", courseId);
+
+    if (error) return { error: error.message };
+    
+    revalidatePath("/dashboard/courses");
+    revalidatePath("/dashboard");
+    return { success: true };
+}
