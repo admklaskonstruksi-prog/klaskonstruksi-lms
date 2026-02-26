@@ -45,15 +45,20 @@ export async function signUpAction(formData: FormData) {
 export async function signInWithGoogle() {
   const supabase = await createClient();
   
-  // Tentukan URL callback secara eksplisit
-  // Jika NEXT_PUBLIC_SITE_URL di env Anda tidak ada, ia akan menggunakan localhost:3000
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  const redirectUrl = `${siteUrl}/auth/callback`;
+  // Mengambil URL dari env, jika tidak ada baru pakai fallback
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.klaskonstruksi.com';
+  
+  // Pastikan URL callback lengkap dan membawa parameter 'next'
+  const redirectUrl = `${siteUrl}/auth/callback?next=/dashboard`;
   
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: redirectUrl,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
     },
   });
 
