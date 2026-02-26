@@ -20,11 +20,15 @@ export default async function SettingsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const fullName = formData.get("full_name") as string;
+    const full_name = formData.get("full_name") as string;
+    const phone = formData.get("phone") as string;
+    const address = formData.get("address") as string;
     
-    // Update nama di tabel profiles
+    // Update data di tabel profiles
     await supabase.from("profiles").update({ 
-        full_name: fullName,
+        full_name,
+        phone,
+        address,
         updated_at: new Date().toISOString()
     }).eq("id", user.id);
 
@@ -91,6 +95,7 @@ export default async function SettingsPage() {
                                 <div className="relative">
                                     <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center">
                                         {profile?.avatar_url ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
                                             <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                                         ) : (
                                             <User size={40} className="text-gray-300" />
@@ -114,6 +119,16 @@ export default async function SettingsPage() {
                                 </div>
                                 
                                 <div className="space-y-2">
+                                    <label className="text-sm font-bold text-gray-700">No. WhatsApp</label>
+                                    <input type="tel" name="phone" defaultValue={profile?.phone || ""} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required placeholder="0812..." />
+                                </div>
+                                
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-sm font-bold text-gray-700">Kota / Domisili</label>
+                                    <input type="text" name="address" defaultValue={profile?.address || ""} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required placeholder="Alamat lengkap / Kota" />
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2 mt-2">
                                     <label className="text-sm font-bold text-gray-700">Alamat Email</label>
                                     <div className="relative">
                                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Star, StarHalf, Search, Users, Wallet, BookOpen, TrendingUp, BarChart3, Award, ArrowUpRight, FilterX } from "lucide-react"; 
 import SmartOnboardingModal from "./components/SmartOnboardingModal";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,56 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   const isAdmin = profile?.role?.toLowerCase() === 'admin';
+
+  // ============================================================================
+  // BLOKIR JIKA PROFIL GOOGLE BELUM LENGKAP (NO HP & ALAMAT)
+  // ============================================================================
+  const isProfileIncomplete = !isAdmin && (!profile?.phone || !profile?.address || !profile?.full_name);
+
+  // SERVER ACTION: Simpan data profil yang kurang
+  async function saveMissingProfile(formData: FormData) {
+    "use server";
+    const supabaseClient = await createClient();
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+
+    await supabaseClient.from("profiles").update({
+      full_name: formData.get("full_name") as string,
+      phone: formData.get("phone") as string,
+      address: formData.get("address") as string,
+    }).eq("id", user.id);
+
+    revalidatePath("/dashboard");
+  }
+
+  // Jika profil belum lengkap, tampilkan layar pemaksaan ini
+  if (isProfileIncomplete) {
+      return (
+          <div className="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center p-6">
+              <div className="bg-white max-w-md w-full p-8 rounded-3xl shadow-2xl border border-gray-100">
+                  <h2 className="text-2xl font-black text-gray-900 mb-2">Lengkapi Data Diri</h2>
+                  <p className="text-gray-500 text-sm mb-6">Sebelum mulai belajar, lengkapi profil Anda untuk keperluan sertifikat dan keamanan akun.</p>
+                  
+                  <form action={saveMissingProfile} className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap</label>
+                          <input type="text" name="full_name" defaultValue={profile?.full_name || user.user_metadata?.full_name || ""} required placeholder="Budi Santoso" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">No. WhatsApp</label>
+                          <input type="tel" name="phone" required placeholder="0812xxxxxx" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Kota / Domisili</label>
+                          <input type="text" name="address" required placeholder="Jakarta" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
+                      </div>
+                      <button type="submit" className="w-full bg-[#F97316] text-white font-bold py-3.5 rounded-xl hover:bg-[#ea580c] transition mt-4 shadow-lg shadow-[#F97316]/20">Simpan & Lanjutkan</button>
+                  </form>
+              </div>
+          </div>
+      );
+  }
+
 
   // ============================================================================
   // TAMPILAN KHUSUS ADMIN (RINGKASAN ANALITIK)
@@ -176,7 +227,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   }
 
   // ============================================================================
-  // TAMPILAN SISWA (ETALASE KELAS DENGAN FILTER SMART ONBOARDING)
+  // TAMPILAN SISWA (ETALASE KELAS DENGAN FILTER & SORTING BARU)
   // ============================================================================
   
   const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
@@ -184,17 +235,19 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
   const sp = await searchParams; 
   const categoryFilter = sp?.category || "semua";
+  const subCategoryFilter = sp?.sub || "semua";
   const sortFilter = sp?.sort || "terbaru";
   const searchQ = sp?.q || "";
-  
-  // Tangkap parameter LEVEL dari URL (hasil dari Smart Onboarding)
   const levelFilter = sp?.level || "semua";
 
-  // Ambil data referensi untuk filter dan tampilan
+  // Tarik data referensi Kategori & Sub Kategori
   const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
+  const { data: subCategories } = await supabase.from("sub_categories").select("id, name, main_category_id").order("name");
   const { data: allLevels } = await supabase.from("course_levels").select("id, name");
 
-  // Query kelas yang diperbarui: Tarik data relasi Main Kategori, Sub Kategori, & Level
+  // Jika ada Main Category yang dipilih, saring Sub Category yang relevan
+  const activeSubCats = subCategories?.filter(s => s.main_category_id === categoryFilter) || [];
+
   let query = supabase.from("courses").select(`
     *,
     main_categories!main_category_id(id, name),
@@ -202,22 +255,16 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     course_levels!level_id(id, name)
   `).eq("is_published", true);
 
-  // 1. Filter Kategori
   if (categoryFilter !== "semua") query = query.eq("main_category_id", categoryFilter);
+  if (subCategoryFilter !== "semua") query = query.eq("sub_category_id", subCategoryFilter);
   
-  // 2. Filter Pencarian
   if (searchQ) query = query.ilike("title", `%${searchQ}%`);
 
-  // 3. Filter Level (Hasil Redirect Smart Onboarding)
   if (levelFilter !== "semua") {
-      // Cari ID level di database yang cocok dengan text (misal: "Beginner")
       const matchedLevel = allLevels?.find(l => l.name.toLowerCase() === levelFilter.toLowerCase());
-      if (matchedLevel) {
-          query = query.eq("level_id", matchedLevel.id);
-      }
+      if (matchedLevel) query = query.eq("level_id", matchedLevel.id);
   }
 
-  // 4. Sorting
   if (sortFilter === "terpopuler") query = query.order("sales_count", { ascending: false });
   else query = query.order("created_at", { ascending: false }); 
 
@@ -232,39 +279,52 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
       <div className="mb-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Jelajah Kelas</h2>
-        <div className="flex flex-col md:flex-row gap-4">
-          <form method="GET" className="relative flex-1 flex items-center">
+        <div className="flex flex-col gap-4">
+          
+          {/* SEARCH BAR */}
+          <form method="GET" className="relative w-full border border-gray-200 rounded-xl overflow-hidden bg-white flex items-center focus-within:ring-2 focus-within:ring-[#F97316] transition-all shadow-sm">
              <input type="hidden" name="category" value={categoryFilter} />
+             <input type="hidden" name="sub" value={subCategoryFilter} />
              <input type="hidden" name="sort" value={sortFilter} />
-             {/* Pertahankan level filter jika user melakukan pencarian manual */}
              <input type="hidden" name="level" value={levelFilter} />
              
-             <div className="relative w-full border border-gray-200 rounded-xl overflow-hidden bg-white flex items-center focus-within:ring-2 focus-within:ring-[#F97316] transition-all shadow-sm">
-               <Search size={20} className="text-gray-400 absolute left-4" />
-               <input type="text" name="q" defaultValue={searchQ} placeholder="Cari kelas yang ingin Anda pelajari..." className="w-full py-3.5 pl-12 pr-4 outline-none text-sm text-gray-700 bg-transparent font-medium" />
-               <button type="submit" className="hidden">Cari</button>
-             </div>
+             <Search size={20} className="text-gray-400 absolute left-4" />
+             <input type="text" name="q" defaultValue={searchQ} placeholder="Cari kelas yang ingin Anda pelajari..." className="w-full py-3.5 pl-12 pr-4 outline-none text-sm text-gray-700 bg-transparent font-medium" />
+             <button type="submit" className="hidden">Cari</button>
           </form>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-            <Link href={`?category=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>Semua</Link>
+          {/* FILTER KATEGORI UTAMA */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide mt-2">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Kategori:</span>
+            <Link href={`?category=semua&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>Semua</Link>
             {categories?.map((cat) => (
-              <Link key={cat.id} href={`?category=${cat.id}&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>{cat.name}</Link>
+              <Link key={cat.id} href={`?category=${cat.id}&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>{cat.name}</Link>
             ))}
           </div>
+
+          {/* FILTER SUB KATEGORI (Hanya Muncul Jika Kategori Utama Dipilih) */}
+          {categoryFilter !== "semua" && activeSubCats.length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide pt-3 border-t border-gray-100">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Sub Kategori:</span>
+                <Link href={`?category=${categoryFilter}&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition ${subCategoryFilter === "semua" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>Semua</Link>
+                {activeSubCats.map((sub) => (
+                  <Link key={sub.id} href={`?category=${categoryFilter}&sub=${sub.id}&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition ${subCategoryFilter === sub.id ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{sub.name}</Link>
+                ))}
+              </div>
+          )}
+
         </div>
       </div>
 
       <hr className="my-8 border-gray-100" />
 
-      {/* INDIKATOR JIKA SEDANG DIFILTER OLEH SMART ONBOARDING */}
       {levelFilter !== "semua" && (
          <div className="mb-6 bg-teal-50 border border-[#00C9A7]/30 p-4 rounded-xl flex items-center justify-between">
             <div>
                <h3 className="font-bold text-[#00C9A7] text-sm">Rekomendasi Pintar Aktif ✨</h3>
                <p className="text-xs text-gray-600 mt-1">Menampilkan kelas khusus tingkat <strong className="uppercase">{levelFilter}</strong> sesuai profil Anda.</p>
             </div>
-            <Link href={`?category=${categoryFilter}&sort=${sortFilter}&q=${searchQ}&level=semua`} className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-red-500 hover:border-red-200 transition">
+            <Link href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=${sortFilter}&q=${searchQ}&level=semua`} className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-red-500 hover:border-red-200 transition">
                <FilterX size={14} /> Hapus Filter
             </Link>
          </div>
@@ -276,8 +336,8 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
            <p className="text-gray-500 text-sm">Tingkatkan skill Anda dengan materi siap kerja.</p>
         </div>
         <div className="flex items-center gap-4 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-           <Link href={`?category=${categoryFilter}&sort=terpopuler&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terpopuler" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terpopuler</Link>
-           <Link href={`?category=${categoryFilter}&sort=terbaru&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terbaru" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terbaru</Link>
+           <Link href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=terpopuler&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terpopuler" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terpopuler</Link>
+           <Link href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=terbaru&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terbaru" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terbaru</Link>
         </div>
       </div>
 
@@ -308,39 +368,33 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
               </div>
               
               <div className="p-4 flex flex-col flex-1">
-                 {/* KATEGORI & SUB KATEGORI (Permintaan No 2) */}
-                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-wider line-clamp-1">
-                    <span className="text-[#00C9A7] bg-teal-50 px-2 py-0.5 rounded">{course.main_categories?.name || "Kategori"}</span>
-                    {course.sub_categories?.name && (
-                        <>
-                           <span>•</span>
-                           <span className="truncate">{course.sub_categories.name}</span>
-                        </>
-                    )}
-                 </div>
-
+                 
                  <h3 className="font-bold text-gray-900 text-base leading-snug line-clamp-2 mb-2 group-hover:text-[#F97316] transition-colors">{course.title}</h3>
                  
-                 {/* RATING & LEVEL */}
-                 <div className="flex flex-wrap items-center justify-between gap-y-2 text-xs mb-4 mt-auto border-t border-gray-50 pt-3">
+                 {/* RATING, SALES & LEVEL DALAM KARTU */}
+                 <div className="flex flex-wrap items-center justify-between gap-y-2 text-xs mb-4 mt-auto">
                    {course.rating > 0 ? (
-                     <div className="flex items-center gap-1">
+                     <div className="flex items-center gap-1.5">
                        <span className="font-bold text-[#b4690e]">{course.rating}</span>
-                       <div className="flex text-[#b4690e]"><Star size={12} fill="currentColor" strokeWidth={0} /><StarHalf size={12} fill="currentColor" strokeWidth={0} /></div>
+                       <div className="flex items-center text-[#b4690e] gap-0.5">
+                           {/* Perbaikan: Menggunakan flex-shrink-0 agar bintang tidak terpotong */}
+                           <Star size={14} className="fill-current flex-shrink-0" strokeWidth={1} />
+                           <StarHalf size={14} className="fill-current flex-shrink-0" strokeWidth={1} />
+                       </div>
                        {course.review_count > 0 && <span className="text-gray-500">({course.review_count})</span>}
                      </div>
                    ) : <div></div>}
                    
-                   {/* INDIKATOR LEVEL (Permintaan No 2) */}
-                   <span className="bg-orange-50 text-[#F97316] font-black px-2 py-1 rounded-md text-[10px] uppercase">
-                       {course.course_levels?.name || "All Level"}
-                   </span>
+                   {course.sales_count > 0 && <span className="text-gray-500 font-medium">{course.sales_count} Terjual</span>}
                  </div>
 
                  <div className="pt-3 border-t border-gray-100 flex items-end justify-between gap-2 mt-auto">
                    <div>
+                     <span className="bg-orange-50 text-[#F97316] font-black px-2 py-1 rounded-md text-[10px] uppercase block w-max mb-1.5">
+                         {course.course_levels?.name || "All Level"}
+                     </span>
                      {course.price > 0 ? (
-                       <><span className="font-black text-gray-900 text-lg">Rp {course.price.toLocaleString("id-ID")}</span></>
+                       <span className="font-black text-gray-900 text-lg">Rp {course.price.toLocaleString("id-ID")}</span>
                      ) : (<span className="font-black text-[#F97316] text-lg">Gratis</span>)}
                    </div>
                    {isOwned && (<span className="text-[11px] font-bold text-[#00C9A7] bg-teal-50 px-2 py-1 rounded">Masuk Kelas</span>)}
