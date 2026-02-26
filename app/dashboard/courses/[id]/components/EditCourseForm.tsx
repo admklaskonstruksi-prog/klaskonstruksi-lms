@@ -19,15 +19,28 @@ interface CourseData {
   sales_count?: number;   
   is_published: boolean;
   thumbnail_url: string | null;
-  level?: string;            // <--- Tambahan
-  main_category_id?: string; // <--- Tambahan
+  level?: string;            
+  main_category_id?: string; 
+  sub_category_id?: string;  // <--- Tambahan
 }
 
-// Tambahkan categories di props
-export default function EditCourseForm({ course, categories = [] }: { course: CourseData, categories?: any[] }) {
+interface Props {
+  course: CourseData;
+  categories?: any[];
+  subCategories?: any[]; // <--- Tambahan
+}
+
+export default function EditCourseForm({ course, categories = [], subCategories = [] }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(course.thumbnail_url);
+  
+  // State untuk filtering Sub Kategori dinamis
+  const [selectedMainCat, setSelectedMainCat] = useState(course.main_category_id || "");
+  
   const router = useRouter();
+
+  // Filter sub kategori berdasarkan main kategori yang dipilih
+  const filteredSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
   let initialKeypoints: string[] = [""];
   if (course.keypoints) {
@@ -122,7 +135,7 @@ export default function EditCourseForm({ course, categories = [] }: { course: Co
               </label>
            </div>
 
-           {/* --- KOTAK SOCIAL PROOF (RATING & REVIEW) --- */}
+           {/* --- KOTAK SOCIAL PROOF --- */}
            <div className="bg-orange-50/50 p-4 rounded-lg border border-orange-100 space-y-4">
                <div>
                  <h4 className="text-sm font-bold text-orange-900">Social Proof (Visual Opsional)</h4>
@@ -131,7 +144,7 @@ export default function EditCourseForm({ course, categories = [] }: { course: Co
                
                <div className="grid grid-cols-3 gap-3">
                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Bintang (0-5)</label>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Bintang</label>
                       <input name="rating" type="number" step="0.1" defaultValue={course.rating || 0} className="w-full px-3 py-1.5 border border-orange-200 rounded-md outline-none text-sm" />
                    </div>
                    <div>
@@ -153,10 +166,44 @@ export default function EditCourseForm({ course, categories = [] }: { course: Co
               <input name="title" defaultValue={course.title} required type="text" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition" />
            </div>
 
-           {/* --- TAMBAHAN KOTAK LEVEL & KATEGORI --- */}
+           {/* --- KOTAK KATEGORI UTAMA & SUB KATEGORI DINAMIS --- */}
            <div className="grid grid-cols-2 gap-4">
               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Level Kesulitan</label>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Utama</label>
+                 <select 
+                    name="main_category_id" 
+                    value={selectedMainCat}
+                    onChange={(e) => setSelectedMainCat(e.target.value)}
+                    required 
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer"
+                 >
+                    <option value="" disabled>Pilih Kategori</option>
+                    {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                 </select>
+              </div>
+
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Sub Kategori</label>
+                 <select 
+                    name="sub_category_id" 
+                    defaultValue={course.sub_category_id || ""}
+                    disabled={!selectedMainCat} // Kunci jika main kategori belum dipilih
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                 >
+                    <option value="">-- Kosongkan / Opsional --</option>
+                    {filteredSubCats.map((sub) => (
+                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                    ))}
+                 </select>
+              </div>
+           </div>
+
+           {/* LEVEL KESULITAN & HARGA DIGABUNG */}
+           <div className="grid grid-cols-3 gap-4">
+              <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
                  <select name="level" defaultValue={course.level || "Beginner"} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer">
                     <option value="Beginner">Beginner</option>
                     <option value="Intermediate">Intermediate</option>
@@ -164,24 +211,12 @@ export default function EditCourseForm({ course, categories = [] }: { course: Co
                     <option value="All Level">All Level</option>
                  </select>
               </div>
-              <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Kategori Utama</label>
-                 <select name="main_category_id" defaultValue={course.main_category_id || ""} required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer">
-                    <option value="" disabled>Pilih Kategori</option>
-                    {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                 </select>
-              </div>
-           </div>
-
-           <div className="grid grid-cols-2 gap-4">
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Harga Jual (Rp)</label>
                   <input name="price" type="number" defaultValue={course.price} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition" />
                </div>
                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Harga Coret (Rp)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hrg Coret (Rp)</label>
                   <input name="strike_price" type="number" defaultValue={course.strike_price || 0} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-400 outline-none transition" />
                </div>
            </div>
