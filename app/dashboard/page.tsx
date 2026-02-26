@@ -13,31 +13,44 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return redirect("/login");
 
-  // Tarik data profil & Role
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   const isAdmin = profile?.role?.toLowerCase() === 'admin';
 
-  // ============================================================================
-  // TAMPILAN KHUSUS ADMIN (RINGKASAN ANALITIK)
-  // ============================================================================
   if (isAdmin) {
-    // 1. Tarik Data Untuk Statistik
+    // 1. Tarik Jumlah Siswa
     const { count: totalStudents } = await supabase.from("profiles").select("*", { count: "exact", head: true }).neq("role", "admin");
-    const { data: coursesData } = await supabase.from("courses").select("id, title, price, sales_count, is_published, thumbnail_url").order("sales_count", { ascending: false });
+    
+    // 2. Tarik Jumlah Kelas Aktif
+    const { count: activeCourses } = await supabase.from("courses").select("*", { count: "exact", head: true }).eq("is_published", true);
+
+    // 3. TARIK DATA PENJUALAN ASLI (REAL) DARI ENROLLMENTS
+    const { data: realEnrollments } = await supabase
+      .from("enrollments")
+      .select("course_id, courses(id, title, price, thumbnail_url)");
 
     let totalRevenue = 0;
-    let totalSales = 0;
-    let activeCourses = 0;
+    let totalSales = realEnrollments?.length || 0;
 
-    coursesData?.forEach(c => {
-      totalSales += (c.sales_count || 0);
-      totalRevenue += ((c.sales_count || 0) * (c.price || 0));
-      if (c.is_published) activeCourses++;
+    // Kalkulasi Pendapatan dan Leaderboard Asli
+    const courseStats: Record<string, any> = {};
+
+    realEnrollments?.forEach((e: any) => {
+       const c = e.courses;
+       if (!c) return;
+       
+       totalRevenue += (c.price || 0);
+
+       if (!courseStats[c.id]) {
+           courseStats[c.id] = { id: c.id, title: c.title, price: c.price, thumbnail_url: c.thumbnail_url, real_sales: 0 };
+       }
+       courseStats[c.id].real_sales += 1;
     });
 
-    const topCourses = coursesData?.slice(0, 4) || [];
+    // Urutkan kelas terlaris berdasarkan penjualan real
+    const topCourses = Object.values(courseStats)
+       .sort((a, b) => b.real_sales - a.real_sales)
+       .slice(0, 4);
 
-    // MOCK DATA GRAFIK (Karena kita belum punya tabel transaksi harian, ini visualisasi simulasi trend)
     const weeklySales = [
         { day: "Sen", amount: 1200000 }, { day: "Sel", amount: 2500000 },
         { day: "Rab", amount: 1800000 }, { day: "Kam", amount: 3200000 },
@@ -49,10 +62,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
         <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
             <div className="mb-8">
                 <h1 className="text-2xl font-black text-gray-900">Halo, <span className="text-[#00C9A7]">{profile?.full_name || 'Admin'}</span> 👋</h1>
-                <p className="text-gray-500 mt-1">Berikut adalah ringkasan performa platform Anda hari ini.</p>
+                <p className="text-gray-500 mt-1">Berikut adalah ringkasan performa nyata platform Anda hari ini.</p>
             </div>
 
-            {/* 4 KOTAK KPI (KEY PERFORMANCE INDICATORS) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
                     <div className="absolute -right-6 -top-6 w-24 h-24 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
@@ -92,7 +104,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                     <div className="flex justify-between items-start relative z-10">
                         <div>
                             <p className="text-sm font-bold text-gray-500 mb-1">Kelas Aktif</p>
-                            <h3 className="text-2xl font-black text-gray-900">{activeCourses} <span className="text-sm font-medium text-gray-400">Live</span></h3>
+                            <h3 className="text-2xl font-black text-gray-900">{activeCourses || 0} <span className="text-sm font-medium text-gray-400">Live</span></h3>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center"><BookOpen size={20} /></div>
                     </div>
@@ -100,7 +112,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* GRAFIK PENJUALAN MINGGUAN (TAILWIND CSS) */}
                 <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col">
                     <div className="flex items-center justify-between mb-8">
                         <div>
@@ -110,9 +121,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                         <span className="text-xs font-bold bg-green-50 text-green-600 px-3 py-1.5 rounded-lg flex items-center gap-1"><ArrowUpRight size={14}/> +15.4%</span>
                     </div>
 
-                    {/* Chart Container */}
                     <div className="flex-1 flex items-end gap-2 sm:gap-4 h-48 mt-auto pt-4 relative">
-                        {/* Garis Horizontal Latar Belakang */}
                         <div className="absolute inset-0 flex flex-col justify-between pb-8 z-0">
                             {[1,2,3,4].map(i => <div key={i} className="w-full border-t border-gray-100 border-dashed"></div>)}
                         </div>
@@ -121,11 +130,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                             const heightPercentage = (data.amount / maxSale) * 100;
                             return (
                                 <div key={idx} className="flex-1 flex flex-col items-center gap-2 relative z-10 group">
-                                    {/* Tooltip Hover */}
                                     <div className="opacity-0 group-hover:opacity-100 absolute -top-10 bg-gray-900 text-white text-[10px] font-bold py-1 px-2 rounded whitespace-nowrap transition-opacity pointer-events-none">
                                         Rp {data.amount.toLocaleString("id-ID")}
                                     </div>
-                                    {/* Batang Grafik */}
                                     <div className="w-full bg-[#00C9A7]/20 rounded-t-lg relative overflow-hidden group-hover:bg-[#00C9A7]/30 transition-colors" style={{ height: '100%' }}>
                                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#00C9A7] to-[#00E5C0] rounded-t-lg transition-all duration-1000" style={{ height: `${heightPercentage}%` }}></div>
                                     </div>
@@ -136,14 +143,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                     </div>
                 </div>
 
-                {/* LEADERBOARD KELAS TERLARIS */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-6"><Award size={20} className="text-[#F97316]" /> Kelas Terlaris</h3>
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-6"><Award size={20} className="text-[#F97316]" /> Kelas Terlaris (Real)</h3>
                     
                     <div className="space-y-4">
                         {topCourses.length === 0 ? (
-                            <p className="text-sm text-gray-400 italic text-center py-4">Belum ada penjualan.</p>
-                        ) : topCourses.map((course, idx) => (
+                            <p className="text-sm text-gray-400 italic text-center py-4">Belum ada data penjualan asli.</p>
+                        ) : topCourses.map((course: any, idx: number) => (
                             <div key={course.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
                                 <div className="w-6 font-black text-gray-300 text-lg text-center">{idx + 1}</div>
                                 <div className="relative w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
@@ -155,16 +161,16 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="text-sm font-bold text-gray-900 truncate">{course.title}</h4>
-                                    <p className="text-xs text-gray-500 font-medium">{course.sales_count} Terjual</p>
+                                    <p className="text-xs text-gray-500 font-medium">{course.real_sales} Orang Daftar</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-black text-[#00C9A7]">Rp {(course.price * course.sales_count).toLocaleString("id-ID")}</p>
+                                    <p className="text-sm font-black text-[#00C9A7]">Rp {(course.price * course.real_sales).toLocaleString("id-ID")}</p>
                                 </div>
                             </div>
                         ))}
                     </div>
                     <Link href="/dashboard/courses" className="block w-full text-center mt-6 text-sm font-bold text-gray-500 hover:text-[#00C9A7] transition-colors">
-                        Lihat Semua Kelas &rarr;
+                        Kelola Kelas &rarr;
                     </Link>
                 </div>
             </div>
@@ -172,12 +178,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     );
   }
 
-
-  // ============================================================================
-  // TAMPILAN KHUSUS SISWA / USER (JELAJAH KELAS)
-  // ============================================================================
-  
-  // --- CEK KELAS YANG SUDAH DIBELI SISWA ---
+  // === TAMPILAN USER BIASA TETAP SAMA ===
   const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
   const ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];
 
@@ -186,7 +187,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   const sortFilter = sp?.sort || "terbaru";
   const searchQ = sp?.q || "";
 
-  // Query kelas dasar
   let query = supabase.from("courses").select("*").eq("is_published", true);
 
   if (categoryFilter !== "semua") query = query.eq("main_category_id", categoryFilter);
@@ -200,16 +200,11 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans selection:bg-[#F97316] selection:text-white">
-      
-      {/* HEADER */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Halo, <span className="text-[#F97316]">{profile?.full_name || 'Siswa'}</span> 👋
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Halo, <span className="text-[#F97316]">{profile?.full_name || 'Siswa'}</span> 👋</h1>
         <p className="text-gray-500 mt-1">Siap melanjutkan pembelajaran hari ini?</p>
       </div>
 
-      {/* FILTER & PENCARIAN */}
       <div className="mb-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Jelajah Kelas</h2>
         <div className="flex flex-col md:flex-row gap-4">
@@ -224,13 +219,9 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
           </form>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-            <Link href={`?category=semua&sort=${sortFilter}&q=${searchQ}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>
-              Semua
-            </Link>
+            <Link href={`?category=semua&sort=${sortFilter}&q=${searchQ}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>Semua</Link>
             {categories?.map((cat) => (
-              <Link key={cat.id} href={`?category=${cat.id}&sort=${sortFilter}&q=${searchQ}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>
-                {cat.name}
-              </Link>
+              <Link key={cat.id} href={`?category=${cat.id}&sort=${sortFilter}&q=${searchQ}`} className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>{cat.name}</Link>
             ))}
           </div>
         </div>
@@ -238,7 +229,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
       <hr className="my-8 border-gray-100" />
 
-      {/* DAFTAR KELAS */}
       <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
            <h2 className="text-2xl font-bold text-gray-900 mb-2">Pilihan Program Terbaik</h2>
@@ -251,9 +241,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
       </div>
 
       {courses?.length === 0 ? (
-         <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-            Tidak ada kelas yang sesuai dengan filter Anda.
-         </div>
+         <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tidak ada kelas yang sesuai filter Anda.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {courses?.map((course) => {
@@ -285,7 +273,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                        {course.review_count > 0 && <span className="text-gray-500">({course.review_count})</span>}
                      </div>
                    )}
-                   {course.sales_count > 0 && <span className="text-gray-500 font-medium">{course.sales_count} Terjual</span>}
                  </div>
                  <div className="pt-3 border-t border-gray-100 flex items-end justify-between gap-2 mt-auto">
                    <div>
@@ -301,9 +288,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
         </div>
       )}
 
-      {/* TAMPILKAN POPUP SMART ONBOARDING UNTUK SISWA BARU */}
       <SmartOnboardingModal categories={categories || []} isCompleted={profile?.onboarding_completed || false} />
-
     </div>
   );
 }

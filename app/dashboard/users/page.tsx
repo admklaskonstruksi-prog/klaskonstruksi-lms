@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { Search, ShieldAlert, UserCheck, Trash2, Edit } from "lucide-react";
+import { Search, ShieldAlert, UserCheck } from "lucide-react";
+import UserActions from "./components/UserActions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +10,12 @@ export default async function UserManagementPage({ searchParams }: { searchParam
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return redirect("/login");
 
-  // Validasi Admin
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role?.toLowerCase() !== "admin") return redirect("/dashboard");
 
   const sp = await searchParams;
   const searchQ = sp?.q || "";
 
-  // Ambil data profil (siswa & admin)
   let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
   if (searchQ) query = query.ilike("full_name", `%${searchQ}%`);
   
@@ -33,6 +32,7 @@ export default async function UserManagementPage({ searchParams }: { searchParam
         <form method="GET" className="relative flex-1 max-w-md">
            <Search size={18} className="absolute left-4 top-3 text-gray-400" />
            <input type="text" name="q" defaultValue={searchQ} placeholder="Cari nama pengguna..." className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#00C9A7] outline-none" />
+           <button type="submit" className="hidden">Cari</button>
         </form>
       </div>
 
@@ -62,10 +62,9 @@ export default async function UserManagementPage({ searchParams }: { searchParam
                     {u.onboarding_completed ? <span className="text-green-600 font-medium text-xs">Selesai</span> : <span className="text-gray-400 font-medium text-xs">Belum</span>}
                 </td>
                 <td className="px-6 py-4 text-gray-500">{new Date(u.created_at).toLocaleDateString("id-ID")}</td>
-                <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                   {/* Tombol Aksi (Bisa disambungkan ke Server Action untuk update role) */}
-                   <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit Role"><Edit size={16}/></button>
-                   <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Hapus User"><Trash2 size={16}/></button>
+                <td className="px-6 py-4">
+                   {/* Tombol aksi dipanggil di sini agar interaktif */}
+                   <UserActions user={u} />
                 </td>
               </tr>
             ))}
