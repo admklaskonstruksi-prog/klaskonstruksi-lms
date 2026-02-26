@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, StarHalf, Search, Users, Wallet, BookOpen, TrendingUp, BarChart3, Award, ArrowUpRight, FilterX } from "lucide-react"; 
+import { Star, Search, Users, Wallet, BookOpen, TrendingUp, BarChart3, Award, ArrowUpRight, FilterX } from "lucide-react"; 
 import SmartOnboardingModal from "./components/SmartOnboardingModal";
 import { revalidatePath } from "next/cache";
 
@@ -18,11 +18,10 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   const isAdmin = profile?.role?.toLowerCase() === 'admin';
 
   // ============================================================================
-  // BLOKIR JIKA PROFIL GOOGLE BELUM LENGKAP (NO HP & ALAMAT)
+  // BLOKIR JIKA PROFIL GOOGLE BELUM LENGKAP
   // ============================================================================
-  const isProfileIncomplete = !isAdmin && (!profile?.phone || !profile?.address || !profile?.full_name);
+  const isProfileIncomplete = !isAdmin && (!profile?.phone || !profile?.address || !profile?.country || !profile?.province || !profile?.city);
 
-  // SERVER ACTION: Simpan data profil yang kurang
   async function saveMissingProfile(formData: FormData) {
     "use server";
     const supabaseClient = await createClient();
@@ -32,33 +31,55 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     await supabaseClient.from("profiles").update({
       full_name: formData.get("full_name") as string,
       phone: formData.get("phone") as string,
+      country: formData.get("country") as string,
+      province: formData.get("province") as string,
+      city: formData.get("city") as string,
       address: formData.get("address") as string,
     }).eq("id", user.id);
 
     revalidatePath("/dashboard");
   }
 
-  // Jika profil belum lengkap, tampilkan layar pemaksaan ini
   if (isProfileIncomplete) {
       return (
-          <div className="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center p-6">
-              <div className="bg-white max-w-md w-full p-8 rounded-3xl shadow-2xl border border-gray-100">
+          <div className="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center p-6 overflow-y-auto">
+              <div className="bg-white max-w-lg w-full p-8 rounded-3xl shadow-2xl border border-gray-100 my-auto">
                   <h2 className="text-2xl font-black text-gray-900 mb-2">Lengkapi Data Diri</h2>
-                  <p className="text-gray-500 text-sm mb-6">Sebelum mulai belajar, lengkapi profil Anda untuk keperluan sertifikat dan keamanan akun.</p>
+                  <p className="text-gray-500 text-sm mb-6">Sebelum mulai belajar, lengkapi profil Anda untuk keperluan sertifikat dan keamanan.</p>
                   
                   <form action={saveMissingProfile} className="space-y-4">
                       <div>
                           <label className="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap</label>
-                          <input type="text" name="full_name" defaultValue={profile?.full_name || user.user_metadata?.full_name || ""} required placeholder="Budi Santoso" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
+                          <input type="text" name="full_name" defaultValue={profile?.full_name || user.user_metadata?.full_name || ""} required placeholder="Budi Santoso" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
                       </div>
                       <div>
                           <label className="block text-sm font-bold text-gray-700 mb-1">No. WhatsApp</label>
-                          <input type="tel" name="phone" required placeholder="0812xxxxxx" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
+                          <input type="tel" name="phone" defaultValue={profile?.phone || ""} required placeholder="0812xxxxxx" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
                       </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-1">Negara</label>
+                              <input type="text" name="country" defaultValue={profile?.country || "Indonesia"} required placeholder="Indonesia" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
+                          </div>
+                          <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-1">Provinsi</label>
+                              <input type="text" name="province" defaultValue={profile?.province || ""} required placeholder="Jawa Timur" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
+                          </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                          <div className="col-span-2">
+                              <label className="block text-sm font-bold text-gray-700 mb-1">Kota / Kabupaten</label>
+                              <input type="text" name="city" defaultValue={profile?.city || ""} required placeholder="Malang" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
+                          </div>
+                      </div>
+
                       <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Kota / Domisili</label>
-                          <input type="text" name="address" required placeholder="Jakarta" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Detail Alamat (Jalan/No. Rumah)</label>
+                          <textarea name="address" defaultValue={profile?.address || ""} required placeholder="Jl. Raya No. 123..." rows={2} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm"></textarea>
                       </div>
+
                       <button type="submit" className="w-full bg-[#F97316] text-white font-bold py-3.5 rounded-xl hover:bg-[#ea580c] transition mt-4 shadow-lg shadow-[#F97316]/20">Simpan & Lanjutkan</button>
                   </form>
               </div>
@@ -74,37 +95,21 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     const { count: totalStudents } = await supabase.from("profiles").select("*", { count: "exact", head: true }).neq("role", "admin");
     const { count: activeCourses } = await supabase.from("courses").select("*", { count: "exact", head: true }).eq("is_published", true);
 
-    const { data: realEnrollments } = await supabase
-      .from("enrollments")
-      .select("course_id, courses(id, title, price, thumbnail_url)");
+    const { data: realEnrollments } = await supabase.from("enrollments").select("course_id, courses(id, title, price, thumbnail_url)");
 
     let totalRevenue = 0;
     let totalSales = realEnrollments?.length || 0;
-
     const courseStats: Record<string, any> = {};
 
     realEnrollments?.forEach((e: any) => {
        const c = e.courses;
        if (!c) return;
-       
        totalRevenue += (c.price || 0);
-
-       if (!courseStats[c.id]) {
-           courseStats[c.id] = { id: c.id, title: c.title, price: c.price, thumbnail_url: c.thumbnail_url, real_sales: 0 };
-       }
+       if (!courseStats[c.id]) courseStats[c.id] = { id: c.id, title: c.title, price: c.price, thumbnail_url: c.thumbnail_url, real_sales: 0 };
        courseStats[c.id].real_sales += 1;
     });
 
-    const topCourses = Object.values(courseStats)
-       .sort((a, b) => b.real_sales - a.real_sales)
-       .slice(0, 4);
-
-    const weeklySales = [
-        { day: "Sen", amount: 1200000 }, { day: "Sel", amount: 2500000 },
-        { day: "Rab", amount: 1800000 }, { day: "Kam", amount: 3200000 },
-        { day: "Jum", amount: 2900000 }, { day: "Sab", amount: 4500000 }, { day: "Min", amount: 5100000 }
-    ];
-    const maxSale = Math.max(...weeklySales.map(s => s.amount));
+    const topCourses = Object.values(courseStats).sort((a, b) => b.real_sales - a.real_sales).slice(0, 4);
 
     return (
         <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
@@ -115,97 +120,42 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
-                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
                     <div className="flex justify-between items-start relative z-10">
-                        <div>
-                            <p className="text-sm font-bold text-gray-500 mb-1">Total Pendapatan</p>
-                            <h3 className="text-2xl font-black text-gray-900">Rp {totalRevenue.toLocaleString("id-ID")}</h3>
-                        </div>
+                        <div><p className="text-sm font-bold text-gray-500 mb-1">Pendapatan</p><h3 className="text-2xl font-black text-gray-900">Rp {totalRevenue.toLocaleString("id-ID")}</h3></div>
                         <div className="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center"><Wallet size={20} /></div>
                     </div>
                 </div>
-
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
-                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-orange-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
                     <div className="flex justify-between items-start relative z-10">
-                        <div>
-                            <p className="text-sm font-bold text-gray-500 mb-1">Total Penjualan</p>
-                            <h3 className="text-2xl font-black text-gray-900">{totalSales} <span className="text-sm font-medium text-gray-400">Kelas</span></h3>
-                        </div>
+                        <div><p className="text-sm font-bold text-gray-500 mb-1">Penjualan</p><h3 className="text-2xl font-black text-gray-900">{totalSales} <span className="text-sm font-medium text-gray-400">Kelas</span></h3></div>
                         <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center"><TrendingUp size={20} /></div>
                     </div>
                 </div>
-
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
-                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
                     <div className="flex justify-between items-start relative z-10">
-                        <div>
-                            <p className="text-sm font-bold text-gray-500 mb-1">Total Siswa</p>
-                            <h3 className="text-2xl font-black text-gray-900">{totalStudents || 0} <span className="text-sm font-medium text-gray-400">Orang</span></h3>
-                        </div>
+                        <div><p className="text-sm font-bold text-gray-500 mb-1">Siswa</p><h3 className="text-2xl font-black text-gray-900">{totalStudents || 0} <span className="text-sm font-medium text-gray-400">Orang</span></h3></div>
                         <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center"><Users size={20} /></div>
                     </div>
                 </div>
-
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
-                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-purple-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
                     <div className="flex justify-between items-start relative z-10">
-                        <div>
-                            <p className="text-sm font-bold text-gray-500 mb-1">Kelas Aktif</p>
-                            <h3 className="text-2xl font-black text-gray-900">{activeCourses || 0} <span className="text-sm font-medium text-gray-400">Live</span></h3>
-                        </div>
+                        <div><p className="text-sm font-bold text-gray-500 mb-1">Kelas Aktif</p><h3 className="text-2xl font-black text-gray-900">{activeCourses || 0} <span className="text-sm font-medium text-gray-400">Live</span></h3></div>
                         <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center"><BookOpen size={20} /></div>
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col">
-                    <div className="flex items-center justify-between mb-8">
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><BarChart3 size={20} className="text-[#00C9A7]" /> Trend Penjualan (7 Hari)</h3>
-                            <p className="text-xs text-gray-400 mt-1">*Simulasi visual trend pendapatan</p>
-                        </div>
-                        <span className="text-xs font-bold bg-green-50 text-green-600 px-3 py-1.5 rounded-lg flex items-center gap-1"><ArrowUpRight size={14}/> +15.4%</span>
-                    </div>
-
-                    <div className="flex-1 flex items-end gap-2 sm:gap-4 h-48 mt-auto pt-4 relative">
-                        <div className="absolute inset-0 flex flex-col justify-between pb-8 z-0">
-                            {[1,2,3,4].map(i => <div key={i} className="w-full border-t border-gray-100 border-dashed"></div>)}
-                        </div>
-
-                        {weeklySales.map((data, idx) => {
-                            const heightPercentage = (data.amount / maxSale) * 100;
-                            return (
-                                <div key={idx} className="flex-1 flex flex-col items-center gap-2 relative z-10 group">
-                                    <div className="opacity-0 group-hover:opacity-100 absolute -top-10 bg-gray-900 text-white text-[10px] font-bold py-1 px-2 rounded whitespace-nowrap transition-opacity pointer-events-none">
-                                        Rp {data.amount.toLocaleString("id-ID")}
-                                    </div>
-                                    <div className="w-full bg-[#00C9A7]/20 rounded-t-lg relative overflow-hidden group-hover:bg-[#00C9A7]/30 transition-colors" style={{ height: '100%' }}>
-                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#00C9A7] to-[#00E5C0] rounded-t-lg transition-all duration-1000" style={{ height: `${heightPercentage}%` }}></div>
-                                    </div>
-                                    <span className="text-xs font-bold text-gray-400">{data.day}</span>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-6"><Award size={20} className="text-[#F97316]" /> Kelas Terlaris (Real)</h3>
-                    
-                    <div className="space-y-4">
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-3">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-6"><Award size={20} className="text-[#F97316]" /> Kelas Terlaris</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {topCourses.length === 0 ? (
-                            <p className="text-sm text-gray-400 italic text-center py-4">Belum ada data penjualan asli.</p>
+                            <p className="text-sm text-gray-400 italic py-4">Belum ada data penjualan.</p>
                         ) : topCourses.map((course: any, idx: number) => (
-                            <div key={course.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                            <div key={course.id} className="flex items-center gap-4 p-3 rounded-xl border border-gray-100">
                                 <div className="w-6 font-black text-gray-300 text-lg text-center">{idx + 1}</div>
-                                <div className="relative w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
-                                    {course.thumbnail_url ? (
-                                        <Image src={course.thumbnail_url} alt="Cover" fill className="object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-400">No Img</div>
-                                    )}
+                                <div className="relative w-12 h-12 rounded-lg bg-gray-200 overflow-hidden shrink-0">
+                                    {course.thumbnail_url ? <Image src={course.thumbnail_url} alt="Cover" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-400">No Img</div>}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="text-sm font-bold text-gray-900 truncate">{course.title}</h4>
@@ -217,9 +167,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                             </div>
                         ))}
                     </div>
-                    <Link href="/dashboard/courses" className="block w-full text-center mt-6 text-sm font-bold text-gray-500 hover:text-[#00C9A7] transition-colors">
-                        Kelola Kelas &rarr;
-                    </Link>
                 </div>
             </div>
         </div>
@@ -240,28 +187,21 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   const searchQ = sp?.q || "";
   const levelFilter = sp?.level || "semua";
 
-  // Tarik data referensi Kategori & Sub Kategori
   const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
   const { data: subCategories } = await supabase.from("sub_categories").select("id, name, main_category_id").order("name");
   const { data: allLevels } = await supabase.from("course_levels").select("id, name");
 
-  // Jika ada Main Category yang dipilih, saring Sub Category yang relevan
   const activeSubCats = subCategories?.filter(s => s.main_category_id === categoryFilter) || [];
 
-  let query = supabase.from("courses").select(`
-    *,
-    main_categories!main_category_id(id, name),
-    sub_categories!sub_category_id(id, name),
-    course_levels!level_id(id, name)
-  `).eq("is_published", true);
+  let query = supabase.from("courses").select(`*, main_categories!main_category_id(id, name), sub_categories!sub_category_id(id, name), course_levels!level_id(id, name)`).eq("is_published", true);
 
   if (categoryFilter !== "semua") query = query.eq("main_category_id", categoryFilter);
   if (subCategoryFilter !== "semua") query = query.eq("sub_category_id", subCategoryFilter);
-  
   if (searchQ) query = query.ilike("title", `%${searchQ}%`);
 
   if (levelFilter !== "semua") {
-      const matchedLevel = allLevels?.find(l => l.name.toLowerCase() === levelFilter.toLowerCase());
+      // Mendukung ID level atau nama level (dari Smart Onboarding)
+      const matchedLevel = allLevels?.find(l => l.id === levelFilter || l.name.toLowerCase() === levelFilter.toLowerCase());
       if (matchedLevel) query = query.eq("level_id", matchedLevel.id);
   }
 
@@ -281,7 +221,6 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
         <h2 className="text-xl font-bold text-gray-900 mb-4">Jelajah Kelas</h2>
         <div className="flex flex-col gap-4">
           
-          {/* SEARCH BAR */}
           <form method="GET" className="relative w-full border border-gray-200 rounded-xl overflow-hidden bg-white flex items-center focus-within:ring-2 focus-within:ring-[#F97316] transition-all shadow-sm">
              <input type="hidden" name="category" value={categoryFilter} />
              <input type="hidden" name="sub" value={subCategoryFilter} />
@@ -296,41 +235,39 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
           {/* FILTER KATEGORI UTAMA */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide mt-2">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Kategori:</span>
-            <Link href={`?category=semua&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>Semua</Link>
+            <Link href={`?category=semua&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>Semua</Link>
             {categories?.map((cat) => (
-              <Link key={cat.id} href={`?category=${cat.id}&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>{cat.name}</Link>
+              <Link key={cat.id} href={`?category=${cat.id}&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>{cat.name}</Link>
             ))}
           </div>
 
           {/* FILTER SUB KATEGORI (Hanya Muncul Jika Kategori Utama Dipilih) */}
           {categoryFilter !== "semua" && activeSubCats.length > 0 && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide pt-2">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Sub Kategori:</span>
-                <Link href={`?category=${categoryFilter}&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition ${subCategoryFilter === "semua" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>Semua</Link>
+                <Link href={`?category=${categoryFilter}&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${subCategoryFilter === "semua" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>Semua</Link>
                 {activeSubCats.map((sub) => (
-                  <Link key={sub.id} href={`?category=${categoryFilter}&sub=${sub.id}&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition ${subCategoryFilter === sub.id ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{sub.name}</Link>
+                  <Link key={sub.id} href={`?category=${categoryFilter}&sub=${sub.id}&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${subCategoryFilter === sub.id ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{sub.name}</Link>
                 ))}
               </div>
           )}
 
+          {/* FILTER LEVEL (Baru) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide pt-2 border-t border-gray-100">
+             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Level:</span>
+             <Link href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=${sortFilter}&q=${searchQ}&level=semua`} className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${levelFilter === "semua" ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"}`}>Semua Level</Link>
+             {allLevels?.map((lvl) => {
+                 // Cek apakah filter aktif menggunakan ID atau Nama level
+                 const isActive = levelFilter === lvl.id || levelFilter.toLowerCase() === lvl.name.toLowerCase();
+                 return (
+                 <Link key={lvl.id} href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=${sortFilter}&q=${searchQ}&level=${lvl.id}`} className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${isActive ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"}`}>{lvl.name}</Link>
+             )})}
+          </div>
+
         </div>
       </div>
 
-      <hr className="my-8 border-gray-100" />
-
-      {levelFilter !== "semua" && (
-         <div className="mb-6 bg-teal-50 border border-[#00C9A7]/30 p-4 rounded-xl flex items-center justify-between">
-            <div>
-               <h3 className="font-bold text-[#00C9A7] text-sm">Rekomendasi Pintar Aktif ✨</h3>
-               <p className="text-xs text-gray-600 mt-1">Menampilkan kelas khusus tingkat <strong className="uppercase">{levelFilter}</strong> sesuai profil Anda.</p>
-            </div>
-            <Link href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=${sortFilter}&q=${searchQ}&level=semua`} className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-red-500 hover:border-red-200 transition">
-               <FilterX size={14} /> Hapus Filter
-            </Link>
-         </div>
-      )}
-
-      <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 mt-8">
         <div>
            <h2 className="text-2xl font-bold text-gray-900 mb-2">Pilihan Program Terbaik</h2>
            <p className="text-gray-500 text-sm">Tingkatkan skill Anda dengan materi siap kerja.</p>
@@ -371,16 +308,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                  
                  <h3 className="font-bold text-gray-900 text-base leading-snug line-clamp-2 mb-2 group-hover:text-[#F97316] transition-colors">{course.title}</h3>
                  
-                 {/* RATING, SALES & LEVEL DALAM KARTU */}
+                 {/* RATING, SALES & LEVEL DALAM KARTU (BINTANG DIPERBAIKI) */}
                  <div className="flex flex-wrap items-center justify-between gap-y-2 text-xs mb-4 mt-auto">
                    {course.rating > 0 ? (
                      <div className="flex items-center gap-1.5">
                        <span className="font-bold text-[#b4690e]">{course.rating}</span>
-                       <div className="flex items-center text-[#b4690e] gap-0.5">
-                           {/* Perbaikan: Menggunakan flex-shrink-0 agar bintang tidak terpotong */}
-                           <Star size={14} className="fill-current flex-shrink-0" strokeWidth={1} />
-                           <StarHalf size={14} className="fill-current flex-shrink-0" strokeWidth={1} />
-                       </div>
+                       {/* HANYA MENGGUNAKAN 1 BINTANG PENUH AGAR TIDAK TERPOTONG */}
+                       <Star size={14} className="fill-[#b4690e] text-[#b4690e] shrink-0" strokeWidth={0} />
                        {course.review_count > 0 && <span className="text-gray-500">({course.review_count})</span>}
                      </div>
                    ) : <div></div>}

@@ -1,16 +1,20 @@
-import { createClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import { createClient } from '@/utils/supabase/server'
 
 export async function GET(request: Request) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
-  const origin = requestUrl.origin;
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  // Paksa redirect ke dashboard
+  const next = '/dashboard'
 
   if (code) {
-    const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const supabase = await createClient()
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) {
+      return NextResponse.redirect(`${origin}${next}`)
+    }
   }
 
-  // Setelah berhasil, arahkan ke dashboard
-  return NextResponse.redirect(`${origin}/dashboard`);
+  // Jika gagal, kembalikan ke login
+  return NextResponse.redirect(`${origin}/login?error=auth-failed`)
 }

@@ -13,22 +13,19 @@ export default async function SettingsPage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   const isAdmin = profile?.role?.toLowerCase() === "admin";
 
-  // SERVER ACTION: Fungsi untuk menyimpan perubahan profil ke database
   async function updateProfile(formData: FormData) {
     "use server";
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
-    const full_name = formData.get("full_name") as string;
-    const phone = formData.get("phone") as string;
-    const address = formData.get("address") as string;
     
-    // Update data di tabel profiles
     await supabase.from("profiles").update({ 
-        full_name,
-        phone,
-        address,
+        full_name: formData.get("full_name") as string,
+        phone: formData.get("phone") as string,
+        country: formData.get("country") as string,
+        province: formData.get("province") as string,
+        city: formData.get("city") as string,
+        address: formData.get("address") as string,
         updated_at: new Date().toISOString()
     }).eq("id", user.id);
 
@@ -46,9 +43,6 @@ export default async function SettingsPage() {
         </div>
 
         {isAdmin ? (
-            /* ==========================================
-               TAMPILAN KHUSUS ADMIN (HANYA INFO PLATFORM)
-               ========================================== */
             <div className="space-y-6">
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-start gap-6">
                     <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl shrink-0"><Globe size={32}/></div>
@@ -71,14 +65,9 @@ export default async function SettingsPage() {
                 </div>
             </div>
         ) : (
-            /* ==========================================
-               TAMPILAN KHUSUS SISWA (PROFIL & KEAMANAN)
-               ========================================== */
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* AREA KIRI: FORM PROFIL & KEAMANAN */}
                 <div className="lg:col-span-2 space-y-8">
                     
-                    {/* CARD 1: PROFIL SAYA */}
                     <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
                         <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100">
                             <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center text-[#00C9A7]">
@@ -95,7 +84,6 @@ export default async function SettingsPage() {
                                 <div className="relative">
                                     <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center">
                                         {profile?.avatar_url ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
                                             <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                                         ) : (
                                             <User size={40} className="text-gray-300" />
@@ -117,15 +105,28 @@ export default async function SettingsPage() {
                                     <label className="text-sm font-bold text-gray-700">Nama Lengkap</label>
                                     <input type="text" name="full_name" defaultValue={profile?.full_name || ""} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required />
                                 </div>
-                                
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-gray-700">No. WhatsApp</label>
                                     <input type="tel" name="phone" defaultValue={profile?.phone || ""} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required placeholder="0812..." />
                                 </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-gray-700">Negara</label>
+                                    <input type="text" name="country" defaultValue={profile?.country || "Indonesia"} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-gray-700">Provinsi</label>
+                                    <input type="text" name="province" defaultValue={profile?.province || ""} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required />
+                                </div>
                                 
                                 <div className="space-y-2 md:col-span-2">
-                                    <label className="text-sm font-bold text-gray-700">Kota / Domisili</label>
-                                    <input type="text" name="address" defaultValue={profile?.address || ""} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required placeholder="Alamat lengkap / Kota" />
+                                    <label className="text-sm font-bold text-gray-700">Kota / Kabupaten</label>
+                                    <input type="text" name="city" defaultValue={profile?.city || ""} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required />
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-sm font-bold text-gray-700">Detail Alamat</label>
+                                    <textarea name="address" defaultValue={profile?.address || ""} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/20 focus:border-[#00C9A7] transition bg-gray-50 focus:bg-white" required rows={2} placeholder="Jalan, RT/RW, No. Rumah"></textarea>
                                 </div>
 
                                 <div className="space-y-2 md:col-span-2 mt-2">
@@ -135,7 +136,6 @@ export default async function SettingsPage() {
                                         <input type="email" defaultValue={user.email} disabled className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed" />
                                         <CheckCircle2 className="absolute right-4 top-1/2 -translate-y-1/2 text-[#00C9A7]" size={18} />
                                     </div>
-                                    <p className="text-[10px] text-gray-400 font-medium mt-1">Email dikunci karena terhubung dengan otentikasi akun.</p>
                                 </div>
                             </div>
 
@@ -145,7 +145,6 @@ export default async function SettingsPage() {
                         </form>
                     </div>
 
-                    {/* CARD 2: KEAMANAN */}
                     <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
                         <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
                             <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-[#F97316]"><Lock size={20} /></div>
@@ -168,7 +167,6 @@ export default async function SettingsPage() {
                     </div>
                 </div>
 
-                {/* AREA KANAN: NOTIFIKASI & INFO */}
                 <div className="space-y-8">
                     <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
                         <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
@@ -187,17 +185,6 @@ export default async function SettingsPage() {
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
                                     <input type="checkbox" className="sr-only peer" defaultChecked />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-[#00C9A7]"></div>
-                                </label>
-                            </div>
-                            
-                            <div className="flex items-center justify-between">
-                                <div className="pr-4">
-                                    <h4 className="text-sm font-bold text-gray-900">Info & Promo Terbaru</h4>
-                                    <p className="text-[11px] text-gray-500 mt-1">Dapatkan info diskon kelas dan update fitur baru.</p>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                                    <input type="checkbox" className="sr-only peer" />
                                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-[#00C9A7]"></div>
                                 </label>
                             </div>
