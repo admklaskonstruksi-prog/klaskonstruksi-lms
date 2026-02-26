@@ -19,12 +19,12 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
   const searchQ = sp?.q || "";
   const sortFilter = sp?.sort || "terbaru";
 
-  // PERBAIKAN: Tambahkan relasi course_levels di query select
+  // PERBAIKAN: Gunakan pemetaan relasi eksplisit (!) agar Supabase tidak bingung
   let query = supabase.from("courses").select(`
     *,
-    main_categories ( id, name ),
-    sub_categories ( id, name ),
-    course_levels ( id, name ), 
+    main_categories!main_category_id ( id, name ),
+    sub_categories!sub_category_id ( id, name ),
+    course_levels!level_id ( id, name ), 
     chapters ( id )
   `);
 
@@ -37,9 +37,8 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
 
   const { data: courses, error } = await query;
 
-  // Jika ada error query, log ke server console untuk mempermudah debug
   if (error) {
-    console.error("Error fetching courses:", error);
+    console.error("Error mengambil data kelas:", error);
   }
 
   return (
@@ -54,34 +53,37 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
         </Link>
       </div>
 
-      {/* FILTER BAR */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 mb-6">
-        <form method="GET" className="flex-1 relative flex items-center">
-           <input type="hidden" name="sort" value={sortFilter} />
-           <Search size={18} className="absolute left-4 text-gray-400" />
-           <input 
-              type="text" 
-              name="q" 
-              defaultValue={searchQ} 
-              placeholder="Cari nama kelas..." 
-              className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#00C9A7] outline-none"
-           />
-           <button type="submit" className="hidden">Cari</button>
-        </form>
+      {/* PERBAIKAN FILTER BAR: Dibuat menggunakan 1 form dan tombol Terapkan, tanpa event onChange */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+        <form method="GET" className="flex flex-col md:flex-row gap-4">
+           {/* Kotak Pencarian */}
+           <div className="relative flex-1 flex items-center">
+             <Search size={18} className="absolute left-4 text-gray-400" />
+             <input 
+                type="text" 
+                name="q" 
+                defaultValue={searchQ} 
+                placeholder="Cari nama kelas..." 
+                className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#00C9A7] outline-none"
+             />
+           </div>
 
-        <form method="GET" className="w-full md:w-48">
-           <input type="hidden" name="q" value={searchQ} />
-           <select 
-             name="sort" 
-             defaultValue={sortFilter} 
-             onChange={(e) => e.target.form?.submit()} 
-             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none cursor-pointer focus:ring-2 focus:ring-[#00C9A7]"
-           >
-             <option value="terbaru">Terbaru Dibuat</option>
-             <option value="terlama">Paling Lama</option>
-             <option value="harga-tinggi">Harga Termahal</option>
-             <option value="harga-rendah">Harga Termurah</option>
-           </select>
+           {/* Kotak Sortir & Tombol Submit */}
+           <div className="flex gap-2 w-full md:w-auto">
+             <select 
+               name="sort" 
+               defaultValue={sortFilter} 
+               className="flex-1 md:w-48 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none cursor-pointer focus:ring-2 focus:ring-[#00C9A7]"
+             >
+               <option value="terbaru">Terbaru Dibuat</option>
+               <option value="terlama">Paling Lama</option>
+               <option value="harga-tinggi">Harga Termahal</option>
+               <option value="harga-rendah">Harga Termurah</option>
+             </select>
+             <button type="submit" className="bg-[#00C9A7] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#00b596] transition-colors whitespace-nowrap">
+                Terapkan
+             </button>
+           </div>
         </form>
       </div>
 
@@ -100,7 +102,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
           <tbody className="divide-y divide-gray-100">
             {!courses || courses.length === 0 ? (
                 <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">Belum ada kelas yang ditemukan.</td>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400 font-medium">Belum ada kelas yang ditemukan.</td>
                 </tr>
             ) : courses.map((course: any) => (
               <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
@@ -111,7 +113,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                       {course.thumbnail_url ? (
                         <Image src={course.thumbnail_url} alt="cover" fill className="object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No Img</div>
+                        <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400 font-bold">No Img</div>
                       )}
                     </div>
                     <div>
@@ -125,12 +127,11 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
 
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-1">
-                     {/* Gunakan optional chaining (?.) dengan hati-hati */}
                      <span className="text-gray-900 font-semibold text-xs">
                         {course.main_categories?.name || "Kategori belum diatur"}
                      </span>
                      <span className="text-gray-400 text-[11px] font-medium">
-                        {course.sub_categories?.name || "Sub kategori belum diatur"}
+                        {course.sub_categories?.name || "-"}
                      </span>
                   </div>
                 </td>
@@ -140,8 +141,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                      <span className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
                         <LayoutList size={14} className="text-gray-400"/> {course.chapters?.length || 0} Bab/Modul
                      </span>
-                     
-                     {/* PERBAIKAN: Ambil nama level dari relasi course_levels */}
                      <span className="text-[11px] font-bold bg-orange-50 text-[#F97316] px-2 py-0.5 rounded w-max uppercase">
                         {course.course_levels?.name || "BELUM DIATUR"}
                      </span>
