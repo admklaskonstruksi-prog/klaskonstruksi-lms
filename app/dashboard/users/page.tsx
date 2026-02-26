@@ -1,82 +1,75 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { User } from "lucide-react";
+import { Search, ShieldAlert, UserCheck, Trash2, Edit } from "lucide-react";
 
-export default async function UsersPage() {
+export const dynamic = "force-dynamic";
+
+export default async function UserManagementPage({ searchParams }: { searchParams?: Promise<any> | any }) {
   const supabase = await createClient();
-
-  // Cek Admin
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  // Validasi Admin
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role?.toLowerCase() !== "admin") return redirect("/dashboard");
 
-  if (profile?.role !== "admin") return redirect("/dashboard");
+  const sp = await searchParams;
+  const searchQ = sp?.q || "";
 
-  // Ambil Data Semua User (Tanpa Email, karena email ada di tabel Auth private)
-  const { data: users } = await supabase
-    .from("profiles")
-    .select("*")
-    .order("created_at", { ascending: false });
+  // Ambil data profil (siswa & admin)
+  let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
+  if (searchQ) query = query.ilike("full_name", `%${searchQ}%`);
+  
+  const { data: users } = await query;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pengguna</h1>
-          <p className="text-gray-500">Daftar siswa dan admin terdaftar.</p>
-        </div>
-        <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium">
-           Total: {users?.length || 0} User
-        </div>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
+      <div className="mb-8">
+        <h1 className="text-2xl font-black text-gray-900">Kelola Pengguna</h1>
+        <p className="text-gray-500 text-sm mt-1">Manajemen data siswa dan hak akses administrator.</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Nama User</th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Role</th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Bergabung</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-                {users?.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 font-bold flex items-center justify-center text-sm">
-                                    {/* INI YANG TADI ERROR, KITA SUDAH PERBAIKI: */}
-                                    {(p.full_name || "?").charAt(0).toUpperCase()}
-                                </div>
-                                <span className="font-medium text-gray-900">
-                                    {p.full_name || "Tanpa Nama"}
-                                </span>
-                            </div>
-                        </td>
-                        <td className="p-4">
-                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${p.role === 'admin' ? 'bg-black text-white' : 'bg-green-100 text-green-700'}`}>
-                                {p.role}
-                            </span>
-                        </td>
-                        <td className="p-4 text-sm text-gray-500">
-                            {new Date(p.created_at).toLocaleDateString("id-ID")}
-                        </td>
-                    </tr>
-                ))}
-                
-                {users?.length === 0 && (
-                    <tr>
-                        <td colSpan={3} className="p-8 text-center text-gray-400">
-                            Belum ada data pengguna.
-                        </td>
-                    </tr>
-                )}
-            </tbody>
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center">
+        <form method="GET" className="relative flex-1 max-w-md">
+           <Search size={18} className="absolute left-4 top-3 text-gray-400" />
+           <input type="text" name="q" defaultValue={searchQ} placeholder="Cari nama pengguna..." className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#00C9A7] outline-none" />
+        </form>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
+        <table className="w-full text-left text-sm whitespace-nowrap">
+          <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
+            <tr>
+              <th className="px-6 py-4">Nama Pengguna</th>
+              <th className="px-6 py-4">Role Akses</th>
+              <th className="px-6 py-4">Status Onboarding</th>
+              <th className="px-6 py-4">Tanggal Bergabung</th>
+              <th className="px-6 py-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {users?.map((u) => (
+              <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                <td className="px-6 py-4 font-bold text-gray-900">{u.full_name || "Tanpa Nama"}</td>
+                <td className="px-6 py-4">
+                  {u.role?.toLowerCase() === 'admin' ? (
+                    <span className="bg-purple-100 text-purple-700 font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1.5 w-max"><ShieldAlert size={14}/> Admin</span>
+                  ) : (
+                    <span className="bg-blue-100 text-blue-700 font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1.5 w-max"><UserCheck size={14}/> Siswa</span>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                    {u.onboarding_completed ? <span className="text-green-600 font-medium text-xs">Selesai</span> : <span className="text-gray-400 font-medium text-xs">Belum</span>}
+                </td>
+                <td className="px-6 py-4 text-gray-500">{new Date(u.created_at).toLocaleDateString("id-ID")}</td>
+                <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                   {/* Tombol Aksi (Bisa disambungkan ke Server Action untuk update role) */}
+                   <button className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit Role"><Edit size={16}/></button>
+                   <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Hapus User"><Trash2 size={16}/></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
     </div>
