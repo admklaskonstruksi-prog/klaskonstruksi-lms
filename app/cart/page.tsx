@@ -96,13 +96,12 @@ export default function CartPage() {
         onSuccess: async function (result: any) {
           toast.loading("Pembayaran Berhasil! Memasukkan Anda ke kelas...");
 
-          // 5. Setelah bayar sukses, masukkan user ke tabel enrollments
+         // 5. Setelah bayar sukses, masukkan user ke tabel enrollments
+       
           const enrollmentsData = cartItems.map((item) => ({
-             user_id: user.id,
-             course_id: item.id,
-             status: "active",
-             progress: 0
-          }));
+            user_id: user.id,
+            course_id: item.id
+         }));
 
           const { error: dbError } = await supabase.from("enrollments").insert(enrollmentsData);
           toast.dismiss();
