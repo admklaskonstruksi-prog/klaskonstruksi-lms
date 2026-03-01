@@ -52,11 +52,11 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
     // 3. Multiselect Levels
     const matchLevel = selectedLevels.length === 0 || selectedLevels.includes(course.level_id);
     
-    // 4. Price Filter
-    let matchPrice = true;
-    const coursePrice = Number(course.price || 0); // Diubah menjadi Number agar aman
-    if (priceFilter === "Free") matchPrice = coursePrice === 0;
-    if (priceFilter === "Paid") matchPrice = coursePrice > 0;
+// 4. Price Filter
+let matchPrice = true;
+const safePrice = Number(course.price || 0); // Pengaman
+if (priceFilter === "Free") matchPrice = safePrice === 0;
+if (priceFilter === "Paid") matchPrice = safePrice > 0;
     
     // 5. Rating Filter (Minimal Rating)
     const courseRating = course.rating || 5.0; // Default 5 jika belum ada
@@ -79,9 +79,10 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
     );
   };
 
-  const formatRupiah = (price: number) => {
-    if (!price || price === 0) return "GRATIS";
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(price);
+  const formatRupiah = (price: any) => {
+    const numPrice = Number(price || 0); // Pengaman tipe data dari database
+    if (numPrice === 0) return "GRATIS";
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(numPrice);
   };
 
   // KOMPONEN RENDER BINTANG REVIEW
