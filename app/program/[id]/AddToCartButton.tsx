@@ -23,6 +23,7 @@ export default function AddToCartButton({ course, isUserLoggedIn }: { course: an
           category: course.sub_categories?.name || "Umum"
        });
        localStorage.setItem("klas_cart", JSON.stringify(existingCart));
+       window.dispatchEvent(new Event("cartUpdated"));
     }
 
     toast.success("Berhasil ditambahkan ke keranjang!");
