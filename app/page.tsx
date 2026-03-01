@@ -206,7 +206,7 @@ export default function LandingPage() {
                 <p className="text-gray-500 mt-2">Pilihan kelas terbaik yang paling banyak diminati.</p>
              </div>
              {/* Link lihat semua Tosca */}
-             <Link href="/login" className="hidden md:flex items-center gap-2 text-[#00C9A7] font-bold hover:text-[#00b596]">
+             <Link href="/program" className="hidden md:flex items-center gap-2 text-[#00C9A7] font-bold hover:text-[#00b596]">
                 Lihat Semua <ArrowRight size={18} />
              </Link>
           </div>
