@@ -1,43 +1,48 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, CheckCircle, PlayCircle, Star, Layers, ShoppingCart } from "lucide-react";
-import AddToCartButton from "./AddToCartButton"; // Komponen tombol (kita buat di Langkah 3)
+import { ArrowLeft, CheckCircle, PlayCircle, Star } from "lucide-react";
+import AddToCartButton from "./AddToCartButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublicCourseDetail({ params }: { params: { id: string } }) {
+export default async function PublicCourseDetail(props: { params: Promise<{ id: string }> | { id: string } }) {
   const supabase = await createClient();
-  const { id } = params;
+  
+  // Pastikan parameter di-resolve (kompatibel dengan Next.js 14 & 15)
+  const params = await props.params;
+  const id = params.id;
 
-  // 1. Ambil data kelas beserta relasi kategori dan level
-  const { data: course, error } = await supabase
-    .from("courses")
-    .select(`
-      *,
-      main_categories(name),
-      sub_categories(name),
-      course_levels(name)
-    `)
-    .eq("id", id)
-    .single();
+  // 1. QUERY AMAN: Ambil data kelas (Flat)
+  const { data: course, error } = await supabase.from("courses").select("*").eq("id", id).single();
 
   if (error || !course) {
-    return <div className="text-center py-20 text-gray-500">Kelas tidak ditemukan.</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Kelas tidak ditemukan.</h2>
+        <p className="text-gray-500 mb-6">URL mungkin salah atau kelas sudah tidak tersedia.</p>
+        <Link href="/program" className="bg-[#00C9A7] text-white px-6 py-3 rounded-lg font-bold">Kembali ke Katalog</Link>
+      </div>
+    );
   }
 
-  // 2. Ambil data silabus (bab dan materi) untuk ditampilkan ke pengunjung
-  const { data: chapters } = await supabase
+  // 2. Tempelkan nama kategori secara manual agar UI tetap cantik
+  const { data: subCat } = await supabase.from("sub_categories").select("name").eq("id", course.sub_category_id).single();
+  const { data: levelCat } = await supabase.from("course_levels").select("name").eq("id", course.level_id).single();
+  course.sub_categories = subCat || null;
+  course.course_levels = levelCat || null;
+
+  // 3. Ambil Silabus dengan Error Handling
+  const { data: chapters, error: chaptersError } = await supabase
     .from("chapters")
-    .select(`
-      id, title, position,
-      lessons(id, title, description, position, is_preview)
-    `)
+    .select(`id, title, position, lessons(id, title, description, position, is_preview)`)
     .eq("course_id", id)
     .eq("is_published", true)
     .order("position", { ascending: true });
 
-  // 3. Cek Status Login User (Hanya untuk ubah tombol beli jika sudah punya)
+  if (chaptersError) console.error("Gagal memuat silabus:", chaptersError.message);
+
+  // 4. Cek Kepemilikan (Jika Login)
   const { data: { user } } = await supabase.auth.getUser();
   let isOwned = false;
   if (user) {
@@ -47,7 +52,6 @@ export default async function PublicCourseDetail({ params }: { params: { id: str
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 selection:bg-[#00C9A7] selection:text-white">
-      
       {/* HEADER DETAIL */}
       <div className="bg-gray-900 text-white pt-10 pb-20 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
@@ -62,7 +66,7 @@ export default async function PublicCourseDetail({ params }: { params: { id: str
                   {course.sub_categories?.name || "Umum"}
                 </span>
                 <span className="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-bold border border-orange-500/30">
-                  {course.course_levels?.name || "Semua Level"}
+                  {course.course_levels?.name || course.difficulty || "Semua Level"}
                 </span>
               </div>
               <h1 className="text-3xl md:text-5xl font-black mb-4 leading-tight">{course.title}</h1>
@@ -74,7 +78,7 @@ export default async function PublicCourseDetail({ params }: { params: { id: str
               </div>
             </div>
 
-            {/* KOTAK HARGA MELAYANG (FLOATING CARD) */}
+            {/* KOTAK HARGA */}
             <div className="bg-white text-gray-900 rounded-3xl p-6 shadow-2xl border border-gray-100 lg:translate-y-20 z-10 relative">
                <div className="aspect-video bg-gray-100 rounded-xl mb-6 relative overflow-hidden">
                  {course.thumbnail_url ? (
@@ -96,7 +100,7 @@ export default async function PublicCourseDetail({ params }: { params: { id: str
                </div>
 
                {isOwned ? (
-                 <Link href={`/dashboard/learning-path/${course.id}`} className="block w-full bg-gray-900 text-white text-center py-4 rounded-xl font-bold hover:bg-gray-800 transition">
+                 <Link href={`/dashboard/learning-path/${course.id}`} className="block w-full bg-gray-900 text-white text-center py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg">
                    Lanjut Belajar
                  </Link>
                ) : (
@@ -107,7 +111,7 @@ export default async function PublicCourseDetail({ params }: { params: { id: str
         </div>
       </div>
 
-      {/* KONTEN SILABUS (Di Bawah Header) */}
+      {/* KONTEN SILABUS */}
       <div className="max-w-6xl mx-auto px-4 md:px-8 mt-12 lg:mt-24 grid grid-cols-1 lg:grid-cols-3 gap-12">
          <div className="lg:col-span-2 space-y-12">
             
@@ -117,7 +121,13 @@ export default async function PublicCourseDetail({ params }: { params: { id: str
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {(() => {
                      let keypoints = [];
-                     try { keypoints = JSON.parse(course.keypoints); } catch(e) {}
+                     try { 
+                       if (typeof course.keypoints === 'string') { keypoints = JSON.parse(course.keypoints); } 
+                       else if (Array.isArray(course.keypoints)) { keypoints = course.keypoints; }
+                     } catch(e) {}
+                     
+                     if (keypoints.length === 0) return <p className="text-gray-500">Materi akan segera diupdate.</p>;
+
                      return keypoints.map((pt: string, i: number) => (
                         <div key={i} className="flex items-start gap-3">
                            <CheckCircle size={20} className="text-[#00C9A7] shrink-0 mt-0.5" />
@@ -132,11 +142,12 @@ export default async function PublicCourseDetail({ params }: { params: { id: str
             <div>
                <h2 className="text-2xl font-bold text-gray-900 mb-6">Silabus Kurikulum</h2>
                <div className="space-y-4">
+                  {(!chapters || chapters.length === 0) && <p className="text-gray-500">Silabus belum tersedia.</p>}
                   {chapters?.map((chapter: any, idx: number) => (
                      <div key={chapter.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
                         <div className="p-5 bg-gray-50 font-bold text-gray-800 flex justify-between items-center border-b border-gray-100">
                            <span>Bab {idx + 1}: {chapter.title}</span>
-                           <span className="text-xs font-normal text-gray-500 bg-white px-2 py-1 rounded border border-gray-200">{chapter.lessons?.length} Materi</span>
+                           <span className="text-xs font-normal text-gray-500 bg-white px-2 py-1 rounded border border-gray-200">{chapter.lessons?.length || 0} Materi</span>
                         </div>
                         <div className="p-2">
                            {chapter.lessons?.sort((a:any, b:any) => a.position - b.position).map((lesson: any) => (
