@@ -252,7 +252,7 @@ export default function LandingPage() {
                         </div>
 
                         <div className="mt-auto flex items-center gap-2 pt-3 border-t border-gray-100">
-                           {course.price > 0 ? (
+                        {Number(course.price || 0) > 0 ? (
                               <>
                                  <span className="font-bold text-gray-900 text-lg">Rp {course.price.toLocaleString("id-ID")}</span>
                                  {course.strike_price > 0 && (

@@ -54,8 +54,9 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
     
     // 4. Price Filter
     let matchPrice = true;
-    if (priceFilter === "Free") matchPrice = course.price === 0;
-    if (priceFilter === "Paid") matchPrice = course.price > 0;
+    const coursePrice = Number(course.price || 0); // Diubah menjadi Number agar aman
+    if (priceFilter === "Free") matchPrice = coursePrice === 0;
+    if (priceFilter === "Paid") matchPrice = coursePrice > 0;
     
     // 5. Rating Filter (Minimal Rating)
     const courseRating = course.rating || 5.0; // Default 5 jika belum ada
