@@ -142,7 +142,7 @@ export default function StudentMarketplace({
           {filteredCourses.map((course) => {
             const isOwned = ownedCourseIds.includes(course.id);
             // Pilih link: kalau udah punya masuk ke learning path, kalau belum ke checkout
-            const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/dashboard/checkout/${course.id}`;
+            const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`;
 
             return (
               <Link 
