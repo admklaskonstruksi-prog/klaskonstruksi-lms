@@ -214,7 +214,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                  {displayedCourses.map((course) => {
                    const isOwned = ownedCourseIds.includes(course.id);
-                   const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/dashboard/checkout/${course.id}`;
+                   const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`;
 
                    return (
                      <Link 
