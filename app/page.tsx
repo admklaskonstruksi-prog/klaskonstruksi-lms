@@ -87,7 +87,7 @@ export default function LandingPage() {
               </Link>
               {/* HIGHLIGHT: Daftar = Orange! */}
               <Link 
-                href="/register" 
+                href="/login?mode=register" 
                 className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#F97316]/30 flex items-center gap-2 hover:-translate-y-0.5"
               >
                 Daftar Sekarang <ArrowRight size={16} />
@@ -122,7 +122,7 @@ export default function LandingPage() {
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
                 <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
                 {/* HIGHLIGHT Orange */}
-                <Link href="/register" className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
+                <Link href="/login?mode=register" className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
               </div>
             </div>
           </div>
@@ -153,7 +153,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* HIGHLIGHT: CTA Orange */}
                 <Link 
-                  href="/register" 
+                  href="/login?mode=register" 
                   className="px-8 py-4 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-xl transition-all shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 text-lg hover:-translate-y-1"
                 >
                   Mulai Belajar Sekarang <ArrowRight size={20} />

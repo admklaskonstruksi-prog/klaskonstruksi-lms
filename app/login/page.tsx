@@ -1,18 +1,26 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { signInAction, signUpAction, signInWithGoogle } from "./actions";
 import { Loader2, Chrome, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 
-export default function LoginPage() {
+// Pindahkan isi utama ke komponen terpisah agar bisa dibungkus Suspense
+function LoginContent() {
+  const searchParams = useSearchParams();
   const [isRegister, setIsRegister] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [isPending, startTransition] = useTransition();
-  
-  // STATE BARU UNTUK TOGGLE PASSWORD
   const [showPassword, setShowPassword] = useState(false);
+
+  // Cek parameter URL saat halaman pertama kali dimuat
+  useEffect(() => {
+    if (searchParams.get("mode") === "register") {
+      setIsRegister(true);
+    }
+  }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -166,7 +174,19 @@ export default function LoginPage() {
               </p>
           </div>
       </div>
-
     </div>
+  );
+}
+
+// Komponen utama mengekspor halaman yang dibungkus dengan Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-[#F97316]" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

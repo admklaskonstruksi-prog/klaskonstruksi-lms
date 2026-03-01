@@ -45,7 +45,7 @@ export default function AboutPage() {
               <Link href="/login" className="px-5 py-2.5 text-gray-600 font-bold hover:text-[#00C9A7] transition-colors">
                 Masuk
               </Link>
-              <Link href="/register" className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#00C9A7]/30 flex items-center gap-2 hover:-translate-y-0.5">
+              <Link href="/login?mode=register" className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#00C9A7]/30 flex items-center gap-2 hover:-translate-y-0.5">
                 Daftar Sekarang <ArrowRight size={16} />
               </Link>
             </div>
@@ -66,7 +66,7 @@ export default function AboutPage() {
               <Link href="/#mentor" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Daftar Mentor</Link>
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
                 <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
-                <Link href="/register" className="w-full text-center py-3 bg-[#00C9A7] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
+                <Link href="/login?mode=register" className="w-full text-center py-3 bg-[#00C9A7] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
               </div>
             </div>
           </div>
