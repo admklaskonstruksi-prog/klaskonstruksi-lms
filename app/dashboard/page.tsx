@@ -3,12 +3,11 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { Wallet, TrendingUp, Users, BookOpen, Award } from "lucide-react"; 
 import SmartOnboardingModal from "./components/SmartOnboardingModal";
-import StudentMarketplace from "./components/StudentMarketplace"; // <--- Import Komponen Baru
+import StudentMarketplace from "./components/StudentMarketplace"; 
 import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
-// Hapus searchParams karena filter sudah dipindah ke Client-Side
 export default async function DashboardPage() {
   const supabase = await createClient();
 
@@ -88,14 +87,12 @@ export default async function DashboardPage() {
       );
   }
 
-
   // ============================================================================
-  // TAMPILAN KHUSUS ADMIN (RINGKASAN ANALITIK)
+  // TAMPILAN KHUSUS ADMIN
   // ============================================================================
   if (isAdmin) {
     const { count: totalStudents } = await supabase.from("profiles").select("*", { count: "exact", head: true }).neq("role", "admin");
     const { count: activeCourses } = await supabase.from("courses").select("*", { count: "exact", head: true }).eq("is_published", true);
-
     const { data: realEnrollments } = await supabase.from("enrollments").select("course_id, courses(id, title, price, thumbnail_url)");
 
     let totalRevenue = 0;
@@ -177,16 +174,14 @@ export default async function DashboardPage() {
   // ============================================================================
   // TAMPILAN SISWA (MENGGUNAKAN STUDENT MARKETPLACE BARU)
   // ============================================================================
-  
-  // 1. Ambil ID Kelas yang sudah dimiliki siswa
   const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
   const ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];
 
-  // 2. Ambil List Kategori & Sub Kategori
+  // PENGAMBILAN DATA MASTER UNTUK FILTER (Termasuk Levels)
   const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
   const { data: subCategories } = await supabase.from("sub_categories").select("id, name, main_category_id").order("name");
+  const { data: levels } = await supabase.from("course_levels").select("id, name").order("id"); // <-- TAMBAHAN BARU
 
-  // 3. Ambil SEMUA Kelas yang di-publish untuk difilter di Client Side
   const { data: courses } = await supabase
     .from("courses")
     .select(`*, main_categories!main_category_id(id, name), sub_categories!sub_category_id(id, name), course_levels!level_id(id, name)`)
@@ -194,23 +189,22 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans selection:bg-[#F97316] selection:text-white">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Halo, <span className="text-[#F97316]">{profile?.full_name || 'Siswa'}</span> 👋</h1>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto font-sans selection:bg-[#F97316] selection:text-white">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Halo, <span className="text-[#F97316]">{profile?.full_name || 'Siswa'}</span> 👋</h1>
         <p className="text-gray-500 mt-1">Siap melanjutkan pembelajaran hari ini?</p>
       </div>
 
-      {/* Memanggil Komponen StudentMarketplace yang menangani filter secara Instan */}
+      {/* Memanggil Komponen StudentMarketplace (Kini disertakan data levels) */}
       <StudentMarketplace 
         courses={courses || []} 
         mainCategories={categories || []} 
         subCategories={subCategories || []} 
+        levels={levels || []} // <-- DITERUSKAN KE COMPONENT
         ownedCourseIds={ownedCourseIds}
       />
 
-      {/* TAMPILKAN POPUP SMART ONBOARDING UNTUK SISWA BARU */}
       <SmartOnboardingModal categories={categories || []} isCompleted={profile?.onboarding_completed || false} />
-
     </div>
   );
 }
