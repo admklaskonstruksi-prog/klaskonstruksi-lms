@@ -3,7 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Menu, X, ArrowRight, Search, BookOpen, Layers, Star, CheckSquare, Square, Tag, ChevronDown, ChevronUp } from "lucide-react";
+import { Menu, X, ArrowRight, Search, BookOpen, Layers, Star, CheckSquare, Square, Tag, ChevronDown, ChevronUp, ShoppingCart } from "lucide-react";
+import toast from "react-hot-toast";
+import CartIndicator from "@/app/components/CartIndicator"; // Pastikan path ini benar sesuai tempat Anda membuat CartIndicator.tsx
 
 interface Props {
   courses: any[];
@@ -42,25 +44,18 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
 
   // LOGIC FILTERING CANGGIH
   const filteredCourses = courses.filter((course) => {
-    // 1. Text Search
     const matchTitle = course.title?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // 2. Main & Sub Category
     const matchMain = selectedMainCat === "All" || course.main_category_id === selectedMainCat;
     const matchSub = selectedSubCat === "All" || course.sub_category_id === selectedSubCat;
-    
-    // 3. Multiselect Levels
     const matchLevel = selectedLevels.length === 0 || selectedLevels.includes(course.level_id);
     
-// 4. Price Filter
-let matchPrice = true;
-const safePrice = Number(course.price || 0); // Pengaman
-if (priceFilter === "Free") matchPrice = safePrice === 0;
-if (priceFilter === "Paid") matchPrice = safePrice > 0;
+    let matchPrice = true;
+    const safePrice = Number(course.price || 0);
+    if (priceFilter === "Free") matchPrice = safePrice === 0;
+    if (priceFilter === "Paid") matchPrice = safePrice > 0;
     
-    // 5. Rating Filter (Minimal Rating)
-    const courseRating = course.rating || 5.0; // Default 5 jika belum ada
-    const matchRating = courseRating >= minRating;
+    const safeRating = Number(course.rating || 5);
+    const matchRating = safeRating >= minRating;
 
     return matchTitle && matchMain && matchSub && matchLevel && matchPrice && matchRating;
   });
@@ -80,12 +75,32 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
   };
 
   const formatRupiah = (price: any) => {
-    const numPrice = Number(price || 0); // Pengaman tipe data dari database
+    const numPrice = Number(price || 0);
     if (numPrice === 0) return "GRATIS";
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(numPrice);
   };
 
-  // KOMPONEN RENDER BINTANG REVIEW
+  // Fungsi Tambah Ke Keranjang Cepat dari Grid
+  const handleAddToCart = (e: React.MouseEvent, course: any) => {
+    e.preventDefault(); // Mencegah pindah halaman saat tombol diklik
+    const existingCart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
+    
+    if (!existingCart.some((item: any) => item.id === course.id)) {
+       existingCart.push({
+          id: course.id,
+          title: course.title,
+          price: Number(course.price || 0),
+          thumbnail: course.thumbnail_url,
+          category: course.sub_categories?.name || "Umum"
+       });
+       localStorage.setItem("klas_cart", JSON.stringify(existingCart));
+       window.dispatchEvent(new Event("cartUpdated"));
+       toast.success("Berhasil ditambahkan ke keranjang!");
+    } else {
+       toast.error("Kelas sudah ada di keranjang.");
+    }
+  };
+
   const renderStars = (rating: number, interactive: boolean = false, onClick?: () => void) => {
      return (
         <div className={`flex items-center gap-1 ${interactive ? 'cursor-pointer' : ''}`} onClick={onClick}>
@@ -101,7 +116,6 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
      )
   }
 
-  // KOMPONEN RENDER HEADER ACCORDION
   const renderAccordionHeader = (id: string, title: string) => (
      <button onClick={() => toggleAccordion(id)} className="flex items-center justify-between w-full py-4.5 group border-t border-gray-100 mt-2 first:mt-0 first:border-t-0">
         <h3 className="font-extrabold text-gray-950 text-base md:text-lg tracking-tight">{title}</h3>
@@ -112,44 +126,94 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans selection:bg-[#00C9A7] selection:text-white flex flex-col">
       
-      {/* --- NAVBAR (Sama dengan kode sebelumnya) --- */}
+      {/* --- NAVBAR (Disamakan dengan Homepage) --- */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <Link href="/" className="flex-shrink-0 flex items-center gap-2">
-              <Image src="/logo.png" alt="Logo" width={40} height={40} className="object-contain rounded-lg" priority />
-              <span className="text-xl font-black text-gray-950 tracking-tighter">Klas<span className="text-[#00C9A7]">Konstruksi</span></span>
+            
+            <Link href="/" className="flex-shrink-0 flex items-center">
+              <Image 
+                 src="/logo.png" 
+                 alt="Logo Klas Konstruksi" 
+                 width={160} 
+                 height={160} 
+                 className="object-contain" 
+                 priority
+              />
             </Link>
 
-            <div className="hidden md:flex items-center space-x-7">
-              <Link href="/" className="text-gray-700 hover:text-[#00C9A7] font-semibold transition text-sm">Beranda</Link>
-              <Link href="/program" className="text-[#00C9A7] font-extrabold transition text-sm">Program Klas</Link>
-              <Link href="/#mentor" className="text-gray-700 hover:text-[#00C9A7] font-semibold transition text-sm">Daftar Mentor</Link>
+            {/* Desktop Menu - Hover Tosca */}
+            <div className="hidden md:flex items-center space-x-8">
+              <Link href="/" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Beranda
+              </Link>
+              <Link href="/program" className="text-[#00C9A7] font-bold transition-colors">
+                Program Klas
+              </Link>
+              <Link href="/#mentor" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Daftar Mentor
+              </Link>
             </div>
 
-            <div className="hidden md:flex items-center gap-3">
-              <Link href="/login" className="px-5 py-2.5 text-gray-700 font-bold hover:text-[#00C9A7] transition text-sm">Masuk</Link>
-              <Link href="/register" className="px-6 py-2.5 bg-gray-950 hover:bg-gray-800 text-white font-bold rounded-full transition shadow-lg shadow-gray-900/10 flex items-center gap-2 text-sm">
+            <div className="hidden md:flex items-center gap-4">
+               {/* Komponen Keranjang */}
+               <CartIndicator />
+
+              <Link 
+                href="/login" 
+                className="px-5 py-2.5 text-gray-600 font-bold hover:text-[#00C9A7] transition-colors"
+              >
+                Masuk
+              </Link>
+              <Link 
+                href="/login?mode=register" 
+                className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#F97316]/30 flex items-center gap-2 hover:-translate-y-0.5"
+              >
                 Daftar Sekarang <ArrowRight size={16} />
               </Link>
             </div>
 
-            <div className="md:hidden flex items-center">
-              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-500 hover:text-[#00C9A7] focus:outline-none">
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center gap-4">
+              <CartIndicator />
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-gray-500 hover:text-[#00C9A7] focus:outline-none"
+              >
                 {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
               </button>
             </div>
           </div>
         </div>
+
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-2xl">
+            <div className="px-4 pt-2 pb-6 space-y-2">
+              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">
+                Beranda
+              </Link>
+              <Link href="/program" className="block w-full text-left px-3 py-3 text-base font-bold text-[#00C9A7] bg-teal-50 rounded-lg">
+                Program Klas
+              </Link>
+              <Link href="/#mentor" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">
+                Daftar Mentor
+              </Link>
+              
+              <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
+                <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
+                <Link href="/login?mode=register" className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* --- KONTEN KATALOG DENGAN ASIDE BARU --- */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 w-full flex flex-col lg:flex-row gap-10 items-start">
         
-        {/* SIDEBAR FILTER (RENOVASI TOTAL) */}
+        {/* SIDEBAR FILTER */}
         <aside className="w-full lg:w-[320px] shrink-0 sticky top-28 bg-white p-7 rounded-3xl border border-gray-100 shadow-xl shadow-gray-100/50">
            
-           {/* Pencarian (Pindah ke Atas Aside) */}
            <div className="relative w-full mb-6 border border-gray-100 rounded-xl overflow-hidden bg-gray-50 flex items-center focus-within:ring-2 focus-within:ring-[#00C9A7] transition-all group shadow-inner">
              <Search className="absolute left-4 text-gray-400 group-focus-within:text-[#00C9A7]" size={18} />
              <input type="text" placeholder="Cari materi teknik..." className="w-full pl-12 pr-4 py-3.5 bg-transparent outline-none text-sm font-semibold text-gray-700 placeholder:text-gray-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -174,7 +238,7 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
                                <span className={`text-sm transition ${selectedMainCat === cat.id ? "text-gray-950 font-bold" : "text-gray-600 font-semibold group-hover:text-[#00C9A7]"}`}>{cat.name}</span>
                              </label>
                              
-                             {/* Dropdown Sub Kategori (NESTED STYLE) */}
+                             {/* Dropdown Sub Kategori */}
                              {selectedMainCat === cat.id && activeSubCats.length > 0 && (
                                 <div className="ml-7 pl-4 border-l-2 border-gray-100 space-y-2.5 mt-2 py-1">
                                    <label className="flex items-center gap-3 cursor-pointer group">
@@ -213,7 +277,7 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
                  )}
               </div>
 
-              {/* 3. Filter Harga (BARU) */}
+              {/* 3. Filter Harga */}
               <div>
                  {renderAccordionHeader('price', 'Tipe Pembayaran')}
                  {openAccordion.includes('price') && (
@@ -235,7 +299,7 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
                  )}
               </div>
 
-              {/* 4. Filter Review (BARU) */}
+              {/* 4. Filter Review */}
               <div>
                  {renderAccordionHeader('rating', 'Rating Review Minimal')}
                  {openAccordion.includes('rating') && (
@@ -256,7 +320,6 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
 
            </div>
 
-           {/* Tombol Reset Filter */}
            {(selectedMainCat !== "All" || selectedLevels.length > 0 || priceFilter !== "All" || minRating !== 0 || searchTerm !== "") && (
               <button onClick={() => {
                  setSearchTerm(""); setSelectedMainCat("All"); setSelectedSubCat("All");
@@ -268,7 +331,7 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
 
         </aside>
 
-        {/* --- AREA GRID KELAS KANAN (TETAP SAMA DENGAN REVISI SEBELUMNYA) --- */}
+        {/* --- AREA GRID KELAS KANAN --- */}
         <section className="flex-1 w-full flex flex-col gap-6">
            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm">
               <h1 className="text-2xl md:text-3xl font-black text-gray-950 tracking-tight">Katalog Program Klas</h1>
@@ -288,10 +351,10 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                  {displayedCourses.map((course) => {
                    const isOwned = ownedCourseIds.includes(course.id);
-                   const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`; // Perbaikan rute detail publik
+                   const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`;
 
                    return (
-                     <Link href={targetHref} key={course.id} className={`group flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:border-[#00C9A7]/20 transition-all duration-300 hover:-translate-y-1 ${isOwned ? 'opacity-80 grayscale-[30%]' : ''}`} >
+                     <Link href={targetHref} key={course.id} className={`group flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:border-[#00C9A7]/20 transition-all duration-300 hover:-translate-y-1 relative ${isOwned ? 'opacity-80 grayscale-[30%]' : ''}`} >
                        <div className="relative w-full aspect-video bg-gray-50 border-b border-gray-100 overflow-hidden shrink-0 shadow-inner">
                          {course.thumbnail_url ? (
                            <Image src={course.thumbnail_url} alt={course.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -319,7 +382,7 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
                                <Layers size={13} className="text-[#00C9A7]"/> {course.course_levels?.name || "All Level"}
                             </span>
                             <span className="flex items-center gap-1.5 bg-yellow-50 text-[#b4690e] px-2.5 py-1.5 rounded-md border border-yellow-100 font-bold ml-auto">
-                               {course.rating?.toFixed(1) || "5.0"}
+                               {Number(course.rating || 5).toFixed(1)}
                                <Star size={13} className="fill-yellow-400 text-yellow-400"/>
                             </span>
                          </div>
@@ -331,9 +394,17 @@ if (priceFilter === "Paid") matchPrice = safePrice > 0;
                                    {formatRupiah(course.price)}
                                </p>
                             </div>
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isOwned ? 'bg-[#00C9A7] text-white' : 'bg-gray-100 group-hover:bg-[#00C9A7] group-hover:text-white'}`}>
-                               <BookOpen size={16} />
-                            </div>
+                            
+                            {/* TOMBOL ADD TO CART CEPAT DARI GRID */}
+                            {!isOwned && (
+                               <button 
+                                 onClick={(e) => handleAddToCart(e, course)}
+                                 title="Tambahkan ke Keranjang"
+                                 className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-orange-50 text-[#F97316] hover:bg-[#F97316] hover:text-white border border-orange-100 group/cart z-10"
+                               >
+                                  <ShoppingCart size={18} className="group-hover/cart:scale-110 transition-transform" />
+                               </button>
+                            )}
                          </div>
                        </div>
                      </Link>

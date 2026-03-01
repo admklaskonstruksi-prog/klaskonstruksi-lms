@@ -139,10 +139,11 @@ export default function StudentMarketplace({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredCourses.map((course) => {
-            const isOwned = ownedCourseIds.includes(course.id);
-            // Pilih link: kalau udah punya masuk ke learning path, kalau belum ke checkout
-            const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`;
+{filteredCourses.map((course) => {
+    const isOwned = ownedCourseIds?.includes(course.id) ?? false;
+    
+    // PERUBAHAN DI SINI: Jika belum punya, arahkan ke detail dalam dashboard
+    const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/dashboard/checkout/${course.id}`;
 
             return (
               <Link 
