@@ -215,7 +215,7 @@ export default function LandingPage() {
             {highlightCourses.length > 0 ? (
                highlightCourses.map((course) => (
                   <Link 
-                     href={`/dashboard/checkout/${course.id}`} 
+                  href={`/program/${course.id}`}
                      key={course.id} 
                      // Hover border Tosca
                      className="min-w-[280px] sm:min-w-[320px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-[#00C9A7]/50 hover:-translate-y-1 transition-all duration-300 snap-start flex flex-col group"
