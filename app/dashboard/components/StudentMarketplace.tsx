@@ -30,7 +30,7 @@ export default function StudentMarketplace({
   const [minRating, setMinRating] = useState<number>(0);
   const [visibleCount, setVisibleCount] = useState(12);
 
-  // --- LOGIKA HARGA (Dinamis dari Harga Termahal) ---
+  // --- LOGIKA HARGA (Mendeteksi otomatis harga termahal dari database) ---
   const maxCoursePrice = Math.max(0, ...courses.map(c => Number(c.price || 0)));
   const [maxPriceFilter, setMaxPriceFilter] = useState<number | null>(null);
   const currentMaxPrice = maxPriceFilter !== null ? maxPriceFilter : maxCoursePrice;
@@ -40,13 +40,14 @@ export default function StudentMarketplace({
   const toggleAccordion = (id: string) => { setOpenAccordion(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]); };
   const activeSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
+  // FILTERING
   const filteredCourses = courses.filter((course) => {
     const matchTitle = course.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchMain = selectedMainCat === "All" || course.main_category_id === selectedMainCat;
     const matchSub = selectedSubCat === "All" || course.sub_category_id === selectedSubCat;
     const matchLevel = selectedLevels.length === 0 || selectedLevels.includes(course.level_id);
     const safePrice = Number(course.price || 0);
-    const matchPrice = safePrice <= currentMaxPrice; // Filter Range Harga
+    const matchPrice = safePrice <= currentMaxPrice; // Cek range harga
     const matchRating = Number(course.rating || 5) >= minRating;
     
     return matchTitle && matchMain && matchSub && matchLevel && matchPrice && matchRating;
@@ -64,8 +65,7 @@ export default function StudentMarketplace({
   };
 
   const formatSliderPrice = (price: any) => {
-    const numPrice = Number(price || 0);
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(numPrice);
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(price || 0));
   };
 
   const handleAddToCart = (e: React.MouseEvent, course: any) => {
@@ -104,6 +104,7 @@ export default function StudentMarketplace({
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start relative w-full">
       
+      {/* SIDEBAR FILTER */}
       <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-28 space-y-6">
          <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
             
@@ -113,7 +114,7 @@ export default function StudentMarketplace({
             </div>
 
             <div className="divide-y divide-gray-100">
-               {/* 1. Kategori */}
+               {/* Kategori */}
                <div>
                   {renderAccordionHeader('category', 'Kategori Program')}
                   {openAccordion.includes('category') && (
@@ -134,7 +135,7 @@ export default function StudentMarketplace({
                   )}
                </div>
 
-               {/* 2. Tingkat Kesulitan */}
+               {/* Tingkat Kesulitan */}
                <div>
                   {renderAccordionHeader('level', 'Tingkat Kesulitan')}
                   {openAccordion.includes('level') && (
@@ -147,7 +148,7 @@ export default function StudentMarketplace({
                   )}
                </div>
 
-               {/* 3. Slider Harga Dashboard */}
+               {/* Slider Harga Dashboard */}
                <div>
                   {renderAccordionHeader('price', 'Rentang Harga')}
                   {openAccordion.includes('price') && (
@@ -172,7 +173,7 @@ export default function StudentMarketplace({
                   )}
                </div>
 
-               {/* 4. Rating */}
+               {/* Rating */}
                <div>
                  {renderAccordionHeader('rating', 'Minimal Rating')}
                  {openAccordion.includes('rating') && (
@@ -201,7 +202,7 @@ export default function StudentMarketplace({
          </div>
       </aside>
 
-      {/* --- KOLOM KANAN: GRID KELAS --- */}
+      {/* GRID KELAS */}
       <section className="flex-1 w-full flex flex-col gap-6">
          
          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white rounded-3xl border border-gray-100 shadow-sm">
@@ -258,7 +259,7 @@ export default function StudentMarketplace({
                              <p className={`text-base font-black tracking-tight ${isOwned ? 'text-gray-800' : 'text-[#F97316]'}`}>{formatRupiah(course.price)}</p>
                           </div>
                           
-                          {/* TOMBOL KERANJANG */}
+                          {/* TOMBOL KERANJANG SEDERHANA */}
                           {isOwned ? (
                              <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors bg-[#00C9A7] text-white shadow-sm"><BookOpen size={14} /></div>
                           ) : (

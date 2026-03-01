@@ -25,7 +25,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
   const [minRating, setMinRating] = useState<number>(0);
   const [visibleCount, setVisibleCount] = useState(12);
 
-  // --- LOGIKA HARGA (Dinamis dari Harga Termahal) ---
+  // --- LOGIKA HARGA (Mendeteksi otomatis harga termahal dari database) ---
   const maxCoursePrice = Math.max(0, ...courses.map(c => Number(c.price || 0)));
   const [maxPriceFilter, setMaxPriceFilter] = useState<number | null>(null);
   const currentMaxPrice = maxPriceFilter !== null ? maxPriceFilter : maxCoursePrice;
@@ -35,13 +35,14 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
   const toggleAccordion = (id: string) => { setOpenAccordion(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]); };
   const activeSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
+  // FILTERING
   const filteredCourses = courses.filter((course) => {
     const matchTitle = course.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchMain = selectedMainCat === "All" || course.main_category_id === selectedMainCat;
     const matchSub = selectedSubCat === "All" || course.sub_category_id === selectedSubCat;
     const matchLevel = selectedLevels.length === 0 || selectedLevels.includes(course.level_id);
     const safePrice = Number(course.price || 0);
-    const matchPrice = safePrice <= currentMaxPrice; // Filter Range Harga
+    const matchPrice = safePrice <= currentMaxPrice; // Cek range harga
     const matchRating = Number(course.rating || 5) >= minRating;
     
     return matchTitle && matchMain && matchSub && matchLevel && matchPrice && matchRating;
@@ -58,8 +59,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
   };
 
   const formatSliderPrice = (price: any) => {
-    const numPrice = Number(price || 0);
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(numPrice);
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(price || 0));
   };
 
   const handleAddToCart = (e: React.MouseEvent, course: any) => {
@@ -143,6 +143,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
 
       {/* KONTEN KATALOG */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex flex-col lg:flex-row gap-8">
+        
         <aside className="w-full lg:w-72 shrink-0 space-y-6">
            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-28">
               <div className="relative w-full mb-6 border border-gray-100 rounded-xl overflow-hidden bg-gray-50 flex items-center focus-within:ring-2 focus-within:ring-[#00C9A7] transition-all group shadow-inner">
@@ -183,9 +184,9 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                     )}
                  </div>
                  
-                 {/* Filter Harga (Slider Range) */}
+                 {/* Slider Range Harga */}
                  <div>
-                    {renderAccordionHeader('price', 'Range Harga')}
+                    {renderAccordionHeader('price', 'Rentang Harga')}
                     {openAccordion.includes('price') && (
                        <div className="space-y-4 pb-6 pt-2">
                           <div className="flex justify-between items-center text-xs font-bold text-gray-500 mb-2">
@@ -202,13 +203,13 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#00C9A7]"
                           />
                           <div className="text-[11px] text-gray-400 text-center font-medium mt-2">
-                             Menampilkan kelas hingga {formatSliderPrice(currentMaxPrice)}
+                             Sembunyikan kelas di atas {formatSliderPrice(currentMaxPrice)}
                           </div>
                        </div>
                     )}
                  </div>
 
-                 {/* Filter Rating */}
+                 {/* Rating Minimal */}
                  <div>
                     {renderAccordionHeader('rating', 'Rating Minimal')}
                     {openAccordion.includes('rating') && (
@@ -217,9 +218,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                               const isActive = minRating === r;
                               return (
                                  <div key={r} onClick={() => setMinRating(isActive ? 0 : r)} className={`flex items-center gap-3 cursor-pointer group p-2 rounded-xl transition ${isActive ? 'bg-teal-50 border border-teal-100' : 'hover:bg-gray-50 border border-transparent'}`}>
-                                    {isActive ? <CheckSquare size={18} className="text-[#00C9A7]" /> : <Square size={18} className="text-gray-300 group-hover:text-[#00C9A7]" />}
-                                    {renderStars(r)}
-                                    <span className={`text-xs font-bold transition ${isActive ? 'text-[#00C9A7]' : 'text-gray-600'}`}>{r}.0 Keatas</span>
+                                    {isActive ? <CheckSquare size={18} className="text-[#00C9A7]" /> : <Square size={18} className="text-gray-300 group-hover:text-[#00C9A7]" />}{renderStars(r)}<span className={`text-xs font-bold transition ${isActive ? 'text-[#00C9A7]' : 'text-gray-600'}`}>{r}.0 Keatas</span>
                                  </div>
                               );
                            })}
@@ -246,7 +245,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                  {displayedCourses.map((course) => {
                    const isOwned = ownedCourseIds.includes(course.id);
-                   const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/dashboard/checkout/${course.id}`;
+                   const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`;
 
                    return (
                      <Link href={targetHref} key={course.id} className={`group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative ${isOwned ? 'opacity-80 grayscale-[40%]' : ''}`}>
@@ -267,16 +266,11 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                                <p className={`text-lg font-black ${isOwned ? 'text-gray-900' : 'text-[#F97316]'}`}>{formatRupiah(course.price)}</p>
                             </div>
                             
+                            {/* TOMBOL KERANJANG SEDERHANA */}
                             {isOwned ? (
                                <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors bg-[#00C9A7] text-white"><BookOpen size={16} /></div>
                             ) : (
-                               <button 
-                                 onClick={(e) => handleAddToCart(e, course)} 
-                                 title="Tambahkan ke Keranjang" 
-                                 className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-orange-50 text-[#F97316] hover:bg-[#F97316] hover:text-white border border-orange-100 group/cart z-10"
-                               >
-                                  <ShoppingCart size={18} className="group-hover/cart:scale-110 transition-transform" />
-                               </button>
+                               <button onClick={(e) => handleAddToCart(e, course)} className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-orange-50 text-[#F97316] hover:bg-[#F97316] hover:text-white border border-orange-100 group/cart z-10"><ShoppingCart size={18} className="group-hover/cart:scale-110 transition-transform" /></button>
                             )}
                          </div>
                        </div>
