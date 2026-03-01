@@ -197,7 +197,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                              type="range" 
                              min="0" 
                              max={maxCoursePrice > 0 ? maxCoursePrice : 100} 
-                             step="10000"
+                             step="1000"
                              value={currentMaxPrice} 
                              onChange={(e) => setMaxPriceFilter(Number(e.target.value))} 
                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#00C9A7]"
