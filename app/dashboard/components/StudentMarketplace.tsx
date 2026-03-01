@@ -22,38 +22,38 @@ export default function StudentMarketplace({
   ownedCourseIds = [] 
 }: StudentMarketplaceProps) {
   
-  // State Filter (Sama dengan Katalog Publik)
-  const [openAccordion, setOpenAccordion] = useState<string[]>(['category', 'level']); // Default buka bbrp
+  const [openAccordion, setOpenAccordion] = useState<string[]>(['category', 'level']);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMainCat, setSelectedMainCat] = useState("All");
   const [selectedSubCat, setSelectedSubCat] = useState("All");
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
-  const [priceFilter, setPriceFilter] = useState<"All" | "Free" | "Paid">("All");
   const [minRating, setMinRating] = useState<number>(0);
   const [visibleCount, setVisibleCount] = useState(12);
 
-  useEffect(() => { setVisibleCount(12); }, [searchTerm, selectedMainCat, selectedSubCat, selectedLevels, priceFilter, minRating]);
+  // --- LOGIKA HARGA (Dinamis dari Harga Termahal) ---
+  const maxCoursePrice = Math.max(0, ...courses.map(c => Number(c.price || 0)));
+  const [maxPriceFilter, setMaxPriceFilter] = useState<number | null>(null);
+  const currentMaxPrice = maxPriceFilter !== null ? maxPriceFilter : maxCoursePrice;
+
+  useEffect(() => { setVisibleCount(12); }, [searchTerm, selectedMainCat, selectedSubCat, selectedLevels, maxPriceFilter, minRating]);
 
   const toggleAccordion = (id: string) => { setOpenAccordion(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]); };
   const activeSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
-  // LOGIC FILTERING CANGGIH
   const filteredCourses = courses.filter((course) => {
     const matchTitle = course.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchMain = selectedMainCat === "All" || course.main_category_id === selectedMainCat;
     const matchSub = selectedSubCat === "All" || course.sub_category_id === selectedSubCat;
     const matchLevel = selectedLevels.length === 0 || selectedLevels.includes(course.level_id);
-    let matchPrice = true;
     const safePrice = Number(course.price || 0);
-    if (priceFilter === "Free") matchPrice = safePrice === 0;
-    if (priceFilter === "Paid") matchPrice = safePrice > 0;
+    const matchPrice = safePrice <= currentMaxPrice; // Filter Range Harga
     const matchRating = Number(course.rating || 5) >= minRating;
+    
     return matchTitle && matchMain && matchSub && matchLevel && matchPrice && matchRating;
   });
 
   const displayedCourses = filteredCourses.slice(0, visibleCount);
 
-  // HANDLERS
   const handleMainCatChange = (catId: string) => { setSelectedMainCat(catId); setSelectedSubCat("All"); };
   const handleLevelToggle = (levelId: string) => { setSelectedLevels(prev => prev.includes(levelId) ? prev.filter(id => id !== levelId) : [...prev, levelId]); };
   
@@ -63,7 +63,11 @@ export default function StudentMarketplace({
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(numPrice);
   };
 
-  // ADD TO CART (Instan)
+  const formatSliderPrice = (price: any) => {
+    const numPrice = Number(price || 0);
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(numPrice);
+  };
+
   const handleAddToCart = (e: React.MouseEvent, course: any) => {
     e.preventDefault(); 
     const existingCart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
@@ -100,11 +104,9 @@ export default function StudentMarketplace({
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start relative w-full">
       
-      {/* --- KOLOM KIRI: SIDEBAR FILTER --- */}
       <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-28 space-y-6">
          <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
             
-            {/* Search Box Terintegrasi di Filter */}
             <div className="relative w-full mb-5 border border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex items-center focus-within:ring-2 focus-within:ring-[#00C9A7] transition-all group">
               <Search className="absolute left-3.5 text-gray-400 group-focus-within:text-[#00C9A7]" size={16} />
               <input type="text" placeholder="Cari materi..." className="w-full pl-10 pr-3 py-3 bg-transparent outline-none text-sm font-medium text-gray-700 placeholder:text-gray-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -116,14 +118,14 @@ export default function StudentMarketplace({
                   {renderAccordionHeader('category', 'Kategori Program')}
                   {openAccordion.includes('category') && (
                      <div className="space-y-2.5 pb-5 pr-1 max-h-[250px] overflow-y-auto no-scrollbar">
-                        <label className="flex items-center gap-3 cursor-pointer group"><input type="radio" name="mainCat" checked={selectedMainCat === "All"} onChange={() => handleMainCatChange("All")} className="w-4 h-4 text-[#00C9A7] border-gray-300" /><span className={`text-sm transition ${selectedMainCat === "All" ? "text-gray-900 font-bold" : "text-gray-600 font-medium"}`}>Semua Kategori</span></label>
+                        <label className="flex items-center gap-3 cursor-pointer group"><input type="radio" name="mainCat" checked={selectedMainCat === "All"} onChange={() => handleMainCatChange("All")} className="w-4 h-4 text-[#00C9A7] border-gray-300 accent-[#00C9A7]" /><span className={`text-sm transition ${selectedMainCat === "All" ? "text-gray-900 font-bold" : "text-gray-600 font-medium"}`}>Semua Kategori</span></label>
                         {mainCategories.map((cat) => (
                            <div key={cat.id} className="space-y-2">
-                              <label className="flex items-center gap-3 cursor-pointer group"><input type="radio" name="mainCat" checked={selectedMainCat === cat.id} onChange={() => handleMainCatChange(cat.id)} className="w-4 h-4 text-[#00C9A7] border-gray-300" /><span className={`text-sm transition ${selectedMainCat === cat.id ? "text-gray-900 font-bold" : "text-gray-600 font-medium"}`}>{cat.name}</span></label>
+                              <label className="flex items-center gap-3 cursor-pointer group"><input type="radio" name="mainCat" checked={selectedMainCat === cat.id} onChange={() => handleMainCatChange(cat.id)} className="w-4 h-4 text-[#00C9A7] border-gray-300 accent-[#00C9A7]" /><span className={`text-sm transition ${selectedMainCat === cat.id ? "text-gray-900 font-bold" : "text-gray-600 font-medium"}`}>{cat.name}</span></label>
                               {selectedMainCat === cat.id && activeSubCats.length > 0 && (
                                  <div className="ml-6 pl-3 border-l-2 border-gray-100 space-y-2 mt-1.5 py-0.5">
-                                    <label className="flex items-center gap-2.5 cursor-pointer group"><input type="radio" name="subCat" checked={selectedSubCat === "All"} onChange={() => setSelectedSubCat("All")} className="w-3.5 h-3.5 text-[#F97316] border-gray-300" /><span className={`text-[12px] ${selectedSubCat === "All" ? "text-[#F97316] font-bold" : "text-gray-500"}`}>Semua Spesialisasi</span></label>
-                                    {activeSubCats.map(sub => (<label key={sub.id} className="flex items-center gap-2.5 cursor-pointer group"><input type="radio" name="subCat" checked={selectedSubCat === sub.id} onChange={() => setSelectedSubCat(sub.id)} className="w-3.5 h-3.5 text-[#F97316] border-gray-300" /><span className={`text-[12px] ${selectedSubCat === sub.id ? "text-[#F97316] font-bold" : "text-gray-500"}`}>{sub.name}</span></label>))}
+                                    <label className="flex items-center gap-2.5 cursor-pointer group"><input type="radio" name="subCat" checked={selectedSubCat === "All"} onChange={() => setSelectedSubCat("All")} className="w-3.5 h-3.5 text-[#F97316] border-gray-300 accent-[#F97316]" /><span className={`text-[12px] ${selectedSubCat === "All" ? "text-[#F97316] font-bold" : "text-gray-500"}`}>Semua Spesialisasi</span></label>
+                                    {activeSubCats.map(sub => (<label key={sub.id} className="flex items-center gap-2.5 cursor-pointer group"><input type="radio" name="subCat" checked={selectedSubCat === sub.id} onChange={() => setSelectedSubCat(sub.id)} className="w-3.5 h-3.5 text-[#F97316] border-gray-300 accent-[#F97316]" /><span className={`text-[12px] ${selectedSubCat === sub.id ? "text-[#F97316] font-bold" : "text-gray-500"}`}>{sub.name}</span></label>))}
                                  </div>
                               )}
                            </div>
@@ -145,14 +147,27 @@ export default function StudentMarketplace({
                   )}
                </div>
 
-               {/* 3. Harga */}
+               {/* 3. Slider Harga Dashboard */}
                <div>
-                  {renderAccordionHeader('price', 'Tipe Harga')}
+                  {renderAccordionHeader('price', 'Rentang Harga')}
                   {openAccordion.includes('price') && (
-                     <div className="space-y-2.5 pb-5">
-                         {[{ id: "All", name: "Semua" },{ id: "Paid", name: "Premium (Berbayar)" },{ id: "Free", name: "Gratis (Preview)" }].map((p:any) => (
-                               <label key={p.id} className="flex items-center gap-3 cursor-pointer group"><input type="radio" name="priceCat" checked={priceFilter === p.id} onChange={() => setPriceFilter(p.id)} className="w-4 h-4 text-[#00C9A7] border-gray-300" /><span className={`text-sm ${priceFilter === p.id ? "text-gray-900 font-bold" : "text-gray-600 font-medium"}`}>{p.name}</span></label>
-                         ))}
+                     <div className="space-y-4 pb-5 pt-2">
+                        <div className="flex justify-between items-center text-xs font-bold text-gray-500 mb-2">
+                           <span>Rp 0</span>
+                           <span className="text-[#00C9A7] bg-teal-50 px-2 py-1 rounded-md">{formatSliderPrice(currentMaxPrice)}</span>
+                        </div>
+                        <input 
+                           type="range" 
+                           min="0" 
+                           max={maxCoursePrice > 0 ? maxCoursePrice : 100} 
+                           step="10000"
+                           value={currentMaxPrice} 
+                           onChange={(e) => setMaxPriceFilter(Number(e.target.value))} 
+                           className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#00C9A7]"
+                        />
+                        <div className="text-[11px] text-gray-400 text-center font-medium mt-2">
+                           Sembunyikan kelas di atas {formatSliderPrice(currentMaxPrice)}
+                        </div>
                      </div>
                   )}
                </div>
@@ -178,8 +193,8 @@ export default function StudentMarketplace({
             </div>
 
             {/* Reset Button */}
-            {(selectedMainCat !== "All" || selectedLevels.length > 0 || priceFilter !== "All" || searchTerm !== "" || minRating !== 0) && (
-               <button onClick={() => { setSearchTerm(""); setSelectedMainCat("All"); setSelectedSubCat("All"); setSelectedLevels([]); setPriceFilter("All"); setMinRating(0); }} className="w-full mt-4 py-2.5 bg-gray-50 text-gray-600 font-bold rounded-xl text-xs hover:bg-gray-100 transition border border-gray-200">
+            {(selectedMainCat !== "All" || selectedLevels.length > 0 || (maxPriceFilter !== null && maxPriceFilter < maxCoursePrice) || searchTerm !== "" || minRating !== 0) && (
+               <button onClick={() => { setSearchTerm(""); setSelectedMainCat("All"); setSelectedSubCat("All"); setSelectedLevels([]); setMaxPriceFilter(null); setMinRating(0); }} className="w-full mt-4 py-2.5 bg-gray-50 text-gray-600 font-bold rounded-xl text-xs hover:bg-gray-100 transition border border-gray-200">
                   Reset Semua Filter
                </button>
             )}
@@ -200,7 +215,7 @@ export default function StudentMarketplace({
            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 shadow-sm flex flex-col items-center">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400"><Search size={24} /></div>
               <h3 className="font-bold text-gray-700 text-lg">Tidak ada kelas ditemukan</h3>
-              <p className="text-gray-400 text-sm mt-1 max-w-xs">Coba sesuaikan filter kategori di panel sebelah kiri.</p>
+              <p className="text-gray-400 text-sm mt-1 max-w-xs">Coba sesuaikan batas rentang harga atau filter lainnya.</p>
            </div>
          ) : (
            <>
