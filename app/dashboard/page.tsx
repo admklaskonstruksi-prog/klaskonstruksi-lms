@@ -1,14 +1,15 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
-import { Star, Search, Users, Wallet, BookOpen, TrendingUp, BarChart3, Award, ArrowUpRight, FilterX } from "lucide-react"; 
+import { Wallet, TrendingUp, Users, BookOpen, Award } from "lucide-react"; 
 import SmartOnboardingModal from "./components/SmartOnboardingModal";
+import StudentMarketplace from "./components/StudentMarketplace"; // <--- Import Komponen Baru
 import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage({ searchParams }: { searchParams?: Promise<any> | any }) {
+// Hapus searchParams karena filter sudah dipindah ke Client-Side
+export default async function DashboardPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -174,41 +175,23 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   }
 
   // ============================================================================
-  // TAMPILAN SISWA (ETALASE KELAS DENGAN FILTER & SORTING BARU)
+  // TAMPILAN SISWA (MENGGUNAKAN STUDENT MARKETPLACE BARU)
   // ============================================================================
   
+  // 1. Ambil ID Kelas yang sudah dimiliki siswa
   const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
   const ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];
 
-  const sp = await searchParams; 
-  const categoryFilter = sp?.category || "semua";
-  const subCategoryFilter = sp?.sub || "semua";
-  const sortFilter = sp?.sort || "terbaru";
-  const searchQ = sp?.q || "";
-  const levelFilter = sp?.level || "semua";
-
+  // 2. Ambil List Kategori & Sub Kategori
   const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
   const { data: subCategories } = await supabase.from("sub_categories").select("id, name, main_category_id").order("name");
-  const { data: allLevels } = await supabase.from("course_levels").select("id, name");
 
-  const activeSubCats = subCategories?.filter(s => s.main_category_id === categoryFilter) || [];
-
-  let query = supabase.from("courses").select(`*, main_categories!main_category_id(id, name), sub_categories!sub_category_id(id, name), course_levels!level_id(id, name)`).eq("is_published", true);
-
-  if (categoryFilter !== "semua") query = query.eq("main_category_id", categoryFilter);
-  if (subCategoryFilter !== "semua") query = query.eq("sub_category_id", subCategoryFilter);
-  if (searchQ) query = query.ilike("title", `%${searchQ}%`);
-
-  if (levelFilter !== "semua") {
-      // Mendukung ID level atau nama level (dari Smart Onboarding)
-      const matchedLevel = allLevels?.find(l => l.id === levelFilter || l.name.toLowerCase() === levelFilter.toLowerCase());
-      if (matchedLevel) query = query.eq("level_id", matchedLevel.id);
-  }
-
-  if (sortFilter === "terpopuler") query = query.order("sales_count", { ascending: false });
-  else query = query.order("created_at", { ascending: false }); 
-
-  const { data: courses } = await query;
+  // 3. Ambil SEMUA Kelas yang di-publish untuk difilter di Client Side
+  const { data: courses } = await supabase
+    .from("courses")
+    .select(`*, main_categories!main_category_id(id, name), sub_categories!sub_category_id(id, name), course_levels!level_id(id, name)`)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans selection:bg-[#F97316] selection:text-white">
@@ -217,127 +200,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
         <p className="text-gray-500 mt-1">Siap melanjutkan pembelajaran hari ini?</p>
       </div>
 
-      <div className="mb-10">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Jelajah Kelas</h2>
-        <div className="flex flex-col gap-4">
-          
-          <form method="GET" className="relative w-full border border-gray-200 rounded-xl overflow-hidden bg-white flex items-center focus-within:ring-2 focus-within:ring-[#F97316] transition-all shadow-sm">
-             <input type="hidden" name="category" value={categoryFilter} />
-             <input type="hidden" name="sub" value={subCategoryFilter} />
-             <input type="hidden" name="sort" value={sortFilter} />
-             <input type="hidden" name="level" value={levelFilter} />
-             
-             <Search size={20} className="text-gray-400 absolute left-4" />
-             <input type="text" name="q" defaultValue={searchQ} placeholder="Cari kelas yang ingin Anda pelajari..." className="w-full py-3.5 pl-12 pr-4 outline-none text-sm text-gray-700 bg-transparent font-medium" />
-             <button type="submit" className="hidden">Cari</button>
-          </form>
-
-          {/* FILTER KATEGORI UTAMA */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide mt-2">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Kategori:</span>
-            <Link href={`?category=semua&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === "semua" ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>Semua</Link>
-            {categories?.map((cat) => (
-              <Link key={cat.id} href={`?category=${cat.id}&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-5 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition ${categoryFilter === cat.id ? "bg-[#F97316] text-white shadow-md shadow-orange-500/20" : "bg-white border border-gray-200 text-gray-600 hover:border-[#F97316] hover:text-[#F97316]"}`}>{cat.name}</Link>
-            ))}
-          </div>
-
-          {/* FILTER SUB KATEGORI (Hanya Muncul Jika Kategori Utama Dipilih) */}
-          {categoryFilter !== "semua" && activeSubCats.length > 0 && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide pt-2">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Sub Kategori:</span>
-                <Link href={`?category=${categoryFilter}&sub=semua&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${subCategoryFilter === "semua" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>Semua</Link>
-                {activeSubCats.map((sub) => (
-                  <Link key={sub.id} href={`?category=${categoryFilter}&sub=${sub.id}&sort=${sortFilter}&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${subCategoryFilter === sub.id ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{sub.name}</Link>
-                ))}
-              </div>
-          )}
-
-          {/* FILTER LEVEL (Baru) */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide pt-2 border-t border-gray-100">
-             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2 shrink-0">Level:</span>
-             <Link href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=${sortFilter}&q=${searchQ}&level=semua`} className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${levelFilter === "semua" ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"}`}>Semua Level</Link>
-             {allLevels?.map((lvl) => {
-                 // Cek apakah filter aktif menggunakan ID atau Nama level
-                 const isActive = levelFilter === lvl.id || levelFilter.toLowerCase() === lvl.name.toLowerCase();
-                 return (
-                 <Link key={lvl.id} href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=${sortFilter}&q=${searchQ}&level=${lvl.id}`} className={`px-4 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${isActive ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"}`}>{lvl.name}</Link>
-             )})}
-          </div>
-
-        </div>
-      </div>
-
-      <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 mt-8">
-        <div>
-           <h2 className="text-2xl font-bold text-gray-900 mb-2">Pilihan Program Terbaik</h2>
-           <p className="text-gray-500 text-sm">Tingkatkan skill Anda dengan materi siap kerja.</p>
-        </div>
-        <div className="flex items-center gap-4 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
-           <Link href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=terpopuler&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terpopuler" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terpopuler</Link>
-           <Link href={`?category=${categoryFilter}&sub=${subCategoryFilter}&sort=terbaru&q=${searchQ}&level=${levelFilter}`} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${sortFilter === "terbaru" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}>Terbaru</Link>
-        </div>
-      </div>
-
-      {courses?.length === 0 ? (
-         <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-            Tidak ada kelas yang sesuai filter Anda.
-         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {courses?.map((course: any) => {
-            const isOwned = ownedCourseIds.includes(course.id);
-            return (
-            <Link href={isOwned ? `/dashboard/learning-path/${course.id}` : `/dashboard/checkout/${course.id}`} key={course.id} className={`flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 group ${isOwned ? 'opacity-80 grayscale-[40%] hover:grayscale-0' : 'hover:shadow-xl hover:border-[#F97316]/50'}`}>
-              <div className="relative aspect-video w-full bg-gray-100 border-b border-gray-100 overflow-hidden">
-                {course.thumbnail_url ? (
-                  <Image src={course.thumbnail_url} alt={course.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-medium">No Image</div>
-                )}
-                {course.sales_count > 100 && !isOwned && (
-                   <div className="absolute top-3 left-3 bg-[#eceb98] text-[#3d3c0a] text-[10px] font-black px-2.5 py-1 rounded shadow-sm tracking-wide uppercase">TERLARIS</div>
-                )}
-                {isOwned && (
-                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10 backdrop-blur-[1px]">
-                     <span className="bg-white text-[#F97316] font-black px-4 py-2 rounded-lg shadow-lg text-sm">SUDAH DIMILIKI</span>
-                   </div>
-                )}
-              </div>
-              
-              <div className="p-4 flex flex-col flex-1">
-                 
-                 <h3 className="font-bold text-gray-900 text-base leading-snug line-clamp-2 mb-2 group-hover:text-[#F97316] transition-colors">{course.title}</h3>
-                 
-                 {/* RATING, SALES & LEVEL DALAM KARTU (BINTANG DIPERBAIKI) */}
-                 <div className="flex flex-wrap items-center justify-between gap-y-2 text-xs mb-4 mt-auto">
-                   {course.rating > 0 ? (
-                     <div className="flex items-center gap-1.5">
-                       <span className="font-bold text-[#b4690e]">{course.rating}</span>
-                       {/* HANYA MENGGUNAKAN 1 BINTANG PENUH AGAR TIDAK TERPOTONG */}
-                       <Star size={14} className="fill-[#b4690e] text-[#b4690e] shrink-0" strokeWidth={0} />
-                       {course.review_count > 0 && <span className="text-gray-500">({course.review_count})</span>}
-                     </div>
-                   ) : <div></div>}
-                   
-                   {course.sales_count > 0 && <span className="text-gray-500 font-medium">{course.sales_count} Terjual</span>}
-                 </div>
-
-                 <div className="pt-3 border-t border-gray-100 flex items-end justify-between gap-2 mt-auto">
-                   <div>
-                     <span className="bg-orange-50 text-[#F97316] font-black px-2 py-1 rounded-md text-[10px] uppercase block w-max mb-1.5">
-                         {course.course_levels?.name || "All Level"}
-                     </span>
-                     {course.price > 0 ? (
-                       <span className="font-black text-gray-900 text-lg">Rp {course.price.toLocaleString("id-ID")}</span>
-                     ) : (<span className="font-black text-[#F97316] text-lg">Gratis</span>)}
-                   </div>
-                   {isOwned && (<span className="text-[11px] font-bold text-[#00C9A7] bg-teal-50 px-2 py-1 rounded">Masuk Kelas</span>)}
-                 </div>
-              </div>
-            </Link>
-          )})}
-        </div>
-      )}
+      {/* Memanggil Komponen StudentMarketplace yang menangani filter secara Instan */}
+      <StudentMarketplace 
+        courses={courses || []} 
+        mainCategories={categories || []} 
+        subCategories={subCategories || []} 
+        ownedCourseIds={ownedCourseIds}
+      />
 
       {/* TAMPILKAN POPUP SMART ONBOARDING UNTUK SISWA BARU */}
       <SmartOnboardingModal categories={categories || []} isCompleted={profile?.onboarding_completed || false} />
