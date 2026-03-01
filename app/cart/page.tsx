@@ -51,8 +51,8 @@ export default function CartPage() {
 
   const totalPrice = cartItems.reduce((acc, item) => acc + item.price, 0);
 
-  // --- FUNGSI INTEGRASI MIDTRANS SUNGGUHAN ---
-  const handleCheckout = async () => {
+ // --- FUNGSI INTEGRASI MIDTRANS SUNGGUHAN ---
+ const handleCheckout = async () => {
     setIsCheckingOut(true);
     toast.loading("Menyiapkan transaksi aman...");
 
@@ -70,7 +70,6 @@ export default function CartPage() {
 
       // 2. Siapkan Payload untuk API Route Midtrans Anda
       const payload = {
-        // Jika beli 1, pakai ID kelas. Jika beli lebih, namakan BUNDLE
         courseId: cartItems.length === 1 ? cartItems[0].id : "BUNDLE-CART", 
         price: totalPrice,
         title: cartItems.length === 1 ? cartItems[0].title : `Pembelian ${cartItems.length} Kelas KlasKonstruksi`,
@@ -109,8 +108,9 @@ export default function CartPage() {
           toast.dismiss();
 
           if (dbError) {
-             toast.error("Gagal mendaftarkan kelas, harap hubungi admin.");
-             console.error("Enrollment error:", dbError);
+             // MENGELUARKAN PESAN ERROR ASLI KE LAYAR AGAR MUDAH DILACAK
+             toast.error(`Gagal mendaftar: ${dbError.message}`);
+             console.error("DETAIL ERROR ENROLLMENT:", dbError);
           } else {
              toast.success("Hore! Kelas berhasil ditambahkan.");
              // Kosongkan keranjang
