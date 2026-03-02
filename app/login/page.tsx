@@ -4,10 +4,15 @@ import { useState, useTransition, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signInAction, signUpAction, signInWithGoogle } from "./actions";
 import { Loader2, Chrome, Eye, EyeOff } from "lucide-react";
-// Import Player dari Lottie
-import { Player } from "@lottiefiles/react-lottie-player";
+// 1. IMPORT DYNAMIC DARI NEXT.JS
+import dynamic from "next/dynamic";
 
-// Pindahkan isi utama ke komponen terpisah agar bisa dibungkus Suspense
+// 2. LOAD LOTTIE PLAYER HANYA DI SISI CLIENT (BROWSER)
+const LottiePlayer = dynamic(
+  () => import('@lottiefiles/react-lottie-player').then((mod) => mod.Player),
+  { ssr: false, loading: () => <div className="h-[400px] w-[400px] flex items-center justify-center"><Loader2 className="animate-spin text-[#F97316] w-8 h-8" /></div> }
+);
+
 function LoginContent() {
   const searchParams = useSearchParams();
   const [isRegister, setIsRegister] = useState(false);
@@ -16,7 +21,6 @@ function LoginContent() {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
-  // Cek parameter URL saat halaman pertama kali dimuat
   useEffect(() => {
     if (searchParams.get("mode") === "register") {
       setIsRegister(true);
@@ -35,7 +39,7 @@ function LoginContent() {
         if (res?.error) setErrorMsg(res.error);
         if (res?.success) {
             setSuccessMsg(res.success);
-            setIsRegister(false); // Balikkan ke form login setelah sukses daftar
+            setIsRegister(false); 
             e.currentTarget.reset();
         }
       } else {
@@ -57,11 +61,9 @@ function LoginContent() {
       {/* --- BAGIAN KIRI: ANIMASI KARTUN --- */}
       <div className="hidden lg:flex w-1/2 bg-orange-50 p-12 flex-col justify-center items-center relative overflow-hidden border-r border-orange-100">
         
-        {/* Dekorasi Latar Belakang */}
         <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-orange-200/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-teal-200/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
 
-        {/* Teks Sambutan */}
         <div className="z-10 text-center max-w-md mt-10">
           <h1 className="text-4xl lg:text-5xl font-black text-[#F97316] mb-6 leading-tight tracking-tight">
             Bangun Masa Depanmu.
@@ -71,9 +73,9 @@ function LoginContent() {
           </p>
         </div>
 
-        {/* Komponen Animasi Lottie Lokal */}
+        {/* 3. GUNAKAN LOTTIEPLAYER YANG SUDAH DI-DYNAMIC */}
         <div className="z-10 w-full max-w-lg mt-8 flex justify-center">
-          <Player
+          <LottiePlayer
             autoplay
             loop
             src="/animasi-pekerja.json" 
@@ -95,12 +97,10 @@ function LoginContent() {
                   </p>
               </div>
 
-              {/* Tampilkan Notifikasi Error/Sukses */}
               {errorMsg && <div className="p-3 mb-6 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{errorMsg}</div>}
               {successMsg && <div className="p-3 mb-6 bg-green-50 text-green-600 text-sm font-bold rounded-xl border border-green-100">{successMsg}</div>}
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* INPUT KHUSUS REGISTER */}
                   {isRegister && (
                       <>
                           <div>
@@ -120,13 +120,11 @@ function LoginContent() {
                       </>
                   )}
 
-                  {/* INPUT UMUM (EMAIL) */}
                   <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
                       <input type="email" name="email" required placeholder="nama@email.com" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white" />
                   </div>
                   
-                  {/* INPUT PASSWORD DENGAN IKON MATA */}
                   <div>
                       <div className="flex justify-between items-center mb-1">
                           <label className="block text-sm font-bold text-gray-700">Password</label>
@@ -151,20 +149,17 @@ function LoginContent() {
                       </div>
                   </div>
 
-                  {/* TOMBOL SUBMIT */}
                   <button type="submit" disabled={isPending} className="w-full bg-[#F97316] text-white font-bold py-3.5 rounded-xl hover:bg-[#ea580c] transition shadow-lg shadow-[#F97316]/30 flex items-center justify-center gap-2 mt-6">
                       {isPending ? <Loader2 className="animate-spin w-5 h-5" /> : (isRegister ? "Daftar Sekarang" : "Masuk")}
                   </button>
               </form>
 
-              {/* SEPARATOR */}
               <div className="flex items-center gap-4 my-8">
                   <div className="flex-1 border-t border-gray-200"></div>
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Atau lanjutkan dengan</span>
                   <div className="flex-1 border-t border-gray-200"></div>
               </div>
 
-              {/* LOGIN GOOGLE */}
               <button 
                   type="button" 
                   onClick={handleGoogleLogin}
@@ -173,7 +168,6 @@ function LoginContent() {
                   <Chrome className="text-blue-500" size={20} /> Google
               </button>
 
-              {/* TOGGLE LOGIN / REGISTER */}
               <p className="text-center mt-8 text-sm font-medium text-gray-600">
                   {isRegister ? "Sudah punya akun?" : "Belum punya akun?"}
                   <button 
@@ -193,7 +187,6 @@ function LoginContent() {
   );
 }
 
-// Komponen utama mengekspor halaman yang dibungkus dengan Suspense
 export default function LoginPage() {
   return (
     <Suspense fallback={
