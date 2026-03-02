@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import toast from "react-hot-toast";
 import { 
   LayoutDashboard, BookOpen, PlusSquare, Tags, 
   Users, BarChart3, Settings, LogOut, 
@@ -66,8 +67,15 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
   }, [supabase]);
 
   const handleLogout = async () => {
+    // Opsional: Jika Anda ingin memunculkan loading saat proses keluar
+    const toastId = toast.loading("Mengeluarkan akun..."); 
+    
     await supabase.auth.signOut();
-    router.push("/login");
+    
+    toast.dismiss(toastId);
+    
+    // Gunakan window.location.href untuk memaksa browser membuang seluruh cache memori
+    window.location.href = "/login"; 
   };
 
   const adminMenus = [
