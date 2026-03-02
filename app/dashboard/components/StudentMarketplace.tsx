@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, BookOpen, Layers, Star, ShoppingCart, Tag, ChevronDown, ChevronUp, CheckSquare, Square, ArrowRight } from "lucide-react";
+// Tambahkan ikon Users di sini
+import { Search, BookOpen, Layers, Star, ShoppingCart, Tag, ChevronDown, ChevronUp, CheckSquare, Square, ArrowRight, Users } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface StudentMarketplaceProps {
@@ -248,9 +249,22 @@ export default function StudentMarketplace({
                        <p className="text-[10px] text-[#00C9A7] font-black uppercase mb-1.5 tracking-wider">{course.main_categories?.name || "UMUM"}</p>
                        <h3 className="font-bold text-gray-900 line-clamp-2 text-sm leading-snug group-hover:text-[#00C9A7] transition-colors mb-3 flex-1">{course.title}</h3>
 
-                       <div className="flex items-center justify-between text-[11px] text-gray-500 mb-4 mt-auto">
-                          <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100"><Layers size={11} className="text-[#00C9A7]"/> {course.course_levels?.name || "All Level"}</span>
-                          <span className="flex items-center gap-1 bg-yellow-50 text-[#b4690e] px-2 py-1 rounded-md border border-yellow-100 font-bold">{Number(course.rating || 5).toFixed(1)} <Star size={11} className="fill-yellow-400 text-yellow-400"/></span>
+                       {/* ----- BAGIAN RATING DAN TERJUAL DI SINI ----- */}
+                       <div className="flex items-center text-[10px] sm:text-[11px] text-gray-500 mb-4 mt-auto">
+                          <span className="flex items-center gap-1 bg-gray-50 px-2 py-1.5 rounded-md border border-gray-100 mr-2 max-w-[100px] shrink-0">
+                             <Layers size={11} className="text-[#00C9A7] shrink-0"/> 
+                             <span className="truncate">{course.course_levels?.name || "All Level"}</span>
+                          </span>
+                          
+                          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                             <span className="flex items-center gap-1 bg-yellow-50 text-[#b4690e] px-1.5 py-1.5 rounded-md border border-yellow-100 font-bold" title="Rating & Ulasan">
+                                <Star size={11} className="fill-yellow-400 text-yellow-400"/>
+                                {Number(course.rating || 5).toFixed(1)} <span className="opacity-70 font-medium">({course.review_count || 0})</span>
+                             </span>
+                             <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-1.5 py-1.5 rounded-md border border-blue-100 font-bold" title="Total Siswa Terdaftar">
+                                <Users size={11} /> {course.sales_count || 0}
+                             </span>
+                          </div>
                        </div>
 
                        <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">

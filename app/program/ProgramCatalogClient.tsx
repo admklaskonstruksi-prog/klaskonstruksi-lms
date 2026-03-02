@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Menu, X, ArrowRight, Search, BookOpen, Layers, Star, CheckSquare, Square, Tag, ChevronDown, ChevronUp, ShoppingCart } from "lucide-react";
+// Tambahkan ikon Users di sini
+import { Menu, X, ArrowRight, Search, BookOpen, Layers, Star, CheckSquare, Square, Tag, ChevronDown, ChevronUp, ShoppingCart, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import CartIndicator from "@/app/components/CartIndicator"; 
 
@@ -256,10 +257,25 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
 
                        <div className="p-5 flex flex-col flex-1">
                          <h3 className="font-bold text-gray-800 line-clamp-2 text-[15px] group-hover:text-[#00C9A7] transition-colors mb-3">{course.title}</h3>
-                         <div className="flex items-center gap-3 text-xs text-gray-500 mb-4 mt-auto">
-                            <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-100"><Layers size={12} className="text-[#00C9A7]"/> {course.course_levels?.name || "All Level"}</span>
-                            <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-100"><Star size={12} className="text-yellow-400 fill-yellow-400"/> {Number(course.rating || 5).toFixed(1)}</span>
+                         
+                         {/* ----- BAGIAN RATING DAN TERJUAL DI SINI ----- */}
+                         <div className="flex items-center text-[10px] sm:text-[11px] text-gray-500 mb-4 mt-auto">
+                            <span className="flex items-center gap-1 bg-gray-50 px-2 py-1.5 rounded-md border border-gray-100 mr-2 max-w-[100px] shrink-0">
+                               <Layers size={12} className="text-[#00C9A7] shrink-0"/> 
+                               <span className="truncate">{course.course_levels?.name || "All Level"}</span>
+                            </span>
+                            
+                            <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                               <span className="flex items-center gap-1 bg-yellow-50 text-[#b4690e] px-2 py-1.5 rounded-md border border-yellow-100 font-bold" title="Rating & Ulasan">
+                                  <Star size={12} className="fill-yellow-400 text-yellow-400"/>
+                                  {Number(course.rating || 5).toFixed(1)} <span className="opacity-70 font-medium">({course.review_count || 0})</span>
+                               </span>
+                               <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1.5 rounded-md border border-blue-100 font-bold" title="Total Siswa Terdaftar">
+                                  <Users size={12} /> {course.sales_count || 0}
+                               </span>
+                            </div>
                          </div>
+
                          <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
                             <div>
                                <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">{course.sub_categories?.name || "Kategori Umum"}</p>
@@ -291,13 +307,44 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#00C9A7] mt-auto">
+     {/* --- FOOTER (DISAMAKAN DENGAN BERANDA) --- */}
+     <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#00C9A7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
+          
+          {/* Kolom Kiri Utama */}
           <div className="md:col-span-2">
-            <Link href="/" className="flex items-center gap-3 mb-6"><Image src="/logo.png" alt="Logo" width={80} height={80} className="rounded object-contain bg-white" /></Link>
-            <p className="text-gray-400 text-sm max-w-md leading-relaxed mt-4">Platform e-learning teknik sipil terlengkap.</p>
+            <Link href="/" className="flex items-center gap-3 mb-6">
+               <Image src="/logo.png" alt="Logo" width={80} height={80} className="rounded object-contain opacity-90 bg-white" />
+            </Link>
+            <p className="text-gray-400 text-sm max-w-md leading-relaxed mt-4">
+               Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer handal yang siap menghadapi tantangan proyek nyata.
+            </p>
           </div>
+          
+          {/* Kolom Tengah Navigasi */}
+          <div>
+            <h4 className="font-bold text-lg mb-6 text-white">Menu Navigasi</h4>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li><Link href="/" className="hover:text-[#00C9A7] transition-colors">Beranda</Link></li>
+              <li><Link href="/program" className="hover:text-[#00C9A7] transition-colors">Program Klas</Link></li>
+              <li><Link href="/#mentor" className="hover:text-[#00C9A7] transition-colors">Daftar Mentor</Link></li>
+            </ul>
+          </div>
+          
+          {/* Kolom Kanan Info Lain */}
+          <div>
+            <h4 className="font-bold text-lg mb-6 text-white">Informasi Lain</h4>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li><Link href="/about" className="hover:text-[#00C9A7] transition-colors">Tentang Kami</Link></li>
+              <li><Link href="/contact" className="hover:text-[#00C9A7] transition-colors">Hubungi Kami</Link></li>
+            </ul>
+          </div>
+
+        </div>
+
+        {/* Baris Hak Cipta Bawah */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 gap-4">
+          <p>© {new Date().getFullYear()} Klas Konstruksi. Hak Cipta Dilindungi.</p>
         </div>
       </footer>
     </div>
