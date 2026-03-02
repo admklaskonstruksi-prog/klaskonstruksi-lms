@@ -4,7 +4,8 @@ import { useState, useTransition, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signInAction, signUpAction, signInWithGoogle } from "./actions";
 import { Loader2, Chrome, Eye, EyeOff } from "lucide-react";
-import Image from "next/image";
+// Import Player dari Lottie
+import { Player } from "@lottiefiles/react-lottie-player";
 
 // Pindahkan isi utama ke komponen terpisah agar bisa dibungkus Suspense
 function LoginContent() {
@@ -53,22 +54,36 @@ function LoginContent() {
   return (
     <div className="flex min-h-screen bg-white font-sans">
       
-      {/* BAGIAN KIRI: GAMBAR & BRANDING */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-[#F97316] to-[#ea580c] relative p-12 items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-black/20 mix-blend-multiply"></div>
-        <div className="absolute inset-0 opacity-20">
-             <Image src="https://images.unsplash.com/photo-1541888081696-6b2210a40d58?q=80&w=2000&auto=format&fit=crop" alt="Bg" fill className="object-cover" />
-        </div>
+      {/* --- BAGIAN KIRI: ANIMASI KARTUN --- */}
+      <div className="hidden lg:flex w-1/2 bg-orange-50 p-12 flex-col justify-center items-center relative overflow-hidden border-r border-orange-100">
         
-        <div className="relative z-10 text-white max-w-lg">
-            <h1 className="text-5xl font-black mb-6 leading-tight">Bangun Masa Depanmu.</h1>
-            <p className="text-lg text-white/90 leading-relaxed">
-                Bergabunglah dengan ribuan profesional konstruksi lainnya. Pelajari skill teknis dari RAB hingga Manajemen Proyek dalam satu platform.
-            </p>
+        {/* Dekorasi Latar Belakang */}
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-orange-200/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-teal-200/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
+
+        {/* Teks Sambutan */}
+        <div className="z-10 text-center max-w-md mt-10">
+          <h1 className="text-4xl lg:text-5xl font-black text-[#F97316] mb-6 leading-tight tracking-tight">
+            Bangun Masa Depanmu.
+          </h1>
+          <p className="text-gray-600 text-lg leading-relaxed">
+            Bergabunglah dengan ribuan profesional konstruksi lainnya. Pelajari skill teknis dari RAB hingga Manajemen Proyek dalam satu platform.
+          </p>
         </div>
+
+        {/* Komponen Animasi Lottie Lokal */}
+        <div className="z-10 w-full max-w-lg mt-8 flex justify-center">
+          <Player
+            autoplay
+            loop
+            src="/animasi-pekerja.json" 
+            style={{ height: '400px', width: '400px' }}
+          />
+        </div>
+
       </div>
 
-      {/* BAGIAN KANAN: FORM DINAMIS */}
+      {/* --- BAGIAN KANAN: FORM DINAMIS --- */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative">
           <div className="w-full max-w-md">
               <div className="mb-10 text-center lg:text-left">
