@@ -1,17 +1,21 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
 
 export async function signInAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   
+  // Tangkap callbackUrl dari input hidden/formData, default ke /dashboard
+  const callbackUrl = (formData.get("callbackUrl") as string) || "/dashboard";
+  
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   
   if (error) return { error: "Email atau password salah." };
-  redirect("/dashboard");
+  
+  // Jangan gunakan redirect() di sini, kembalikan URL ke client untuk di-push
+  return { success: true, redirectUrl: callbackUrl };
 }
 
 export async function signUpAction(formData: FormData) {
@@ -42,14 +46,15 @@ export async function signUpAction(formData: FormData) {
   return { success: "Pendaftaran berhasil! Silakan masuk dengan akun Anda." };
 }
 
-export async function signInWithGoogle() {
+// Tambahkan parameter callbackUrl
+export async function signInWithGoogle(callbackUrl: string = "/dashboard") {
   const supabase = await createClient();
   
   // Mengambil URL dari env, jika tidak ada baru pakai fallback
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.klaskonstruksi.com';
   
-  // Pastikan URL callback lengkap dan membawa parameter 'next'
-  const redirectUrl = `${siteUrl}/auth/callback?next=/dashboard`;
+  // Pastikan URL callback lengkap dan membawa parameter 'next' yang dinamis
+  const redirectUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(callbackUrl)}`;
   
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -63,5 +68,7 @@ export async function signInWithGoogle() {
   });
 
   if (error) return { error: error.message };
-  if (data.url) redirect(data.url);
+  
+  // Kembalikan URL OAuth Google ke client
+  if (data.url) return { success: true, url: data.url };
 }
