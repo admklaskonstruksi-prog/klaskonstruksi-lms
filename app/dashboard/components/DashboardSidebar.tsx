@@ -202,9 +202,8 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
       {role !== "admin" && cartCount > 0 && pathname !== "/cart" && (
         <Link 
           href="/cart"
-          className={`fixed bottom-8 z-50 bg-[#F97316] text-white p-4 rounded-full shadow-2xl hover:scale-110 hover:bg-[#ea580c] transition-all duration-300 flex items-center justify-center group border border-white/20 hover:shadow-[#F97316]/40 ${
-            isMinimized ? 'left-[100px]' : 'left-[280px]'
-          }`}
+          // PERUBAHAN DI SINI: Diganti menjadi "fixed top-6 right-6" dan menghapus perhitungan 'left'
+          className="fixed top-6 right-6 z-50 bg-[#F97316] text-white p-4 rounded-full shadow-2xl hover:scale-110 hover:bg-[#ea580c] transition-all duration-300 flex items-center justify-center group border border-white/20 hover:shadow-[#F97316]/40"
         >
           <ShoppingCart size={26} className="group-hover:-rotate-12 transition-transform" />
           <span className="absolute -top-1.5 -right-1.5 bg-white text-[#F97316] text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow-md border-2 border-[#F97316]">
