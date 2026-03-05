@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation"; // 1. Tambahkan useRouter
 import { signInAction, signUpAction, signInWithGoogle } from "./actions";
 import { Loader2, Chrome, Eye, EyeOff } from "lucide-react";
 // 1. IMPORT DYNAMIC DARI NEXT.JS
@@ -15,11 +15,16 @@ const LottiePlayer = dynamic(
 
 function LoginContent() {
   const searchParams = useSearchParams();
+  const router = useRouter(); // 2. Inisialisasi router
+
   const [isRegister, setIsRegister] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+
+  // 3. Tangkap URL tujuan setelah login sukses (dari parameter ?callbackUrl=... atau ?next=...)
+  const callbackUrl = searchParams.get("callbackUrl") || searchParams.get("next") || "/dashboard";
 
   useEffect(() => {
     if (searchParams.get("mode") === "register") {
@@ -32,6 +37,9 @@ function LoginContent() {
     setErrorMsg("");
     setSuccessMsg("");
     const formData = new FormData(e.currentTarget);
+    
+    // 4. Sisipkan callbackUrl ke FormData agar dibaca oleh actions.ts
+    formData.append("callbackUrl", callbackUrl);
 
     startTransition(async () => {
       if (isRegister) {
@@ -40,19 +48,30 @@ function LoginContent() {
         if (res?.success) {
             setSuccessMsg(res.success);
             setIsRegister(false); 
-            e.currentTarget.reset();
         }
       } else {
         const res = await signInAction(formData);
         if (res?.error) setErrorMsg(res.error);
+        
+        // 5. Eksekusi perpindahan halaman di sisi Client (menghindari error NEXT_REDIRECT)
+        if (res?.success && res?.redirectUrl) {
+            router.push(res.redirectUrl);
+            router.refresh();
+        }
       }
     });
   };
 
   const handleGoogleLogin = async () => {
     setErrorMsg("");
-    const res = await signInWithGoogle();
+    // 6. Lempar callbackUrl ke fungsi Google login
+    const res = await signInWithGoogle(callbackUrl);
     if (res?.error) setErrorMsg(res.error);
+    
+    // 7. Arahkan pengguna ke halaman OAuth Google secara manual
+    if (res?.success && res?.url) {
+        window.location.href = res.url;
+    }
   };
 
   return (
