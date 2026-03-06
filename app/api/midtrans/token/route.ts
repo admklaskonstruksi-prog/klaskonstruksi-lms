@@ -1,23 +1,29 @@
 import { NextResponse } from "next/server";
 import Midtrans from "midtrans-client";
 
+// 1. Ambil key dari Environment Variables
+const serverKey = process.env.MIDTRANS_SERVER_KEY || "";
+const clientKey = process.env.MIDTRANS_CLIENT_KEY || "";
+
+// 2. Deteksi otomatis mode Production atau Sandbox
+// Kunci Sandbox Midtrans biasanya selalu diawali dengan "SB-"
+const isProd = !serverKey.startsWith("SB-") && serverKey.length > 0;
+
 const snap = new Midtrans.Snap({
-  isProduction: true,
-  serverKey: process.env.MIDTRANS_SERVER_KEY || "",
-  clientKey: process.env.MIDTRANS_CLIENT_KEY || "",
+  isProduction: isProd,
+  serverKey: serverKey,
+  clientKey: clientKey,
 });
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log("Status isProduction:", snap.apiConfig.isProduction);
-    console.log("Server Key yang terbaca:", process.env.MIDTRANS_SERVER_KEY ? "ADA KUNCINYA" : "KOSONG/UNDEFINED!");
     
-    // Pastikan nama variabel di sini SAMA dengan yang dikirim frontend
-    // Kita gunakan nama 'title' agar lebih simpel
+    // Log data untuk debugging di terminal server / Netlify logs
+    console.log("Environment Kunci:", isProd ? "PRODUCTION" : "SANDBOX");
+    console.log("Server Key status:", serverKey ? "TERBACA" : "KOSONG/UNDEFINED!");
+    
     const { courseId, price, title, userEmail, userName } = body;
-
-    // Log data untuk debugging di terminal
     console.log("Memproses transaksi untuk:", title);
 
     const parameter = {
@@ -36,6 +42,7 @@ export async function POST(request: Request) {
         first_name: userName || "Siswa",
         email: userEmail || "no-email@klas.id",
       },
+      // Daftar metode pembayaran yang diizinkan
       enabled_payments: ["credit_card", "gopay", "shopeepay", "permata_va", "bca_va", "bni_va", "other_va"],
     };
 

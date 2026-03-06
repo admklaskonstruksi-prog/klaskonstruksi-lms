@@ -1,14 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Pengaturan Upload Video (Jangan Dihapus)
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '1024mb', // WAJIB ADA (1GB)
-    },
-  },
-  
   // Pengaturan Domain Gambar (Jangan Dihapus)
+  // Berfungsi untuk mengizinkan gambar dari Bunny, Supabase, dll.
   images: {
     remotePatterns: [
       {
@@ -17,7 +11,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-
 };
 
 export default nextConfig;
