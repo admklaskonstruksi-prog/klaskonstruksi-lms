@@ -69,18 +69,25 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Ambil Client Key (Wajib menggunakan NEXT_PUBLIC_ agar terbaca di browser)
-    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
+    // 1. Ambil Client Key dengan pengaman .trim()
+    const clientKey = (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "").trim();
     
     // 2. Kunci selalu menggunakan URL Snap Production
     const midtransScriptUrl = "https://app.midtrans.com/snap/snap.js";
 
-    // 3. Inject Script ke body
-    const script = document.createElement("script");
-    script.src = midtransScriptUrl;
-    script.setAttribute("data-client-key", clientKey);
-    script.async = true; // Tambahkan async agar tidak memblokir render halaman
-    document.body.appendChild(script);
+    // 3. Cek apakah script sudah ada (mencegah duplikasi akibat React Strict Mode di localhost)
+    let scriptTag = document.querySelector(`script[src="${midtransScriptUrl}"]`);
+
+    if (!scriptTag) {
+      const script = document.createElement("script");
+      script.src = midtransScriptUrl;
+      script.setAttribute("data-client-key", clientKey);
+      script.async = true; 
+      document.body.appendChild(script);
+    }
+
+    // CATATAN: Dihapus fungsi removeChild saat unmount agar script tidak hilang
+    // dan mencegah error "window.snap is undefined" saat re-render.
 
     async function fetchData() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -103,12 +110,15 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     }
     
     fetchData();
-    return () => { 
-        if (document.body.contains(script)) document.body.removeChild(script); 
-    }
   }, [courseId, supabase]);
 
   const handlePayment = async () => {
+    // PENGAMANAN TAMBAHAN: Cek apakah script Midtrans sudah selesai dimuat oleh browser
+    if (!(window as any).snap) {
+      toast.error("Sistem pembayaran sedang dimuat. Mohon tunggu beberapa detik lalu coba lagi.");
+      return;
+    }
+
     if (!user) {
       toast.error("Silakan login terlebih dahulu");
       return router.push(`/login?redirect=/dashboard/checkout/${courseId}`);
@@ -128,7 +138,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         }),
       });
 
-      const { token } = await response.json();
+      const { token, error } = await response.json();
+
+      // Tangkap jika token gagal dibuat oleh backend (misal karena salah key Midtrans)
+      if (error) {
+        toast.error("Gagal memulai transaksi: " + error);
+        setIsProcessing(false);
+        return;
+      }
 
       (window as any).snap.pay(token, {
         onSuccess: async function(result: any) {
@@ -142,8 +159,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             return;
           }
 
-          // Gunakan window.location.href agar redirect lebih pasti
-          // dan otomatis membuang cache halaman sebelumnya
           window.location.href = "/dashboard/my-courses";
         },
         onPending: function() { toast("Menunggu Pembayaran..."); },
