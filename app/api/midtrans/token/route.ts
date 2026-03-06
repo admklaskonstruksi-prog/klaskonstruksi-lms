@@ -16,12 +16,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Log data untuk debugging
-    console.log("Environment Kunci: PRODUCTION (Hardcoded)");
-    console.log("Server Key status:", serverKey ? "TERBACA" : "KOSONG/UNDEFINED!");
-    
+    // 3. Deklarasikan variabel DULU sebelum digunakan di console.log
     const { courseId, price, title, userEmail, userName } = body;
+    
+    // 4. Log data untuk debugging di terminal / Netlify logs
+    console.log("=== DEBUG MIDTRANS ===");
+    console.log("Environment Kunci: PRODUCTION (Hardcoded)");
+    // Menampilkan awalan karakter kunci agar kita tahu apakah masih nyangkut di "SB-Mid" atau sudah "Mid-ser"
+    console.log("Server Key Prefix:", serverKey ? serverKey.substring(0, 10) + "..." : "KOSONG/UNDEFINED!");
     console.log("Memproses transaksi untuk:", title);
+    console.log("======================");
 
     const parameter = {
       transaction_details: {
