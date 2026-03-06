@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  // Menggunakan kredensial dari Utils Bunny Anda
-  const apiKey = "f5401951-085f-4ff8-801f9e4de7f5-91e9-446e";
-  const libraryId = "606426";
+  // Menggunakan kredensial dari Environment Variables
+  const apiKey = process.env.BUNNY_API_KEY || "";
+  const libraryId = process.env.BUNNY_LIBRARY_ID || "606426";
 
   try {
     const response = await fetch(
