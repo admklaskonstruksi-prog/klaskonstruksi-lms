@@ -5,12 +5,9 @@ import Midtrans from "midtrans-client";
 const serverKey = process.env.MIDTRANS_SERVER_KEY || "";
 const clientKey = process.env.MIDTRANS_CLIENT_KEY || "";
 
-// 2. Deteksi otomatis mode Production atau Sandbox
-// Kunci Sandbox Midtrans biasanya selalu diawali dengan "SB-"
-const isProd = !serverKey.startsWith("SB-") && serverKey.length > 0;
-
+// 2. Kunci ke mode Production
 const snap = new Midtrans.Snap({
-  isProduction: isProd,
+  isProduction: true, // Dipaksa selalu Production
   serverKey: serverKey,
   clientKey: clientKey,
 });
@@ -19,8 +16,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Log data untuk debugging di terminal server / Netlify logs
-    console.log("Environment Kunci:", isProd ? "PRODUCTION" : "SANDBOX");
+    // Log data untuk debugging
+    console.log("Environment Kunci: PRODUCTION (Hardcoded)");
     console.log("Server Key status:", serverKey ? "TERBACA" : "KOSONG/UNDEFINED!");
     
     const { courseId, price, title, userEmail, userName } = body;

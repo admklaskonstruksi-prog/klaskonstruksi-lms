@@ -72,11 +72,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     // 1. Ambil Client Key (Wajib menggunakan NEXT_PUBLIC_ agar terbaca di browser)
     const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
     
-    // 2. Deteksi Otomatis URL Snap (Sandbox vs Production)
-    const isSandbox = clientKey.startsWith("SB-");
-    const midtransScriptUrl = isSandbox 
-        ? "https://app.sandbox.midtrans.com/snap/snap.js"
-        : "https://app.midtrans.com/snap/snap.js";
+    // 2. Kunci selalu menggunakan URL Snap Production
+    const midtransScriptUrl = "https://app.midtrans.com/snap/snap.js";
 
     // 3. Inject Script ke body
     const script = document.createElement("script");

@@ -4,9 +4,9 @@ export async function POST(request: Request) {
   try {
     const { title } = await request.json();
     
-    // Menggunakan kredensial yang Anda berikan
-    const apiKey = "f5401951-085f-4ff8-801f9e4de7f5-91e9-446e";
-    const libraryId = "606426"; 
+    // Gunakan Environment Variable, JANGAN di-hardcode!
+    const apiKey = process.env.BUNNY_API_KEY || "";
+    const libraryId = process.env.BUNNY_LIBRARY_ID || "606426"; 
 
     // 1. Minta Slot Video Baru ke Bunny
     const response = await fetch(
@@ -22,7 +22,6 @@ export async function POST(request: Request) {
       }
     );
 
-    // --- PERBAIKAN DEBUGGING: TAMPILKAN ERROR ASLI DARI BUNNY ---
     if (!response.ok) {
       const errorText = await response.text();
       return NextResponse.json({ 
