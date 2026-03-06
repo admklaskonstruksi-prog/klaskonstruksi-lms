@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         first_name: userName || "Siswa",
         email: userEmail || "no-email@klas.id",
       },
-      enabled_payments: ["credit_card", "gopay", "shopeepay", "permata_va", "bca_va", "bni_va", "other_va"],
+      enabled_payments: ["credit_card", "gopay", "shopeepay", "permata_va", "bca_va", "bni_va", "bri_va", "cimb_va", "mandiri_va", "bsi_va", "other_va", "qris"],
     };
 
     const token = await snap.createTransactionToken(parameter);
