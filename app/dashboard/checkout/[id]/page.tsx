@@ -69,7 +69,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
 
   useEffect(() => {
-    const midtransScriptUrl = "https://app.sandbox.midtrans.com/snap/snap.js"; 
+   const midtransScriptUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || "https://app.midtrans.com/snap/snap.js";
     const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
     const script = document.createElement("script");
     script.src = midtransScriptUrl;
