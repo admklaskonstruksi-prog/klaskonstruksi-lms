@@ -155,9 +155,9 @@ export default function CartPage() {
     <>
       {/* SCRIPT MIDTRANS (Wajib dimuat agar pop-up Snap berfungsi) */}
       <Script 
-        src="https://app.box.midtrans.com/snap/snap.js" 
+        src="https://app.midtrans.com/snap/snap.js"
         data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY} 
-        strategy="lazyOnload"
+        strategy="afterInteractive"
       />
 
       <div className="min-h-screen bg-gray-50 py-12 px-4 md:px-8 font-sans selection:bg-[#F97316] selection:text-white">
