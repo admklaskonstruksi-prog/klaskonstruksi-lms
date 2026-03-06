@@ -10,6 +10,8 @@ const snap = new Midtrans.Snap({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("Status isProduction:", snap.apiConfig.isProduction);
+    console.log("Server Key yang terbaca:", process.env.MIDTRANS_SERVER_KEY ? "ADA KUNCINYA" : "KOSONG/UNDEFINED!");
     
     // Pastikan nama variabel di sini SAMA dengan yang dikirim frontend
     // Kita gunakan nama 'title' agar lebih simpel
