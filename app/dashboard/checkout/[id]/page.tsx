@@ -69,11 +69,20 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
 
   useEffect(() => {
-   const midtransScriptUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || "https://app.midtrans.com/snap/snap.js";
-    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+    // 1. Ambil Client Key (Wajib menggunakan NEXT_PUBLIC_ agar terbaca di browser)
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
+    
+    // 2. Deteksi Otomatis URL Snap (Sandbox vs Production)
+    const isSandbox = clientKey.startsWith("SB-");
+    const midtransScriptUrl = isSandbox 
+        ? "https://app.sandbox.midtrans.com/snap/snap.js"
+        : "https://app.midtrans.com/snap/snap.js";
+
+    // 3. Inject Script ke body
     const script = document.createElement("script");
     script.src = midtransScriptUrl;
-    script.setAttribute("data-client-key", clientKey || "");
+    script.setAttribute("data-client-key", clientKey);
+    script.async = true; // Tambahkan async agar tidak memblokir render halaman
     document.body.appendChild(script);
 
     async function fetchData() {
@@ -136,7 +145,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             return;
           }
 
-          // PERBAIKAN 1: Gunakan window.location.href agar redirect lebih pasti
+          // Gunakan window.location.href agar redirect lebih pasti
           // dan otomatis membuang cache halaman sebelumnya
           window.location.href = "/dashboard/my-courses";
         },
