@@ -11,10 +11,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Optimasi bundle untuk Cloudflare Pages (limit 25MB)
+  
+  // Optimasi bundle untuk Cloudflare Pages & Pengaturan Server Actions
   experimental: {
     optimizePackageImports: ["lucide-react", "@lottiefiles/react-lottie-player"],
+    serverActions: {
+      bodySizeLimit: '50mb', // Menaikkan batas maksimal upload file menjadi 50 MB
+    },
   },
+  
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.optimization = config.optimization || {};
