@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingCart, Check } from "lucide-react";
+import { ShoppingCart, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 
@@ -8,43 +8,55 @@ export default function AddToCartMini({ item }: { item: any }) {
   const [isAdded, setIsAdded] = useState(false);
 
   useEffect(() => {
-    const cart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
-    setIsAdded(cart.some((c: any) => c.id === item.id && c.type === "ebook"));
+    const updateState = () => {
+      const cart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
+      setIsAdded(cart.some((c: any) => c.id === item.id));
+    };
+    updateState();
+    window.addEventListener("cartUpdated", updateState);
+    return () => window.removeEventListener("cartUpdated", updateState);
   }, [item.id]);
 
-  const handleAdd = (e: React.MouseEvent) => {
-    e.preventDefault(); // Mencegah browser pindah halaman saat tombol diklik
+  const toggleCart = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
 
-    if (isAdded) return;
+    let cart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
 
-    const cart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
-    cart.push({
-      id: item.id,
-      title: item.title,
-      price: Number(item.price || 0),
-      thumbnail: null,
-      category: "E-Book Eksklusif",
-      type: "ebook"
-    });
-    localStorage.setItem("klas_cart", JSON.stringify(cart));
-    window.dispatchEvent(new Event("cartUpdated"));
-    setIsAdded(true);
-    toast.success("E-Book ditambahkan ke keranjang!");
+    if (isAdded) {
+      cart = cart.filter((c: any) => c.id !== item.id);
+      localStorage.setItem("klas_cart", JSON.stringify(cart));
+      window.dispatchEvent(new Event("cartUpdated"));
+      toast.success("Dihapus dari keranjang!");
+    } else {
+      // Deteksi ini e-book atau kelas berdasarkan keberadaan field pdf_url
+      const isEbook = item.pdf_url !== undefined; 
+      
+      cart.push({
+        id: item.id,
+        title: item.title,
+        price: Number(item.price || 0),
+        thumbnail: item.cover_url || item.thumbnail_url || null,
+        category: isEbook ? "E-Book Eksklusif" : (item.sub_categories?.name || "Umum"),
+        type: isEbook ? "ebook" : "course"
+      });
+      localStorage.setItem("klas_cart", JSON.stringify(cart));
+      window.dispatchEvent(new Event("cartUpdated"));
+      toast.success("Ditambahkan ke keranjang!");
+    }
   };
 
   return (
     <button
-      onClick={handleAdd}
-      disabled={isAdded}
-      className={`p-2 rounded-full transition-all ${
+      onClick={toggleCart}
+      className={`p-2.5 rounded-xl transition-all shadow-sm ${
         isAdded 
-          ? 'bg-green-100 text-green-600 cursor-not-allowed' 
-          : 'bg-orange-50 text-[#F97316] hover:bg-[#F97316] hover:text-white shadow-sm'
+          ? 'bg-red-50 text-red-500 hover:bg-red-500 hover:text-white' 
+          : 'bg-orange-50 text-[#F97316] hover:bg-[#F97316] hover:text-white'
       }`}
-      title="Tambah ke Keranjang"
+      title={isAdded ? "Hapus dari Keranjang" : "Tambah ke Keranjang"}
     >
-      {isAdded ? <Check size={16} /> : <ShoppingCart size={16} />}
+      {isAdded ? <Trash2 size={20} /> : <ShoppingCart size={20} />}
     </button>
   );
 }

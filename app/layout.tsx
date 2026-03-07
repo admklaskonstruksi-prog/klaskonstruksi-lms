@@ -1,5 +1,6 @@
-import { Toaster } from "react-hot-toast"; // <--- INI YANG KURANG TADI
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
+import FloatingCartPublic from "@/app/components/FloatingCartPublic";
 
 export const metadata = {
   title: "KlasKonstruksi",
@@ -19,7 +20,11 @@ export default function RootLayout({
         style={{ backgroundColor: "#f9fafb", color: "#111827" }}
       >
         {children}
+        
+        {/* LETAKKAN FLOATING CART DI SINI (SEBELUM TOASTER) */}
+        <FloatingCartPublic />
         <Toaster position="top-center" />
+        
       </body>
     </html>
   );

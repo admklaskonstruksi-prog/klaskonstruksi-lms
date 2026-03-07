@@ -177,6 +177,7 @@ export default function ContactPage() {
             <ul className="space-y-3 text-sm text-gray-400">
               <li><Link href="/" className="hover:text-[#00C9A7] transition-colors">Beranda</Link></li>
               <li><Link href="/#program" className="hover:text-[#00C9A7] transition-colors">Program Klas</Link></li>
+              <li><Link href="/ebooks" className="hover:text-[#00C9A7] transition-colors">Katalog E-Book</Link></li>
               <li><Link href="/#mentor" className="hover:text-[#00C9A7] transition-colors">Daftar Mentor</Link></li>
             </ul>
           </div>
