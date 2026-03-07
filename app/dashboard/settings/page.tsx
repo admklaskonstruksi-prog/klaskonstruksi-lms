@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { User, Lock, Bell, Camera, ShieldCheck, Mail, CheckCircle2, Globe } from "lucide-react";

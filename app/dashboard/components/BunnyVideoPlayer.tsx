@@ -1,4 +1,5 @@
 "use client";
+export const runtime = 'edge';
 
 interface BunnyPlayerProps {
   videoId: string;

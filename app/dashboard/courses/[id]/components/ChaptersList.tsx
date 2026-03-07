@@ -1,4 +1,5 @@
 "use client";
+export const runtime = 'edge';
 
 import { useState, useTransition, useEffect } from "react";
 import { createChapter, deleteChapter } from "../actions";

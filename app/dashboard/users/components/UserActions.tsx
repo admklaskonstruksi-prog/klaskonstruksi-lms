@@ -1,4 +1,5 @@
 "use client";
+export const runtime = 'edge';
 
 import { useTransition } from "react";
 import { Trash2, Edit, Loader2 } from "lucide-react";

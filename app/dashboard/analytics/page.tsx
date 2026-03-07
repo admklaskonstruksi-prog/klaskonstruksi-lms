@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { PieChart, TrendingUp, Activity, Target } from "lucide-react";
