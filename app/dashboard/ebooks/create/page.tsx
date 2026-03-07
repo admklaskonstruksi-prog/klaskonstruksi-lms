@@ -28,16 +28,29 @@ export default function CreateEbookPage() {
     event.preventDefault();
     setIsUploading(true);
 
-    const formData = new FormData(event.currentTarget);
-    
-    // Note: Anda bisa mengambil semua nilai keypoints di server action menggunakan:
-    // const allKeypoints = formData.getAll('keypoints');
+    try {
+      const formData = new FormData(event.currentTarget);
+      
+      // Cek apakah data berhasil ditangkap (Bisa dilihat di Inspect Element -> Console browser)
+      console.log("Judul E-Book:", formData.get('title'));
+      console.log("Keypoints:", formData.getAll('keypoints'));
 
-    // Panggil server action atau API route untuk handle upload PDF ke Supabase
-    // const result = await createEbookAction(formData);
+      // 1. TODO: Di sini nanti tempat memanggil Action/API Supabase Anda
+      // const result = await createEbookAction(formData);
 
-    setIsUploading(false);
-    // router.push('/dashboard/ebooks'); // Redirect setelah sukses
+      // 2. Simulasi loading 1 detik agar animasi tombol terlihat
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      alert("Tombol berfungsi! Data siap dikirim ke Supabase.");
+      
+      // 3. Pindah ke halaman Daftar E-Book (pastikan file app/dashboard/ebooks/page.tsx sudah Anda buat)
+      router.push('/dashboard/ebooks'); 
+
+    } catch (error) {
+      console.error("Terjadi kesalahan:", error);
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   return (
@@ -100,7 +113,7 @@ export default function CreateEbookPage() {
                 <div key={index} className="flex items-center gap-3">
                   <input 
                     type="text" 
-                    name="keypoints" // Name sama agar bisa ditangkap formData.getAll('keypoints')
+                    name="keypoints" 
                     value={point}
                     onChange={(e) => handleKeypointChange(index, e.target.value)}
                     placeholder="Paham dasar proyek..."
