@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import { 
   LayoutDashboard, BookOpen, PlusSquare, Tags, 
   Users, BarChart3, Settings, LogOut, 
-  ChevronLeft, ChevronRight, Compass, Library, Loader2, ShoppingCart
+  ChevronLeft, ChevronRight, Compass, Library, Loader2, ShoppingCart, BookText
 } from "lucide-react";
 
 // 1. Definisikan tipe data props yang diterima dari layout
@@ -85,6 +85,10 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
         { name: "Daftar Kelas", icon: BookOpen, path: "/dashboard/courses" },
         { name: "Buat Kelas Baru", icon: PlusSquare, path: "/dashboard/courses/create" },
         { name: "Kelola Kategori", icon: Tags, path: "/dashboard/categories" },
+    ]},
+    { title: "E-BOOK STUDIO", items: [
+        { name: "Daftar E-Book", icon: Library, path: "/dashboard/ebooks" },
+        { name: "Buat E-Book Baru", icon: BookText, path: "/dashboard/ebooks/create" },
     ]},
     { title: "LAPORAN & DATA", items: [
         { name: "Analitik", icon: Users, path: "/dashboard/users" },
