@@ -1,3 +1,5 @@
+export const runtime = 'edge'; // <--- Ini yang wajib ditambahkan untuk Cloudflare Pages
+
 import Link from "next/link";
 import { Plus, BookText } from "lucide-react";
 
