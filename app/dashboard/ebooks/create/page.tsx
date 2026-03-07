@@ -3,7 +3,10 @@ export const runtime = 'edge';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowRight, BookOpen, Target, Star, Plus, Trash2, FileText } from 'lucide-react';
+import { Loader2, ArrowRight, BookOpen, Target, Star, Plus, Trash2 } from 'lucide-react';
+
+// Pastikan Anda sudah membuat file actions.ts di folder yang sama
+import { createEbookAction } from './actions'; 
 
 export default function CreateEbookPage() {
   const router = useRouter();
@@ -31,23 +34,20 @@ export default function CreateEbookPage() {
     try {
       const formData = new FormData(event.currentTarget);
       
-      // Cek apakah data berhasil ditangkap (Bisa dilihat di Inspect Element -> Console browser)
-      console.log("Judul E-Book:", formData.get('title'));
-      console.log("Keypoints:", formData.getAll('keypoints'));
+      // Memanggil Server Action untuk upload ke Supabase
+      const result = await createEbookAction(formData);
 
-      // 1. TODO: Di sini nanti tempat memanggil Action/API Supabase Anda
-      // const result = await createEbookAction(formData);
-
-      // 2. Simulasi loading 1 detik agar animasi tombol terlihat
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      alert("Tombol berfungsi! Data siap dikirim ke Supabase.");
-      
-      // 3. Pindah ke halaman Daftar E-Book (pastikan file app/dashboard/ebooks/page.tsx sudah Anda buat)
-      router.push('/dashboard/ebooks'); 
+      if (result?.error) {
+        // Jika terjadi error dari Supabase (misal: bucket belum ada / tabel salah)
+        alert("Gagal menyimpan E-Book: " + result.error);
+      } else {
+        // Jika sukses, langsung kembali ke halaman daftar E-Book
+        router.push('/dashboard/ebooks'); 
+      }
 
     } catch (error) {
       console.error("Terjadi kesalahan:", error);
+      alert("Terjadi kesalahan pada sistem.");
     } finally {
       setIsUploading(false);
     }

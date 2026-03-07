@@ -15,13 +15,15 @@ export default function AddToCartButton({ course, isUserLoggedIn }: { course: an
 
     const existingCart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
     
-    if (!existingCart.some((item: any) => item.id === course.id)) {
+    // Cek duplikasi berdasarkan ID DAN pastikan tipenya course
+    if (!existingCart.some((item: any) => item.id === course.id && (!item.type || item.type === "course"))) {
        existingCart.push({
           id: course.id,
           title: course.title,
-          price: Number(course.price || 0), // Simpan sebagai angka
+          price: Number(course.price || 0), 
           thumbnail: course.thumbnail_url,
-          category: course.sub_categories?.name || "Umum"
+          category: course.sub_categories?.name || "Umum",
+          type: "course" // <--- PENANDA INI ADALAH KELAS
        });
        localStorage.setItem("klas_cart", JSON.stringify(existingCart));
        window.dispatchEvent(new Event("cartUpdated"));

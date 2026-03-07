@@ -1,17 +1,15 @@
 "use client";
 export const runtime = 'edge';
 
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Script from "next/script"; // Import fitur Script Next.js
+import Script from "next/script"; 
 import { Trash2, ArrowRight, ShieldCheck, ShoppingCart, PlusCircle, ArrowLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import toast from "react-hot-toast";
 
-// Agar TypeScript tidak error membaca object window.snap bawaan Midtrans
 declare global {
   interface Window {
     snap: any;
@@ -48,18 +46,17 @@ export default function CartPage() {
     const newCart = cartItems.filter(item => item.id !== id);
     setCartItems(newCart);
     localStorage.setItem("klas_cart", JSON.stringify(newCart));
-    window.dispatchEvent(new Event("cartUpdated")); // Update counter ikon navbar
+    window.dispatchEvent(new Event("cartUpdated")); 
   };
 
   const totalPrice = cartItems.reduce((acc, item) => acc + item.price, 0);
 
- // --- FUNGSI INTEGRASI MIDTRANS SUNGGUHAN ---
- const handleCheckout = async () => {
+  // --- FUNGSI INTEGRASI MIDTRANS ---
+  const handleCheckout = async () => {
     setIsCheckingOut(true);
     toast.loading("Menyiapkan transaksi aman...");
 
     try {
-      // 1. Dapatkan Data User dari Supabase Auth
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.dismiss();
@@ -70,16 +67,14 @@ export default function CartPage() {
 
       const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
 
-      // 2. Siapkan Payload untuk API Route Midtrans Anda
       const payload = {
         courseId: cartItems.length === 1 ? cartItems[0].id : "BUNDLE-CART", 
         price: totalPrice,
-        title: cartItems.length === 1 ? cartItems[0].title : `Pembelian ${cartItems.length} Kelas KlasKonstruksi`,
+        title: cartItems.length === 1 ? cartItems[0].title : `Pembelian ${cartItems.length} Item KlasKonstruksi`,
         userEmail: user.email,
         userName: profile?.full_name || "Siswa"
       };
 
-      // 3. Tembak API Route Midtrans untuk mendapatkan SNAP TOKEN
       const res = await fetch("/api/midtrans/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,32 +88,49 @@ export default function CartPage() {
         throw new Error(data.error || "Gagal mendapatkan token dari Midtrans.");
       }
 
-      // 4. Buka Pop-Up Pembayaran Midtrans Snap
       window.snap.pay(data.token, {
         onSuccess: async function (result: any) {
-          toast.loading("Pembayaran Berhasil! Memasukkan Anda ke kelas...");
+          toast.loading("Pembayaran Berhasil! Memproses pesanan Anda...");
 
-         // 5. Setelah bayar sukses, masukkan user ke tabel enrollments
-       
-          const enrollmentsData = cartItems.map((item) => ({
-            user_id: user.id,
-            course_id: item.id
-         }));
+          try {
+             // 1. PISAHKAN BERDASARKAN TIPE (Course vs E-Book)
+             const courses = cartItems.filter(item => item.type === "course" || !item.type);
+             const ebooks = cartItems.filter(item => item.type === "ebook");
 
-          const { error: dbError } = await supabase.from("enrollments").insert(enrollmentsData);
-          toast.dismiss();
+             // 2. MASUKKAN KE TABEL ENROLLMENTS (Khusus Kelas)
+             if (courses.length > 0) {
+                const enrollmentsData = courses.map((item) => ({
+                   user_id: user.id,
+                   course_id: item.id
+                }));
+                const { error: courseError } = await supabase.from("enrollments").insert(enrollmentsData);
+                if (courseError) throw new Error(`Gagal mendaftar kelas: ${courseError.message}`);
+             }
 
-          if (dbError) {
-             // MENGELUARKAN PESAN ERROR ASLI KE LAYAR AGAR MUDAH DILACAK
-             toast.error(`Gagal mendaftar: ${dbError.message}`);
-             console.error("DETAIL ERROR ENROLLMENT:", dbError);
-          } else {
-             toast.success("Hore! Kelas berhasil ditambahkan.");
+             // 3. MASUKKAN KE TABEL EBOOK_PURCHASES (Khusus E-Book)
+             if (ebooks.length > 0) {
+                const ebookPurchasesData = ebooks.map((item) => ({
+                   user_id: user.id,
+                   ebook_id: item.id
+                }));
+                const { error: ebookError } = await supabase.from("ebook_purchases").insert(ebookPurchasesData);
+                if (ebookError) throw new Error(`Gagal memproses E-Book: ${ebookError.message}`);
+             }
+
+             toast.dismiss();
+             toast.success("Hore! Pesanan berhasil ditambahkan.");
+             
              // Kosongkan keranjang
              localStorage.removeItem("klas_cart");
              window.dispatchEvent(new Event("cartUpdated"));
+             
              // Arahkan ke ruang belajar
              router.push("/dashboard/learning-path");
+
+          } catch (err: any) {
+             toast.dismiss();
+             toast.error(err.message);
+             console.error("DETAIL ERROR CHECKOUT:", err);
           }
         },
         onPending: function (result: any) {
@@ -155,7 +167,6 @@ export default function CartPage() {
 
   return (
     <>
-      {/* SCRIPT MIDTRANS (Wajib dimuat agar pop-up Snap berfungsi) */}
       <Script 
         src="https://app.midtrans.com/snap/snap.js"
         data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY} 
@@ -171,7 +182,6 @@ export default function CartPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
              
-             {/* KIRI: DAFTAR BELANJA */}
              <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white p-7 rounded-3xl shadow-sm border border-gray-100">
                    <h3 className="text-lg font-extrabold text-gray-950 mb-6 border-b border-gray-100 pb-4">Item Keranjang ({cartItems.length})</h3>
@@ -195,7 +205,6 @@ export default function CartPage() {
                    </div>
                 </div>
 
-                {/* FITUR REKOMENDASI KELAS */}
                 {recommendations.filter(r => !cartItems.find(c => c.id === r.id)).length > 0 && (
                   <div className="bg-gradient-to-br from-orange-50 to-white border border-orange-100 p-7 rounded-3xl shadow-sm">
                      <h3 className="text-lg font-black text-gray-950 mb-2">Sering Dibeli Bersamaan 🔥</h3>
@@ -212,7 +221,8 @@ export default function CartPage() {
                                  <div className="flex items-center justify-between mt-2">
                                     <span className="text-sm font-black text-gray-900">Rp {rec.price.toLocaleString("id-ID")}</span>
                                     <button onClick={() => {
-                                      const newCart = [...cartItems, { id: rec.id, title: rec.title, price: rec.price, thumbnail: rec.thumbnail_url, category: "Rekomendasi" }];
+                                      // PERUBAHAN: Tambahkan type: "course" pada rekomendasi
+                                      const newCart = [...cartItems, { id: rec.id, title: rec.title, price: rec.price, thumbnail: rec.thumbnail_url, category: "Rekomendasi", type: "course" }];
                                       setCartItems(newCart);
                                       localStorage.setItem("klas_cart", JSON.stringify(newCart));
                                       window.dispatchEvent(new Event("cartUpdated"));
@@ -229,7 +239,6 @@ export default function CartPage() {
                 )}
              </div>
 
-             {/* KANAN: RINGKASAN PEMBAYARAN */}
              <div className="lg:col-span-1">
                 <div className="bg-white p-7 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 sticky top-28">
                    <h3 className="text-lg font-black text-gray-950 mb-6 border-b border-gray-100 pb-4">Ringkasan Belanja</h3>
