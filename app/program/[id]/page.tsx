@@ -1,20 +1,17 @@
 export const runtime = 'edge';
+export const dynamic = "force-dynamic";
 
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, CheckCircle, PlayCircle, Star, Target, Layers, Zap, ArrowRight } from "lucide-react";
 import AddToCartButton from "./AddToCartButton";
+import FloatingCartPublic from "@/app/components/FloatingCartPublic";
 
-export const dynamic = "force-dynamic";
-
-export default async function PublicCourseDetail({ params }: any) {
+export default async function PublicCourseDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient();
   
-  // Mengamankan pembacaan parameter URL
-  const resolvedParams = await params;
-  const id = resolvedParams?.id;
-
   if (!id) return <div className="p-20 text-center font-bold">Membaca ID Kelas...</div>;
 
   // 1. QUERY AMAN
@@ -61,7 +58,6 @@ export default async function PublicCourseDetail({ params }: any) {
     if (enrollment) isOwned = true;
   }
 
-  // FORMAT HARGA AMAN
   const safePrice = Number(course.price || 0);
   const safeStrikePrice = Number(course.strike_price || 0);
   const safeRating = Number(course.rating || 5);
@@ -107,8 +103,6 @@ export default async function PublicCourseDetail({ params }: any) {
             
             {/* KOLOM KIRI: KONTEN MATERI */}
             <div className="lg:col-span-2 space-y-12 -mt-10 lg:-mt-16 relative z-20">
-               
-               {/* --- GOALS & KEYPOINTS SECTION --- */}
                <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl shadow-gray-100/50 border border-gray-100 space-y-10">
                   
                   {/* YOUR GOAL (Tujuan Utama) */}
@@ -225,6 +219,10 @@ export default async function PublicCourseDetail({ params }: any) {
 
          </div>
       </main>
+
+      {/* FLOATING CART UNTUK HALAMAN KELAS */}
+      <FloatingCartPublic />
+
     </div>
   );
 }

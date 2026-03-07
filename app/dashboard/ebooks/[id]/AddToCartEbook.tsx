@@ -4,14 +4,11 @@ export const runtime = 'edge';
 import { useState, useEffect } from "react";
 import { ShoppingCart, Check } from "lucide-react";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 
 export default function AddToCartEbook({ ebook, isUserLoggedIn = true }: { ebook: any, isUserLoggedIn?: boolean }) {
-  const router = useRouter();
   const [isAdded, setIsAdded] = useState(false);
 
   useEffect(() => {
-    // Cek apakah item ini sudah ada di keranjang saat komponen dimuat
     const cart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
     const exists = cart.some((item: any) => item.id === ebook.id && item.type === "ebook");
     setIsAdded(exists);
@@ -20,7 +17,6 @@ export default function AddToCartEbook({ ebook, isUserLoggedIn = true }: { ebook
   const handleAddToCart = () => {
     const cart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
     
-    // Cek lagi untuk mencegah duplikasi
     const exists = cart.some((item: any) => item.id === ebook.id && item.type === "ebook");
     
     if (exists) {
@@ -28,31 +24,24 @@ export default function AddToCartEbook({ ebook, isUserLoggedIn = true }: { ebook
       return;
     }
 
-    // Format data keranjang dengan type "ebook"
     const newItem = {
       id: ebook.id,
       title: ebook.title,
       price: Number(ebook.price || 0),
-      thumbnail: null, // E-book tidak pakai thumbnail di cart, atau biarkan null
+      thumbnail: ebook.cover_url || null, 
       category: "E-Book Eksklusif",
-      type: "ebook", // Penanda penting agar beda dengan kelas
+      type: "ebook", 
     };
 
     cart.push(newItem);
     localStorage.setItem("klas_cart", JSON.stringify(cart));
     
-    // Trigger event agar angka keranjang melayang (floating cart) di sidebar otomatis naik!
+    // Memicu event agar Floating Cart muncul!
     window.dispatchEvent(new Event("cartUpdated"));
     
     setIsAdded(true);
     toast.success("E-Book ditambahkan ke keranjang!");
-
-    // Arahkan ke cart setelah sukses menambah
-    if (!isUserLoggedIn) {
-       router.push(`/login?callbackUrl=/cart`);
-    } else {
-       router.push("/cart");
-    }
+    // PENGHAPUSAN router.push() AGAR TETAP DI HALAMAN INI
   };
 
   return (

@@ -1,115 +1,155 @@
 import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
-import { Star, Target, CheckCircle2, BookOpen, ChevronLeft } from "lucide-react";
+import { Star, Target, CheckCircle2, BookOpen, ChevronLeft, DownloadCloud } from "lucide-react";
 import Link from "next/link";
-import AddToCartEbook from "./AddToCartEbook"; // Import tombol keranjang
+import Image from "next/image";
+import AddToCartEbook from "./AddToCartEbook";
+import FloatingCartPublic from "@/app/components/FloatingCartPublic";
 
 export const runtime = 'edge';
+export const dynamic = "force-dynamic";
 
-// 1. UBAH BAGIAN INI: params sekarang adalah Promise
 export default async function EbookDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  // 2. TAMBAHKAN INI: kita harus 'await' params-nya dulu
   const { id } = await params; 
-  
   const supabase = await createClient();
 
-  // 3. Gunakan 'id' yang sudah di-await
   const { data: ebook } = await supabase
     .from("ebooks")
     .select("*")
     .eq("id", id) 
     .single();
 
-  if (!ebook) {
-    notFound();
+  if (!ebook) notFound();
+
+  // Cek apakah user sudah beli E-book ini
+  const { data: { user } } = await supabase.auth.getUser();
+  let isOwned = false;
+  if (user) {
+    const { data: purchase } = await supabase
+        .from("ebook_purchases")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("ebook_id", id)
+        .single();
+    if (purchase) isOwned = true;
   }
 
+  const safePrice = Number(ebook.price || 0);
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-[#F8FAFC] selection:bg-[#F97316] selection:text-white flex flex-col">
+      
       {/* HEADER E-BOOK */}
-      <div className="bg-gray-900 text-white pt-12 pb-16 px-6">
-        <div className="max-w-5xl mx-auto mb-6">
-          <Link href="/ebooks" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium">
-             <ChevronLeft size={16} /> Kembali ke Katalog
-          </Link>
-        </div>
-        
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-gray-800 text-[#00C9A7] px-4 py-1.5 rounded-full text-sm font-bold mb-6 border border-gray-700">
-              <BookOpen size={16} /> E-Book Eksklusif
+      <div className="bg-gray-950 text-white pt-12 pb-24 px-4 md:px-8 relative overflow-hidden">
+         <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-teal-900 via-gray-900 to-black"></div>
+         
+         <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="lg:col-span-2">
+               <Link href="/ebooks" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[#00C9A7] transition-colors mb-10 bg-gray-800 px-4 py-2 rounded-lg w-max">
+                 <ChevronLeft size={16} /> Kembali ke Katalog
+               </Link>
+               
+               <div className="flex items-center gap-3 mb-5">
+                 <span className="bg-[#00C9A7]/20 text-[#00C9A7] px-4 py-1.5 rounded-full text-xs font-bold border border-[#00C9A7]/30 tracking-wide uppercase">
+                   E-Book Eksklusif
+                 </span>
+               </div>
+               
+               <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-tight tracking-tight text-white">{ebook.title}</h1>
+               <p className="text-gray-300 text-lg md:text-xl mb-10 max-w-3xl leading-relaxed font-medium">
+                 Tingkatkan wawasan dan keterampilan konstruksi Anda dengan panduan komprehensif ini.
+               </p>
+               
+               <div className="flex flex-wrap items-center gap-y-3 gap-x-8 text-base text-gray-300 border-t border-gray-800 pt-8 mt-8">
+                  <span className="flex items-center gap-2 font-semibold"><Star size={20} className="text-yellow-400 fill-yellow-400"/> {Number(ebook.rating || 5).toFixed(1)} Rating E-Book</span>
+                  <span className="flex items-center gap-2 font-semibold"><CheckCircle2 size={20} className="text-[#00C9A7]"/> {ebook.sold_count || 0} Siswa Membeli</span>
+               </div>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black leading-tight mb-6">
-              {ebook.title}
-            </h1>
-            
-            {/* Social Proof Stats */}
-            <div className="flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-1.5 text-orange-400 bg-orange-400/10 px-3 py-1.5 rounded-lg">
-                <Star size={16} className="fill-current" />
-                <span className="font-bold">{ebook.rating}</span>
-                <span className="text-orange-200/50">({ebook.reviews_count} review)</span>
-              </div>
-              <div className="text-gray-300 font-medium">
-                <span className="font-bold text-white text-base">{ebook.sold_count}</span> Siswa telah membeli
-              </div>
-            </div>
-          </div>
-
-          {/* Kotak Harga & Tombol Beli */}
-          <div className="bg-white text-gray-900 rounded-2xl p-6 md:p-8 shadow-2xl border-b-4 border-[#00C9A7]">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Investasi E-Book</h3>
-            <div className="text-4xl font-black text-gray-900 mb-6">
-              {ebook.price === 0 ? "GRATIS" : `Rp ${ebook.price.toLocaleString("id-ID")}`}
-            </div>
-            
-            {/* Panggil Client Component Keranjang di sini */}
-            <AddToCartEbook ebook={ebook} />
-            
-            <p className="text-center text-xs text-gray-500 mt-4 font-medium flex justify-center items-center gap-2">
-              <BookOpen size={14} />Akses file PDF selamanya (Lifetime Access)
-            </p>
-          </div>
-        </div>
+         </div>
       </div>
 
-      {/* KONTEN DETAIL BAWAH */}
-      <div className="max-w-5xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-12">
-        <div className="md:col-span-2 space-y-10">
-          
-          {/* Section: Your Goals */}
-          {ebook.goals && (
-            <section>
-              <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
-                <Target className="text-[#F97316]" size={28} />
-                Apa yang akan Anda capai?
-              </h2>
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {ebook.goals}
-                </p>
-              </div>
-            </section>
-          )}
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 max-w-7xl mx-auto px-4 md:px-8 w-full pb-24">
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start relative">
+            
+            {/* KOLOM KIRI */}
+            <div className="lg:col-span-2 space-y-12 -mt-10 lg:-mt-16 relative z-20">
+               <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl shadow-gray-100/50 border border-gray-100 space-y-10">
+                  
+                  {ebook.goals && (
+                     <div>
+                        <h2 className="text-2xl font-black text-gray-950 mb-5 flex items-center gap-3">
+                           <Target className="text-[#F97316]" size={28}/> Apa yang akan Anda capai?
+                        </h2>
+                        <div className="p-6 bg-gradient-to-br from-orange-50 to-white border border-orange-100 rounded-2xl text-gray-800 font-semibold leading-relaxed shadow-sm">
+                           <p className="whitespace-pre-wrap">{ebook.goals}</p>
+                        </div>
+                     </div>
+                  )}
 
-          {/* Section: Keypoints */}
-          {ebook.keypoints && ebook.keypoints.length > 0 && (
-            <section>
-              <h2 className="text-2xl font-black text-gray-900 mb-6">
-                Poin Utama Pembelajaran
-              </h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {ebook.keypoints.map((point: string, idx: number) => (
-                  <div key={idx} className="bg-white p-4 rounded-xl border border-gray-200 flex items-start gap-3 shadow-sm hover:border-[#00C9A7]/30 transition-colors">
-                    <CheckCircle2 className="text-[#00C9A7] shrink-0 mt-0.5" size={20} />
-                    <span className="text-gray-700 font-medium leading-snug">{point}</span>
+                  {ebook.keypoints && ebook.keypoints.length > 0 && (
+                     <div>
+                        <h2 className="text-2xl font-black text-gray-950 mb-6 flex items-center gap-3">
+                           <BookOpen className="text-[#00C9A7]" size={28}/> Poin Utama E-Book
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                           {ebook.keypoints.map((pt: string, i: number) => (
+                              <div key={i} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-[#00C9A7]/30 transition-colors group">
+                                 <CheckCircle2 size={22} className="text-[#00C9A7] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+                                 <span className="text-gray-700 text-sm font-semibold leading-relaxed">{pt}</span>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  )}
+               </div>
+            </div>
+
+            {/* KOLOM KANAN (STICKY PRICE BOX) */}
+            <div className="lg:col-span-1 lg:sticky lg:top-28 lg:self-start -mt-20 lg:-mt-64 relative z-30">
+               <div className="bg-white text-gray-950 rounded-3xl p-7 shadow-2xl shadow-gray-200/70 border border-gray-100">
+                  
+                  <div className="aspect-[3/4] bg-gray-100 rounded-2xl mb-7 relative overflow-hidden border border-gray-100 group shadow-inner">
+                    {ebook.cover_url ? (
+                      <Image src={ebook.cover_url} alt="Cover E-Book" fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="bg-gradient-to-br from-teal-900 to-gray-900 w-full h-full flex flex-col items-center justify-center p-8 text-center gap-4">
+                         <BookOpen size={48} className="text-white/50" />
+                         <h3 className="text-white font-bold text-xl drop-shadow-md">{ebook.title}</h3>
+                      </div>
+                    )}
+                    <div className="absolute top-4 left-4 bg-[#F97316] text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider shadow-md">PDF File</div>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-      </div>
+                  
+                  <div className="mb-8 border-b border-gray-100 pb-8">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Investasi</p>
+                    {safePrice > 0 ? (
+                      <h2 className="text-4xl font-black text-[#F97316] tracking-tight">Rp {safePrice.toLocaleString("id-ID")}</h2>
+                    ) : (
+                      <h2 className="text-4xl font-black text-[#00C9A7] tracking-tight">GRATIS</h2>
+                    )}
+                    <p className="text-xs text-gray-500 font-medium mt-3">✅ Unduh instan setelah pembayaran</p>
+                    <p className="text-xs text-gray-500 font-medium mt-1">✅ Akses selamanya ke file PDF</p>
+                  </div>
+
+                  <div className="space-y-4">
+                     {isOwned ? (
+                        <a href={ebook.pdf_url} target="_blank" rel="noopener noreferrer" className="block w-full bg-gray-950 text-white text-center py-4.5 rounded-2xl font-black text-lg hover:bg-gray-800 transition shadow-lg shadow-gray-900/10 flex justify-center items-center gap-2">
+                           <DownloadCloud size={20} /> Unduh PDF E-Book
+                        </a>
+                     ) : (
+                        <AddToCartEbook ebook={ebook} isUserLoggedIn={!!user} />
+                     )}
+                     <p className="text-center text-[11px] text-gray-400 px-4">Pastikan Anda membaca deskripsi sebelum membeli.</p>
+                  </div>
+               </div>
+            </div>
+
+         </div>
+      </main>
+
+      {/* FLOATING CART PUBLIC */}
+      <FloatingCartPublic />
     </div>
   );
 }
