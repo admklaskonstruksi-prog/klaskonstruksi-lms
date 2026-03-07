@@ -1,8 +1,6 @@
 "use client";
 export const runtime = 'edge';
 
-
-
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -17,16 +15,20 @@ import {
   CheckCircle, 
   PlayCircle,
   Star,
-  StarHalf
+  StarHalf,
+  BookText
 } from "lucide-react";
 
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [highlightCourses, setHighlightCourses] = useState<any[]>([]);
+  const [latestEbooks, setLatestEbooks] = useState<any[]>([]); // State untuk E-Book
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
     const supabase = createClient();
+    
+    // Ambil Data Kelas
     async function fetchHighlightCourses() {
       try {
         const { data } = await supabase
@@ -36,11 +38,23 @@ export default function LandingPage() {
           .order("sales_count", { ascending: false })
           .limit(6);
         if (data) setHighlightCourses(data);
-      } catch {
-        // Tetap tampilkan halaman tanpa data kursus
-      }
+      } catch {}
     }
+
+    // Ambil Data E-Book
+    async function fetchEbooks() {
+      try {
+        const { data } = await supabase
+          .from("ebooks")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(4);
+        if (data) setLatestEbooks(data);
+      } catch {}
+    }
+
     fetchHighlightCourses();
+    fetchEbooks();
   }, []);
 
   const scrollToSection = (id: string) => {
@@ -52,7 +66,6 @@ export default function LandingPage() {
   };
 
   return (
-    // SELECTION TEXT MENGGUNAKAN TOSCA
     <div className="min-h-screen bg-white font-sans selection:bg-[#00C9A7] selection:text-white">
       
       {/* --- NAVBAR --- */}
@@ -71,7 +84,7 @@ export default function LandingPage() {
               />
             </Link>
 
-            {/* Desktop Menu - Hover Tosca */}
+            {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/" className="text-[#00C9A7] font-bold transition-colors">
                 Beranda
@@ -85,14 +98,12 @@ export default function LandingPage() {
             </div>
 
             <div className="hidden md:flex items-center gap-3">
-              {/* Masuk = Tosca Hover */}
               <Link 
                 href="/login" 
                 className="px-5 py-2.5 text-gray-600 font-bold hover:text-[#00C9A7] transition-colors"
               >
                 Masuk
               </Link>
-              {/* HIGHLIGHT: Daftar = Orange! */}
               <Link 
                 href="/login?mode=register" 
                 className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#F97316]/30 flex items-center gap-2 hover:-translate-y-0.5"
@@ -101,7 +112,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Mobile Menu Button - Hover Tosca */}
+            {/* Mobile Menu Button */}
             <div className="md:hidden flex items-center">
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -128,7 +139,6 @@ export default function LandingPage() {
               
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
                 <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
-                {/* HIGHLIGHT Orange */}
                 <Link href="/login?mode=register" className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
               </div>
             </div>
@@ -142,13 +152,11 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             
             <div className="max-w-2xl z-10">
-              {/* Badge Tosca */}
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 text-[#00C9A7] text-sm font-bold mb-6 border border-teal-100">
                 <span className="flex h-2 w-2 rounded-full bg-[#00C9A7] animate-pulse"></span>
                 Platform Belajar Konstruksi No.1
               </div>
               
-              {/* Kata Konstruksi pakai Tosca */}
               <h1 className="text-4xl lg:text-6xl font-extrabold text-gray-900 leading-[1.15] mb-6 tracking-tight">
                 Bangun Karir Impian di Dunia <span className="text-[#00C9A7]">Konstruksi</span>
               </h1>
@@ -158,14 +166,12 @@ export default function LandingPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                {/* HIGHLIGHT: CTA Orange */}
                 <Link 
                   href="/login?mode=register" 
                   className="px-8 py-4 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-xl transition-all shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 text-lg hover:-translate-y-1"
                 >
                   Mulai Belajar Sekarang <ArrowRight size={20} />
                 </Link>
-                {/* Tombol sekunder Tosca */}
                 <button 
                   onClick={() => scrollToSection("program")}
                   className="px-8 py-4 bg-white text-gray-700 font-bold rounded-xl border-2 border-gray-200 hover:border-[#00C9A7] hover:text-[#00C9A7] transition-all flex items-center justify-center gap-2 text-lg"
@@ -176,7 +182,6 @@ export default function LandingPage() {
             </div>
 
             <div className="relative lg:h-[550px] w-full flex items-center justify-center z-10">
-               {/* Background Blur Tosca */}
                <div className="absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#00C9A7]/20 rounded-full blur-3xl -z-10"></div>
                
                <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white w-full max-w-md aspect-[4/5] transform lg:rotate-2 hover:rotate-0 transition-all duration-500">
@@ -187,7 +192,6 @@ export default function LandingPage() {
                     className="object-cover"
                     priority
                   />
-                  {/* Badge Melayang Tosca */}
                   <div className="absolute bottom-6 -left-4 bg-white p-4 rounded-xl shadow-xl flex items-center gap-3 animate-bounce hidden sm:flex border border-gray-100">
                     <div className="w-10 h-10 bg-teal-100 text-[#00C9A7] rounded-full flex items-center justify-center">
                       <CheckCircle size={20} />
@@ -205,14 +209,13 @@ export default function LandingPage() {
       </section>
 
       {/* --- HIGHLIGHT KELAS (CAROUSEL) --- */}
-      <section id="program" className="py-20 bg-gray-50 border-y border-gray-100 overflow-hidden scroll-mt-24">
+      <section id="program" className="py-20 bg-gray-50 border-t border-gray-100 overflow-hidden scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-8">
              <div>
                 <h2 className="text-3xl font-bold text-gray-900">Program Terpopuler</h2>
                 <p className="text-gray-500 mt-2">Pilihan kelas terbaik yang paling banyak diminati.</p>
              </div>
-             {/* Link lihat semua Tosca */}
              <Link href="/program" className="hidden md:flex items-center gap-2 text-[#00C9A7] font-bold hover:text-[#00b596]">
                 Lihat Semua <ArrowRight size={18} />
              </Link>
@@ -224,7 +227,6 @@ export default function LandingPage() {
                   <Link 
                   href={`/program/${course.id}`}
                      key={course.id} 
-                     // Hover border Tosca
                      className="min-w-[280px] sm:min-w-[320px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-[#00C9A7]/50 hover:-translate-y-1 transition-all duration-300 snap-start flex flex-col group"
                   >
                      <div className="aspect-video relative bg-gray-100 border-b border-gray-100 overflow-hidden">
@@ -233,7 +235,6 @@ export default function LandingPage() {
                         ) : (
                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div>
                         )}
-                        {/* Label HIGHLIGHT Orange */}
                         <div className="absolute top-3 left-3 bg-[#F97316] text-white text-[10px] font-bold px-2.5 py-1 rounded shadow-sm tracking-wider uppercase">
                            Terlaris
                         </div>
@@ -245,7 +246,6 @@ export default function LandingPage() {
                         </h3>
                         <p className="text-xs text-gray-500 mb-2">Klas Konstruksi</p>
                         
-                        {/* Bintang Rating menggunakan warna emas agar natural */}
                         <div className="flex items-center gap-1 text-xs mb-3">
                            <span className="font-bold text-[#f69c08]">{course.rating || "4.8"}</span>
                            <div className="flex text-[#f69c08]">
@@ -267,7 +267,6 @@ export default function LandingPage() {
                                  )}
                               </>
                            ) : (
-                              // Teks Gratis pakai Tosca
                               <span className="font-bold text-[#00C9A7] text-lg">Gratis</span>
                            )}
                         </div>
@@ -285,8 +284,58 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- MENTOR SECTION (DOMINAN TOSCA + HIGHLIGHT ORANGE) --- */}
-      <section id="mentor" className="py-24 bg-white border-b border-gray-100 scroll-mt-24">
+      {/* ================= SECTION E-BOOK TERBARU ================= */}
+      {latestEbooks.length > 0 && (
+        <section className="py-20 bg-gray-50 border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                  E-Book Eksklusif <span className="text-[#F97316]">KlasKonstruksi</span>
+                </h2>
+                <p className="text-gray-500">Modul dan panduan tertulis langsung dari praktisi industri.</p>
+              </div>
+              <Link href="/ebooks" className="text-sm font-bold text-[#00C9A7] hover:text-teal-500 bg-teal-50 px-5 py-2.5 rounded-xl transition-colors shrink-0 text-center inline-block">
+                Lihat Semua E-Book &rarr;
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {latestEbooks.map((ebook) => (
+                <Link href={`/ebooks/${ebook.id}`} key={ebook.id} className="group">
+                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-2 h-full flex flex-col">
+                    <div className="aspect-[4/3] bg-gradient-to-br from-teal-900 to-gray-900 relative flex items-center justify-center p-6 text-center">
+                      <div className="absolute top-3 left-3 bg-[#F97316] text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider shadow-md">
+                        E-Book
+                      </div>
+                      <h3 className="text-white font-bold text-base leading-snug line-clamp-3 drop-shadow-md">
+                        {ebook.title}
+                      </h3>
+                    </div>
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="font-bold text-gray-900 text-sm mb-4 line-clamp-2 group-hover:text-[#00C9A7] transition-colors">
+                        {ebook.title}
+                      </h3>
+                      <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
+                        <span className="text-sm font-black text-[#00C9A7]">
+                          {ebook.price === 0 ? "GRATIS" : `Rp ${ebook.price.toLocaleString("id-ID")}`}
+                        </span>
+                        <div className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                          <BookText size={12} /> {ebook.sold_count} terjual
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+      {/* ================= AKHIR SECTION E-BOOK ================= */}
+
+      {/* --- MENTOR SECTION --- */}
+      <section id="mentor" className="py-24 bg-white border-y border-gray-100 scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="bg-teal-50/50 rounded-3xl p-8 md:p-14 lg:p-16 flex flex-col md:flex-row items-center justify-between gap-12 lg:gap-20 border border-teal-100 relative overflow-hidden">
@@ -323,7 +372,6 @@ export default function LandingPage() {
                 </li>
               </ul>
 
-              {/* HIGHLIGHT CTA: ORANGE! */}
               <Link 
                 href="/contact" 
                 className="inline-flex items-center gap-2 px-8 py-4 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-xl transition-all shadow-xl shadow-orange-500/30 hover:-translate-y-1"
@@ -368,7 +416,6 @@ export default function LandingPage() {
               { label: "Rating Puas", value: "4.9/5", icon: CheckCircle },
             ].map((stat, idx) => (
               <div key={idx} className="flex flex-col items-center">
-                {/* Ikon Stat Tosca */}
                 <stat.icon className="text-[#00C9A7] mb-4 w-8 h-8" />
                 <h3 className="text-3xl font-extrabold text-gray-900 mb-1">{stat.value}</h3>
                 <p className="text-gray-500 font-medium text-sm">{stat.label}</p>

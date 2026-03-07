@@ -13,7 +13,6 @@ import {
   ChevronLeft, ChevronRight, Compass, Library, Loader2, ShoppingCart, BookText
 } from "lucide-react";
 
-// 1. Definisikan tipe data props yang diterima dari layout
 interface DashboardSidebarProps {
   user: {
     fullName: string;
@@ -21,23 +20,19 @@ interface DashboardSidebarProps {
   };
 }
 
-// 2. Masukkan props ke dalam fungsi
 export default function DashboardSidebar({ user }: DashboardSidebarProps) {
   const [isMinimized, setIsMinimized] = useState(false);
   
-  // 3. Gunakan data dari props sebagai nilai awal (initial state)
   const [role, setRole] = useState<string | null>(user.role);
   const [userName, setUserName] = useState<string>(user.fullName);
   const [isLoading, setIsLoading] = useState(false); 
   
-  // State khusus untuk Floating Cart
   const [cartCount, setCartCount] = useState(0);
   
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
 
-  // Efek untuk memantau jumlah item di keranjang (Real-time)
   useEffect(() => {
     const updateCartCount = () => {
       const cart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
@@ -68,14 +63,11 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
   }, [supabase]);
 
   const handleLogout = async () => {
-    // Opsional: Jika Anda ingin memunculkan loading saat proses keluar
     const toastId = toast.loading("Mengeluarkan akun..."); 
     
     await supabase.auth.signOut();
     
     toast.dismiss(toastId);
-    
-    // Gunakan window.location.href untuk memaksa browser membuang seluruh cache memori
     window.location.href = "/login"; 
   };
 
@@ -100,6 +92,7 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
   const studentMenus = [
     { title: "MENU", items: [
         { name: "Jelajah Kelas", icon: Compass, path: "/dashboard" },
+        { name: "Jelajah E-Book", icon: BookText, path: "/dashboard/explore-ebooks" },
         { name: "Kelas Saya", icon: Library, path: "/dashboard/my-courses" },
         { name: "Pengaturan", icon: Settings, path: "/dashboard/settings" },
     ]}
@@ -202,12 +195,9 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
         </div>
       </aside>
 
-      {/* --- TOMBOL KERANJANG MELAYANG (FLOATING CART) --- */}
-      {/* Tombol hanya muncul jika yang login adalah siswa, keranjang ada isinya, dan sedang tidak berada di halaman keranjang */}
       {role !== "admin" && cartCount > 0 && pathname !== "/cart" && (
         <Link 
           href="/cart"
-          // PERUBAHAN DI SINI: Diganti menjadi "fixed top-6 right-6" dan menghapus perhitungan 'left'
           className="fixed top-6 right-6 z-50 bg-[#F97316] text-white p-4 rounded-full shadow-2xl hover:scale-110 hover:bg-[#ea580c] transition-all duration-300 flex items-center justify-center group border border-white/20 hover:shadow-[#F97316]/40"
         >
           <ShoppingCart size={26} className="group-hover:-rotate-12 transition-transform" />
