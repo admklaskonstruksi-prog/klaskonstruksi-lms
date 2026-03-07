@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 "use client";
 
 import { useState, useTransition, useEffect, Suspense } from "react";

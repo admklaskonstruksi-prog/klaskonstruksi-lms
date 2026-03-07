@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import CreateCourseForm from "./CreateCourseForm";
 import { createClient } from "@/utils/supabase/server";
 
