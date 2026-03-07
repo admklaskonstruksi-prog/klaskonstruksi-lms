@@ -2,7 +2,8 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Search, Edit3, LayoutList, ChevronUp, ChevronDown } from "lucide-react";
+// Tambahkan icon BookOpen atau FileText untuk tombol E-Book
+import { Plus, Search, Edit3, LayoutList, ChevronUp, ChevronDown, BookOpen } from "lucide-react";
 import PublishToggle from "./components/PublishToggle";
 
 export const dynamic = "force-dynamic";
@@ -72,12 +73,19 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Kelola Kelas</h1>
-          <p className="text-gray-500 text-sm mt-1">Daftar semua kelas, kategori, dan status publikasi.</p>
+          <h1 className="text-2xl font-black text-gray-900">Kelola Katalog</h1>
+          <p className="text-gray-500 text-sm mt-1">Daftar semua kelas, e-book, kategori, dan status publikasi.</p>
         </div>
-        <Link href="/dashboard/courses/create" className="bg-[#00C9A7] text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#00b596] transition-colors shadow-lg shadow-[#00C9A7]/20">
-          <Plus size={18} /> Buat Kelas Baru
-        </Link>
+        
+        {/* BAGIAN TOMBOL ACTION DITAMBAH BUTTON E-BOOK */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/dashboard/courses/create" className="bg-[#00C9A7] text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#00b596] transition-colors shadow-lg shadow-[#00C9A7]/20">
+            <Plus size={18} /> Buat Kelas Baru
+          </Link>
+          <Link href="/dashboard/ebooks/create" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20">
+            <BookOpen size={18} /> Buat E-Book (PDF)
+          </Link>
+        </div>
       </div>
 
       {/* FILTER BAR PENCARIAN & HARGA */}
@@ -101,7 +109,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
         </form>
       </div>
 
-      {/* TABEL DATA */}
+      {/* TABEL DATA KELAS */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
         <table className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
