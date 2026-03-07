@@ -2,3 +2,11 @@ name = "klaskonstruksi-lms"
 pages_build_output_dir = ".vercel/output/static"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NODE_VERSION = "20"
+NEXT_PUBLIC_SUPABASE_URL = "https://rxmizboxrrldqzhvnckh.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4bWl6Ym94cnJsZHF6aHZuY2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzYwODUsImV4cCI6MjA4NjA1MjA4NX0.mHUHSh63w4Ij6AVcjzo_05HHZAQVARixIQ8SyVwMF60"
+BUNNY_LIBRARY_ID = "606426"
+NEXT_PUBLIC_MIDTRANS_CLIENT_KEY = "Mid-client-tVDvLhQ5TdarMSAm"
+MIDTRANS_CLIENT_KEY = "Mid-client-tVDvLhQ5TdarMSAm"
