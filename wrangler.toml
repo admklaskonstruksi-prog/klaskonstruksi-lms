@@ -1,6 +1,7 @@
 name = "klaskonstruksi-lms"
 pages_build_output_dir = ".vercel/output/static"
-compatibility_date = "2024-09-23"
+# compatibility_date lebih baru untuk dukungan URLSearchParams.entries() yang benar di Edge
+compatibility_date = "2025-01-29"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]

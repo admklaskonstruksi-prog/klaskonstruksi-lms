@@ -23,21 +23,25 @@ import {
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [highlightCourses, setHighlightCourses] = useState<any[]>([]);
-  const supabase = createClient();
 
   useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    const supabase = createClient();
     async function fetchHighlightCourses() {
-      const { data } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("is_published", true)
-        .order("sales_count", { ascending: false })
-        .limit(6);
-      
-      if (data) setHighlightCourses(data);
+      try {
+        const { data } = await supabase
+          .from("courses")
+          .select("*")
+          .eq("is_published", true)
+          .order("sales_count", { ascending: false })
+          .limit(6);
+        if (data) setHighlightCourses(data);
+      } catch {
+        // Tetap tampilkan halaman tanpa data kursus
+      }
     }
     fetchHighlightCourses();
-  }, [supabase]);
+  }, []);
 
   const scrollToSection = (id: string) => {
     setIsMobileMenuOpen(false);
