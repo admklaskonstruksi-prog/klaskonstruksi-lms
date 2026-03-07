@@ -1,0 +1,4 @@
+# Cloudflare Pages - compatibility flags untuk mengurangi bundle size
+# nodejs_compat: gunakan polyfill Node.js bawaan Cloudflare (lebih ringan dari shim Next.js)
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
@@ -15,7 +15,6 @@
     "axios": "^1.13.4",
     "hls.js": "^1.6.15",
     "lucide-react": "^0.563.0",
-    "midtrans-client": "^1.4.3",
     "next": "16.1.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",

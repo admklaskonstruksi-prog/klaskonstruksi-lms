@@ -1,30 +1,23 @@
 export const runtime = 'edge';
 
 import { NextResponse } from "next/server";
-import Midtrans from "midtrans-client";
+
+// Menggunakan REST API langsung (tanpa midtrans-client) untuk mengurangi bundle size di Cloudflare Edge
+const MIDTRANS_SNAP_URL = "https://app.midtrans.com/snap/v1/transactions";
 
 export async function POST(request: Request) {
   try {
-    // Pindahkan inisialisasi snap ke DALAM function
     const serverKey = process.env.MIDTRANS_SERVER_KEY || "";
-    const clientKey = process.env.MIDTRANS_CLIENT_KEY || "";
-
-    console.log("=== DEBUG MIDTRANS ===");
-    console.log("Server Key Prefix:", serverKey ? serverKey.substring(0, 15) + "..." : "KOSONG!");
-    console.log("Client Key Prefix:", clientKey ? clientKey.substring(0, 15) + "..." : "KOSONG!");
-
-    const snap = new Midtrans.Snap({
-      isProduction: true,
-      serverKey: serverKey,
-      clientKey: clientKey,
-    });
+    if (!serverKey) {
+      return NextResponse.json({ error: "MIDTRANS_SERVER_KEY tidak dikonfigurasi" }, { status: 500 });
+    }
 
     const body = await request.json();
     const { courseId, price, title, userEmail, userName } = body;
 
     const parameter = {
       transaction_details: {
-        order_id: `KLAS-${Date.now()}-${courseId?.substring(0, 4) || 'TRX'}`,
+        order_id: `KLAS-${Date.now()}-${(courseId || "TRX").toString().substring(0, 4)}`,
         gross_amount: price,
       },
       item_details: [{
@@ -37,13 +30,29 @@ export async function POST(request: Request) {
         first_name: userName || "Siswa",
         email: userEmail || "no-email@klas.id",
       },
-     };
+    };
 
-    const token = await snap.createTransactionToken(parameter);
-    return NextResponse.json({ token });
+    const auth = btoa(serverKey + ":");
+    const res = await fetch(MIDTRANS_SNAP_URL, {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${auth}`,
+      },
+      body: JSON.stringify(parameter),
+    });
 
-  } catch (error: any) {
-    console.error("CRITICAL MIDTRANS ERROR:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const data = await res.json();
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: data.error_messages?.[0] || data.status_message || "Gagal membuat token Midtrans" },
+        { status: res.status }
+      );
+    }
+    return NextResponse.json({ token: data.token });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

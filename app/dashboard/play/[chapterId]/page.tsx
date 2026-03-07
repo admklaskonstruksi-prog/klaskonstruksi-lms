@@ -10,7 +10,7 @@ function isValidUUID(uuid: string) {
   return regex.test(uuid);
 }
 
-export default async function PlayerPage({ params }: { params: { chapterId: string } }) {
+export default async function PlayerPage({ params }: { params: Promise<{ chapterId: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
