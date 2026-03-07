@@ -3,7 +3,7 @@ export const runtime = 'edge';
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { Wallet, TrendingUp, Users, BookOpen, Award } from "lucide-react"; 
+import { Wallet, TrendingUp, Users, BookOpen, Award, BookText } from "lucide-react"; 
 import SmartOnboardingModal from "./components/SmartOnboardingModal";
 import StudentMarketplace from "./components/StudentMarketplace"; 
 import { revalidatePath } from "next/cache";
@@ -96,6 +96,9 @@ export default async function DashboardPage() {
     const { count: totalStudents } = await supabase.from("profiles").select("*", { count: "exact", head: true }).neq("role", "admin");
     const { count: activeCourses } = await supabase.from("courses").select("*", { count: "exact", head: true }).eq("is_published", true);
     const { data: realEnrollments } = await supabase.from("enrollments").select("course_id, courses(id, title, price, thumbnail_url)");
+    
+    // TAMBAHAN: Hitung Penjualan E-Book
+    const { count: ebookSalesCount } = await supabase.from("ebook_purchases").select("*", { count: "exact", head: true });
 
     let totalRevenue = 0;
     let totalSales = realEnrollments?.length || 0;
@@ -112,39 +115,47 @@ export default async function DashboardPage() {
     const topCourses = Object.values(courseStats).sort((a, b) => b.real_sales - a.real_sales).slice(0, 4);
 
     return (
-        <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
+        <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans selection:bg-[#00C9A7] selection:text-white">
             <div className="mb-8">
                 <h1 className="text-2xl font-black text-gray-900">Halo, <span className="text-[#00C9A7]">{profile?.full_name || 'Admin'}</span> 👋</h1>
                 <p className="text-gray-500 mt-1">Berikut adalah ringkasan performa nyata platform Anda hari ini.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
-                    <div className="flex justify-between items-start relative z-10">
-                        <div><p className="text-sm font-bold text-gray-500 mb-1">Pendapatan</p><h3 className="text-2xl font-black text-gray-900">Rp {totalRevenue.toLocaleString("id-ID")}</h3></div>
-                        <div className="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center"><Wallet size={20} /></div>
-                    </div>
+            {/* KOTAK METRIK ADMIN */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Pendapatan</p>
+                    <h3 className="text-2xl font-black text-gray-900 mb-3 truncate">Rp {totalRevenue.toLocaleString("id-ID")}</h3>
+                    <div className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center"><Wallet size={16} /></div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
-                    <div className="flex justify-between items-start relative z-10">
-                        <div><p className="text-sm font-bold text-gray-500 mb-1">Penjualan</p><h3 className="text-2xl font-black text-gray-900">{totalSales} <span className="text-sm font-medium text-gray-400">Kelas</span></h3></div>
-                        <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center"><TrendingUp size={20} /></div>
-                    </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Siswa</p>
+                    <h3 className="text-2xl font-black text-gray-900 mb-3">{totalStudents || 0} <span className="text-sm font-medium text-gray-400">Orang</span></h3>
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><Users size={16} /></div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
-                    <div className="flex justify-between items-start relative z-10">
-                        <div><p className="text-sm font-bold text-gray-500 mb-1">Siswa</p><h3 className="text-2xl font-black text-gray-900">{totalStudents || 0} <span className="text-sm font-medium text-gray-400">Orang</span></h3></div>
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center"><Users size={20} /></div>
-                    </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center border-l-4 border-l-[#F97316]">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Jual Kelas</p>
+                    <h3 className="text-2xl font-black text-gray-900 mb-3">{totalSales} <span className="text-sm font-medium text-gray-400">Lisensi</span></h3>
+                    <div className="w-8 h-8 rounded-lg bg-orange-100 text-[#F97316] flex items-center justify-center"><TrendingUp size={16} /></div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden group">
-                    <div className="flex justify-between items-start relative z-10">
-                        <div><p className="text-sm font-bold text-gray-500 mb-1">Kelas Aktif</p><h3 className="text-2xl font-black text-gray-900">{activeCourses || 0} <span className="text-sm font-medium text-gray-400">Live</span></h3></div>
-                        <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center"><BookOpen size={20} /></div>
-                    </div>
+
+                {/* --- KOTAK BARU KHUSUS PENJUALAN E-BOOK --- */}
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center border-l-4 border-l-[#00C9A7]">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Jual E-Book</p>
+                    <h3 className="text-2xl font-black text-gray-900 mb-3">{ebookSalesCount || 0} <span className="text-sm font-medium text-gray-400">Lisensi</span></h3>
+                    <div className="w-8 h-8 rounded-lg bg-teal-100 text-[#00C9A7] flex items-center justify-center"><BookText size={16} /></div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Kelas Aktif</p>
+                    <h3 className="text-2xl font-black text-gray-900 mb-3">{activeCourses || 0} <span className="text-sm font-medium text-gray-400">Live</span></h3>
+                    <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><BookOpen size={16} /></div>
                 </div>
             </div>
 
+            {/* TABEL KELAS TERLARIS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-3">
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-6"><Award size={20} className="text-[#F97316]" /> Kelas Terlaris</h3>
@@ -152,14 +163,14 @@ export default async function DashboardPage() {
                         {topCourses.length === 0 ? (
                             <p className="text-sm text-gray-400 italic py-4">Belum ada data penjualan.</p>
                         ) : topCourses.map((course: any, idx: number) => (
-                            <div key={course.id} className="flex items-center gap-4 p-3 rounded-xl border border-gray-100">
+                            <div key={course.id} className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 hover:border-[#00C9A7]/30 transition-colors">
                                 <div className="w-6 font-black text-gray-300 text-lg text-center">{idx + 1}</div>
                                 <div className="relative w-12 h-12 rounded-lg bg-gray-200 overflow-hidden shrink-0">
                                     {course.thumbnail_url ? <Image src={course.thumbnail_url} alt="Cover" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-400">No Img</div>}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="text-sm font-bold text-gray-900 truncate">{course.title}</h4>
-                                    <p className="text-xs text-gray-500 font-medium">{course.real_sales} Orang Daftar</p>
+                                    <p className="text-xs text-[#F97316] font-bold">{course.real_sales} Orang Daftar</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm font-black text-[#00C9A7]">Rp {(course.price * course.real_sales).toLocaleString("id-ID")}</p>
@@ -179,10 +190,9 @@ export default async function DashboardPage() {
   const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
   const ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];
 
-  // PENGAMBILAN DATA MASTER UNTUK FILTER (Termasuk Levels)
   const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
   const { data: subCategories } = await supabase.from("sub_categories").select("id, name, main_category_id").order("name");
-  const { data: levels } = await supabase.from("course_levels").select("id, name").order("id"); // <-- TAMBAHAN BARU
+  const { data: levels } = await supabase.from("course_levels").select("id, name").order("id"); 
 
   const { data: courses } = await supabase
     .from("courses")
@@ -197,12 +207,11 @@ export default async function DashboardPage() {
         <p className="text-gray-500 mt-1">Siap melanjutkan pembelajaran hari ini?</p>
       </div>
 
-      {/* Memanggil Komponen StudentMarketplace (Kini disertakan data levels) */}
       <StudentMarketplace 
         courses={courses || []} 
         mainCategories={categories || []} 
         subCategories={subCategories || []} 
-        levels={levels || []} // <-- DITERUSKAN KE COMPONENT
+        levels={levels || []} 
         ownedCourseIds={ownedCourseIds}
       />
 

@@ -110,6 +110,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Beranda</Link>
               <Link href="/program" className="text-[#00C9A7] font-bold transition-colors">Program Klas</Link>
+              <Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Katalog E-Book</Link>
               <Link href="/#mentor" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Daftar Mentor</Link>
             </div>
 
@@ -133,6 +134,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
             <div className="px-4 pt-2 pb-6 space-y-2">
               <Link href="/" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Beranda</Link>
               <Link href="/program" className="block w-full text-left px-3 py-3 text-base font-bold text-[#00C9A7] bg-teal-50 rounded-lg">Program Klas</Link>
+              <Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Katalog E-Book</Link>
               <Link href="/#mentor" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Daftar Mentor</Link>
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
                 <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
@@ -328,6 +330,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
             <ul className="space-y-3 text-sm text-gray-400">
               <li><Link href="/" className="hover:text-[#00C9A7] transition-colors">Beranda</Link></li>
               <li><Link href="/program" className="hover:text-[#00C9A7] transition-colors">Program Klas</Link></li>
+              <li><Link href="/ebooks" className="hover:text-[#00C9A7] transition-colors">Katalog E-Book</Link></li>
               <li><Link href="/#mentor" className="hover:text-[#00C9A7] transition-colors">Daftar Mentor</Link></li>
             </ul>
           </div>

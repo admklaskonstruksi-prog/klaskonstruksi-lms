@@ -37,6 +37,9 @@ export default function ContactPage() {
               <Link href="/#program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Program Klas
               </Link>
+              <Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Katalog E-Book
+              </Link>
               <Link href="/#mentor" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Daftar Mentor
               </Link>

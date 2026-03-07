@@ -75,6 +75,7 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/" className="text-[#00C9A7] font-bold transition-colors">Beranda</Link>
               <button onClick={() => scrollToSection("program")} className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Program Klas</button>
+              <Link href="/ebooks" className="text-[#00C9A7] font-bold transition-colors">Katalog E-Book</Link>
               <button onClick={() => scrollToSection("mentor")} className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Daftar Mentor</button>
             </div>
             <div className="hidden md:flex items-center gap-3">

@@ -1,205 +1,196 @@
-'use client';
-export const runtime = 'edge';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2, ArrowRight, BookOpen, Target, Star, Plus, Trash2 } from 'lucide-react';
-
-// Pastikan Anda sudah membuat file actions.ts di folder yang sama
-import { createEbookAction } from './actions'; 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { BookText, ArrowLeft, Loader2, Save, Plus, Trash2 } from "lucide-react";
+import { createEbookAction } from "./actions";
+import toast from "react-hot-toast";
 
 export default function CreateEbookPage() {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
+  const [keypoints, setKeypoints] = useState<string[]>([""]);
+
+  const addKeypoint = () => setKeypoints([...keypoints, ""]);
   
-  // State untuk dinamic input Keypoints
-  const [keypoints, setKeypoints] = useState<string[]>(['']);
-
-  const handleAddKeypoint = () => setKeypoints([...keypoints, '']);
-  const handleRemoveKeypoint = (index: number) => {
-    const newKp = [...keypoints];
-    newKp.splice(index, 1);
-    setKeypoints(newKp);
-  };
-  const handleKeypointChange = (index: number, value: string) => {
-    const newKp = [...keypoints];
-    newKp[index] = value;
-    setKeypoints(newKp);
+  const removeKeypoint = (index: number) => {
+    if (keypoints.length > 1) {
+      const newKeypoints = keypoints.filter((_, i) => i !== index);
+      setKeypoints(newKeypoints);
+    }
   };
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const updateKeypoint = (text: string, index: number) => {
+    const newKeypoints = [...keypoints];
+    newKeypoints[index] = text;
+    setKeypoints(newKeypoints);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsUploading(true);
+    toast.loading("Mengunggah E-Book... Harap tunggu, proses ini bisa memakan waktu jika file besar.");
 
     try {
-      const formData = new FormData(event.currentTarget);
+      const formData = new FormData(e.currentTarget);
       
-      // Memanggil Server Action untuk upload ke Supabase
       const result = await createEbookAction(formData);
 
-      if (result?.error) {
-        // Jika terjadi error dari Supabase (misal: bucket belum ada / tabel salah)
-        alert("Gagal menyimpan E-Book: " + result.error);
-      } else {
-        // Jika sukses, langsung kembali ke halaman daftar E-Book
-        router.push('/dashboard/ebooks'); 
-      }
+      toast.dismiss();
 
-    } catch (error) {
+      if (result?.error) {
+        toast.error(result.error);
+        alert("Error: " + result.error);
+      } else {
+        toast.success("E-Book berhasil diterbitkan!");
+        router.push("/dashboard/ebooks");
+        router.refresh();
+      }
+    } catch (error: any) {
+      toast.dismiss();
       console.error("Terjadi kesalahan:", error);
-      alert("Terjadi kesalahan pada sistem.");
+      toast.error("Terjadi kesalahan. Cek console.");
     } finally {
       setIsUploading(false);
     }
-  }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-2 sm:p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Buat E-Book Baru</h1>
-      
-      <form onSubmit={handleSubmit} className="space-y-8">
-        
-        {/* SECTION 1: Detail E-Book */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
-          <h3 className="font-semibold text-gray-900 border-b pb-4 mb-4 flex items-center gap-2">
-            <BookOpen size={20} className="text-gray-400"/>
-            Detail E-Book
-          </h3>
+    <div className="p-4 md:p-8 max-w-4xl mx-auto font-sans selection:bg-[#00C9A7] selection:text-white">
+      <Link href="/dashboard/ebooks" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#00C9A7] transition-colors mb-6 font-bold">
+        <ArrowLeft size={16} /> Kembali ke Daftar E-Book
+      </Link>
 
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
+          <BookText className="text-[#00C9A7]" size={32} />
+          Terbitkan E-Book Baru
+        </h1>
+        <p className="text-gray-500 mt-2">Isi detail lengkap e-book dan unggah file PDF yang ingin Anda jual.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 space-y-8">
+        
+        {/* INFORMASI DASAR */}
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-gray-900 border-b border-gray-100 pb-2">Informasi Dasar</h2>
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Judul E-Book</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Judul E-Book</label>
             <input 
               type="text" 
               name="title" 
               required 
-              placeholder="Contoh: Panduan Dasar Konstruksi" 
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none" 
+              placeholder="Contoh: Panduan Sukses Project Manager 2026"
+              className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-gray-50 focus:bg-white text-gray-900 font-medium" 
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">File PDF E-Book</label>
-            <input 
-              type="file" 
-              name="pdf_file" 
-              accept="application/pdf" 
-              required 
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 transition-all cursor-pointer border border-gray-300 rounded-lg p-2" 
-            />
-          </div>
-        </div>
-
-        {/* SECTION 2: Goals & Keypoints */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
-          <h3 className="font-semibold text-gray-900 border-b pb-4 mb-4 flex items-center gap-2">
-            <Target size={20} className="text-gray-400"/>
-            Tujuan & Poin Utama
-          </h3>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Your Goals</label>
-            <textarea 
-              name="goals" 
-              rows={3} 
-              placeholder="Siap terjun ke proyek..." 
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none" 
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Keypoints</label>
-            <div className="space-y-3">
-              {keypoints.map((point, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <input 
-                    type="text" 
-                    name="keypoints" 
-                    value={point}
-                    onChange={(e) => handleKeypointChange(index, e.target.value)}
-                    placeholder="Paham dasar proyek..."
-                    required
-                    className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"
-                  />
-                  {keypoints.length > 1 && (
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveKeypoint(index)}
-                      className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <button 
-              type="button" 
-              onClick={handleAddKeypoint}
-              className="mt-4 flex items-center text-sm text-green-600 font-semibold hover:text-green-700 transition-colors"
-            >
-              <Plus size={16} className="mr-1" /> Tambah Poin Baru
-            </button>
-          </div>
-        </div>
-
-        {/* SECTION 3: Harga & Social Proof */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
-          <h3 className="font-semibold text-gray-900 border-b pb-4 mb-4 flex items-center gap-2">
-            <Star size={20} className="text-gray-400"/>
-            Harga & Social Proof
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Harga E-Book</label>
-              <div className="relative">
-                <span className="absolute left-4 top-3 text-gray-500 font-medium">Rp</span>
-                <input 
-                  name="price" 
-                  type="number" 
-                  required
-                  placeholder="0" 
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none" 
-                />
-              </div>
-              <p className="text-xs text-gray-400 mt-2">Isi 0 jika E-Book ini dibagikan gratis.</p>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Harga Jual (Rp)</label>
+              <input 
+                type="number" 
+                name="price" 
+                required 
+                placeholder="Contoh: 99000 (Isi 0 jika gratis)"
+                className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-gray-50 focus:bg-white text-gray-900 font-medium" 
+              />
             </div>
-
-            {/* Kotak Social Proof */}
             <div>
-              <div className="border border-orange-200 bg-orange-50 rounded-xl p-5">
-                <h4 className="text-sm font-bold text-orange-900 mb-1">Social Proof (Visual Opsional)</h4>
-                <p className="text-xs text-orange-700 mb-4">Tampilkan angka ini untuk menarik minat pembeli.</p>
-                
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Bintang</label>
-                    <input type="number" step="0.1" name="bintang" defaultValue={4.6} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Jml Review</label>
-                    <input type="number" name="jml_review" defaultValue={50} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Terjual</label>
-                    <input type="number" name="terjual" defaultValue={33} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white" />
-                  </div>
-                </div>
-              </div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Angka Dummy Terjual (Opsional)</label>
+              <input 
+                type="number" 
+                name="terjual" 
+                defaultValue={0}
+                className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-gray-50 focus:bg-white text-gray-900 font-medium" 
+              />
             </div>
           </div>
         </div>
 
-        {/* FOOTER ACTIONS */}
-        <div className="flex justify-end gap-4">
-          <button 
-            type="submit" 
-            disabled={isUploading} 
-            className="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-lg font-medium transition-all flex items-center gap-2 shadow-lg disabled:opacity-70"
-          >
-            {isUploading ? <><Loader2 className="animate-spin w-5 h-5" /> Menyimpan...</> : <><ArrowRight size={18} /> Simpan E-Book</>}
-          </button>
+        {/* DETAIL PEMBELAJARAN */}
+        <div className="space-y-6 pt-6 border-t border-gray-100">
+           <h2 className="text-xl font-bold text-gray-900 border-b border-gray-100 pb-2">Detail Pembelajaran</h2>
+           
+           <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Tujuan / Deskripsi Utama (Your Goals)</label>
+              <textarea 
+                 name="goals" 
+                 required 
+                 rows={4}
+                 placeholder="Jelaskan apa yang akan didapatkan pembaca dari e-book ini..."
+                 className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-gray-50 focus:bg-white text-gray-900 font-medium" 
+              ></textarea>
+           </div>
+
+           <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Poin Utama (Key Points)</label>
+              <div className="space-y-3">
+                 {keypoints.map((pt, idx) => (
+                    <div key={idx} className="flex gap-3">
+                       <input 
+                         type="text" 
+                         name="keypoints" 
+                         value={pt}
+                         onChange={(e) => updateKeypoint(e.target.value, idx)}
+                         placeholder={`Poin pembelajaran ke-${idx + 1}`}
+                         required
+                         className="flex-1 px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-gray-50 focus:bg-white text-gray-900 font-medium" 
+                       />
+                       {keypoints.length > 1 && (
+                          <button type="button" onClick={() => removeKeypoint(idx)} className="px-4 text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition">
+                             <Trash2 size={20} />
+                          </button>
+                       )}
+                    </div>
+                 ))}
+              </div>
+              <button type="button" onClick={addKeypoint} className="mt-3 text-[#F97316] text-sm font-bold flex items-center gap-1 hover:underline">
+                 <Plus size={16} /> Tambah Poin Baru
+              </button>
+           </div>
         </div>
+
+        {/* UPLOAD FILES */}
+        <div className="space-y-6 pt-6 border-t border-gray-100 bg-teal-50/50 p-6 rounded-2xl border border-teal-100">
+          <h2 className="text-xl font-bold text-gray-900 border-b border-teal-100 pb-2">Unggah File</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">File E-Book (Wajib PDF)</label>
+              <input 
+                type="file" 
+                name="pdf_file" 
+                accept="application/pdf" 
+                required 
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-[#00C9A7] file:text-white hover:file:bg-[#00b596] transition-all cursor-pointer border border-gray-200 rounded-xl p-2 bg-white" 
+              />
+              <p className="text-xs text-gray-500 mt-2">Maksimal ukuran file: 50MB.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Cover E-Book (Gambar JPG/PNG)</label>
+              <input 
+                type="file" 
+                name="cover_image" 
+                accept="image/png, image/jpeg, image/jpg, image/webp" 
+                required 
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-[#F97316] file:text-white hover:file:bg-[#ea580c] transition-all cursor-pointer border border-gray-200 rounded-xl p-2 bg-white" 
+              />
+              <p className="text-xs text-gray-500 mt-2">Rekomendasi rasio: 3:4 (Portrait).</p>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={isUploading}
+          className="w-full bg-[#00C9A7] text-white py-4 rounded-xl font-black text-lg hover:bg-[#00b596] transition-all shadow-lg shadow-[#00C9A7]/30 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-1"
+        >
+          {isUploading ? <><Loader2 className="animate-spin" size={24} /> Sedang Menyimpan...</> : <><Save size={24} /> Terbitkan E-Book</>}
+        </button>
 
       </form>
     </div>
