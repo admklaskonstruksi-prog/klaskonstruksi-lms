@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import AddToCartMini from "@/app/components/AddToCartMini"; // IMPORT TOMBOL KERANJANG MINI
 import { 
   BookOpen, 
   Users, 
@@ -209,7 +210,7 @@ export default function LandingPage() {
       </section>
 
       {/* --- HIGHLIGHT KELAS (CAROUSEL) --- */}
-      <section id="program" className="py-20 bg-gray-50 border-t border-gray-100 overflow-hidden scroll-mt-24">
+      <section id="program" className="py-20 bg-gray-50 border-y border-gray-100 overflow-hidden scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-8">
              <div>
@@ -302,31 +303,44 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {latestEbooks.map((ebook) => (
-                <Link href={`/ebooks/${ebook.id}`} key={ebook.id} className="group">
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-2 h-full flex flex-col">
+                <div key={ebook.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 flex flex-col group">
+                  
+                  {/* Gambar / Cover (Clickable) */}
+                  <Link href={`/ebooks/${ebook.id}`} className="block">
                     <div className="aspect-[4/3] bg-gradient-to-br from-teal-900 to-gray-900 relative flex items-center justify-center p-6 text-center">
                       <div className="absolute top-3 left-3 bg-[#F97316] text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider shadow-md">
                         E-Book
                       </div>
-                      <h3 className="text-white font-bold text-base leading-snug line-clamp-3 drop-shadow-md">
+                      <h3 className="text-white font-bold text-base leading-snug line-clamp-3 drop-shadow-md group-hover:scale-105 transition-transform duration-300">
                         {ebook.title}
                       </h3>
                     </div>
-                    <div className="p-5 flex flex-col flex-1">
-                      <h3 className="font-bold text-gray-900 text-sm mb-4 line-clamp-2 group-hover:text-[#00C9A7] transition-colors">
+                  </Link>
+
+                  <div className="p-5 flex flex-col flex-1">
+                    {/* Judul (Clickable) */}
+                    <Link href={`/ebooks/${ebook.id}`} className="block mb-4">
+                      <h3 className="font-bold text-gray-900 text-sm line-clamp-2 group-hover:text-[#00C9A7] transition-colors">
                         {ebook.title}
                       </h3>
-                      <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
-                        <span className="text-sm font-black text-[#00C9A7]">
-                          {ebook.price === 0 ? "GRATIS" : `Rp ${ebook.price.toLocaleString("id-ID")}`}
-                        </span>
-                        <div className="text-xs text-gray-400 font-medium flex items-center gap-1">
-                          <BookText size={12} /> {ebook.sold_count} terjual
+                    </Link>
+
+                    <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
+                      <span className="text-sm font-black text-[#00C9A7]">
+                        {ebook.price === 0 ? "GRATIS" : `Rp ${ebook.price.toLocaleString("id-ID")}`}
+                      </span>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs text-gray-400 font-medium flex items-center gap-1 hidden sm:flex">
+                          <BookText size={12} /> {ebook.sold_count}
                         </div>
+                        {/* Tombol Keranjang Mini */}
+                        <AddToCartMini item={ebook} />
                       </div>
                     </div>
                   </div>
-                </Link>
+
+                </div>
               ))}
             </div>
           </div>
@@ -334,8 +348,8 @@ export default function LandingPage() {
       )}
       {/* ================= AKHIR SECTION E-BOOK ================= */}
 
-      {/* --- MENTOR SECTION --- */}
-      <section id="mentor" className="py-24 bg-white border-y border-gray-100 scroll-mt-24">
+      {/* --- MENTOR SECTION (DOMINAN TOSCA + HIGHLIGHT ORANGE) --- */}
+      <section id="mentor" className="py-24 bg-white border-b border-gray-100 scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="bg-teal-50/50 rounded-3xl p-8 md:p-14 lg:p-16 flex flex-col md:flex-row items-center justify-between gap-12 lg:gap-20 border border-teal-100 relative overflow-hidden">
@@ -372,6 +386,7 @@ export default function LandingPage() {
                 </li>
               </ul>
 
+              {/* HIGHLIGHT CTA: ORANGE! */}
               <Link 
                 href="/contact" 
                 className="inline-flex items-center gap-2 px-8 py-4 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-xl transition-all shadow-xl shadow-orange-500/30 hover:-translate-y-1"
