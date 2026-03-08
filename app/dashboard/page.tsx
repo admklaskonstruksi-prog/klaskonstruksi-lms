@@ -39,7 +39,7 @@ export default async function DashboardPage() {
       address: formData.get("address") as string,
     }).eq("id", user.id);
 
-    revalidatePath("/dashboard");
+    //revalidatePath("/dashboard");
   }
 
   if (isProfileIncomplete) {

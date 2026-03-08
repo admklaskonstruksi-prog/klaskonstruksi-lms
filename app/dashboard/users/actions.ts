@@ -17,7 +17,7 @@ export async function updateUserRole(userId: string, newRole: string) {
     
     if (error) return { error: error.message };
     
-    revalidatePath("/dashboard/users");
+    //revalidatePath("/dashboard/users");
     return { success: true };
 }
 
@@ -32,6 +32,6 @@ export async function deleteUserRecord(userId: string) {
         return { error: "Gagal menghapus pengguna. Pastikan SUPABASE_SERVICE_ROLE_KEY sudah terpasang." };
     }
     
-    revalidatePath("/dashboard/users");
+    //revalidatePath("/dashboard/users");
     return { success: true };
 }

@@ -26,9 +26,9 @@ export async function enrollUser(courseId: string, amount: number) {
   }
 
   // 3. Refresh Halaman Terkait
-  revalidatePath(`/dashboard/learning-path/${courseId}`);
-  revalidatePath(`/dashboard/checkout/${courseId}`);
-  revalidatePath(`/dashboard/my-courses`); 
+  //revalidatePath(`/dashboard/learning-path/${courseId}`);
+  //revalidatePath(`/dashboard/checkout/${courseId}`);
+  //revalidatePath(`/dashboard/my-courses`); 
   
   return { success: true };
 }

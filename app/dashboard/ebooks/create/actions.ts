@@ -91,7 +91,7 @@ export async function createEbookAction(formData: FormData) {
       return { error: `Gagal simpan ke database: ${error.message}` };
     }
 
-    revalidatePath("/dashboard/ebooks");
+    //revalidatePath("/dashboard/ebooks");
     return { success: true, data };
 
   } catch (err: any) {

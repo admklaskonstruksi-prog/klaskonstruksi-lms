@@ -77,7 +77,7 @@ export async function createLesson(formData: FormData) {
     return { error: error.message };
   }
 
-  revalidatePath(`/dashboard/courses/${courseId}/edit`);
+  //revalidatePath(`/dashboard/courses/${courseId}/edit`);
   return { success: true, lesson: data };
 }
 
@@ -136,7 +136,7 @@ export async function updateLesson(lessonId: string, formData: FormData) {
     return { error: error.message };
   }
 
-  revalidatePath(`/dashboard/courses/${courseId}/edit`);
+  //revalidatePath(`/dashboard/courses/${courseId}/edit`);
   return { success: true };
 }
 
@@ -170,7 +170,7 @@ export async function deleteLesson(lessonId: string, courseId: string) {
     return { error: error.message };
   }
 
-  revalidatePath(`/dashboard/courses/${courseId}/edit`);
+  //revalidatePath(`/dashboard/courses/${courseId}/edit`);
   return { success: true };
 }
 
@@ -209,7 +209,7 @@ export async function reorderLessons(
 
   await Promise.all(updates);
 
-  revalidatePath(`/dashboard/courses/${courseId}/edit`);
+  //revalidatePath(`/dashboard/courses/${courseId}/edit`);
   return { success: true };
 }
 

@@ -29,7 +29,7 @@ export async function toggleLessonComplete(courseId: string, lessonId: string, i
   }
 
   // Refresh halaman agar checkmark dan bar progres ter-update
-  revalidatePath(`/dashboard/learning-path/${courseId}`);
-  revalidatePath('/dashboard/my-courses');
+  //revalidatePath(`/dashboard/learning-path/${courseId}`);
+  //revalidatePath('/dashboard/my-courses');
   return { success: true };
 }

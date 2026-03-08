@@ -14,7 +14,7 @@ export async function createChapter(formData: FormData) {
     title, course_id: courseId, position: (count || 0) + 1, is_published: true,
   });
   if (error) return { error: error.message };
-  revalidatePath(`/dashboard/courses/${courseId}`);
+  //revalidatePath(`/dashboard/courses/${courseId}`);
   return { success: true };
 }
 
@@ -28,7 +28,7 @@ export async function deleteChapter(chapterId: string, courseId: string) {
       if (lesson.video_id) await deleteVideoFromBunny(lesson.video_id);
     }
   }
-  revalidatePath(`/dashboard/courses/${courseId}`);
+  //revalidatePath(`/dashboard/courses/${courseId}`);
   return { success: true };
 }
 
@@ -36,7 +36,7 @@ export async function updateChapter(chapterId: string, courseId: string, newTitl
     const supabase = await createClient();
     const { error } = await supabase.from("chapters").update({ title: newTitle }).eq("id", chapterId);
     if (error) return { error: error.message };
-    revalidatePath(`/dashboard/courses/${courseId}`);
+    //revalidatePath(`/dashboard/courses/${courseId}`);
     return { success: true };
 }
 
@@ -53,7 +53,7 @@ export async function createLesson(formData: FormData) {
     title, description, chapter_id: chapterId, position: (count || 0) + 1, is_published: true, video_id: videoId,
   });
   if (error) return { error: error.message };
-  revalidatePath(`/dashboard/courses/${courseId}`);
+  //revalidatePath(`/dashboard/courses/${courseId}`);
   return { success: true };
 }
 
@@ -73,7 +73,7 @@ export async function updateLesson(formData: FormData) {
   }).eq("id", lessonId);
 
   if (error) return { error: error.message };
-  revalidatePath(`/dashboard/courses/${courseId}`);
+  //revalidatePath(`/dashboard/courses/${courseId}`);
   return { success: true };
 }
 
@@ -83,7 +83,7 @@ export async function deleteLesson(lessonId: string, courseId: string) {
   const { error } = await supabase.from("lessons").delete().eq("id", lessonId);
   if (error) return { error: error.message };
   if (lesson?.video_id) await deleteVideoFromBunny(lesson.video_id);
-  revalidatePath(`/dashboard/courses/${courseId}`);
+  //revalidatePath(`/dashboard/courses/${courseId}`);
   return { success: true };
 }
 
@@ -140,9 +140,9 @@ export async function saveCourseContent(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/dashboard/courses/${courseId}`);
-  revalidatePath("/dashboard/courses"); 
-  revalidatePath("/dashboard");
+  //revalidatePath(`/dashboard/courses/${courseId}`);
+  //revalidatePath("/dashboard/courses"); 
+  //revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -158,7 +158,7 @@ export async function toggleCoursePublish(courseId: string, currentStatus: boole
 
     if (error) return { error: error.message };
     
-    revalidatePath("/dashboard/courses");
-    revalidatePath("/dashboard");
+    //revalidatePath("/dashboard/courses");
+    //revalidatePath("/dashboard");
     return { success: true };
 }

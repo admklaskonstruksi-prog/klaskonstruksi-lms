@@ -80,7 +80,7 @@ export async function updateCourse(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  revalidatePath("/dashboard/courses");
+  //revalidatePath("/dashboard/courses");
   return { success: true };
 }
 
@@ -105,7 +105,7 @@ export async function deleteCourse(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  revalidatePath("/dashboard/courses");
+  //revalidatePath("/dashboard/courses");
   return { success: true };
 }
 
@@ -121,7 +121,7 @@ export async function deleteLesson(formData: FormData) {
   
   if (error) return { error: error.message };
   
-  revalidatePath("/dashboard/courses", "layout");
+  //revalidatePath("/dashboard/courses", "layout");
   return { success: true };
 }
 
@@ -150,7 +150,7 @@ export async function saveLesson(formData: FormData) {
 
   if (error) return { error: error.message };
   
-  revalidatePath("/dashboard/courses", "layout");
+  //revalidatePath("/dashboard/courses", "layout");
   return { success: true };
 }
 // Cuma import yang upload saja
@@ -170,6 +170,6 @@ export async function toggleCourseStatus(courseId: string, newStatus: boolean) {
 
   if (error) return { error: error.message };
   
-  revalidatePath("/dashboard/courses"); // Refresh halaman list kelas
+  //revalidatePath("/dashboard/courses"); // Refresh halaman list kelas
   return { success: true };
 }

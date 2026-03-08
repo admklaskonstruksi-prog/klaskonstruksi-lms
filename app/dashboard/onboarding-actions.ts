@@ -21,6 +21,6 @@ export async function saveOnboardingResult(level: string, interestId: string) {
     if (error) return { error: error.message };
 
     // Refresh halaman agar data baru terbaca
-    revalidatePath("/dashboard");
+    //revalidatePath("/dashboard");
     return { success: true };
 }

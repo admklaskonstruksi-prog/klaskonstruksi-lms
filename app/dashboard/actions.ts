@@ -58,8 +58,8 @@ export async function purchaseChapter(courseId: string, chapterId: string, price
     console.error("Revenue recording error:", revenueError);
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/learning-path");
+  //revalidatePath("/dashboard");
+  //revalidatePath("/dashboard/learning-path");
   
   return { success: true };
 }
@@ -81,7 +81,7 @@ export async function completeMission(chapterId: string) {
   
     if (error) return { error: error.message };
     
-    revalidatePath("/dashboard/learning-path");
+    //revalidatePath("/dashboard/learning-path");
     return { success: true };
 }
 
@@ -99,6 +99,6 @@ export async function updateLessonProgress(chapterId: string, progress: number) 
   
     if (error) return { error: error.message };
     
-    revalidatePath("/dashboard/learning-path");
+    //revalidatePath("/dashboard/learning-path");
     return { success: true };
 }

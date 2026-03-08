@@ -12,8 +12,8 @@ export async function createMainCategory(formData: FormData) {
   const { error } = await supabase.from("main_categories").insert([{ name }]);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/categories");
-  revalidatePath("/dashboard/courses/create");
+  //revalidatePath("/dashboard/categories");
+  //revalidatePath("/dashboard/courses/create");
 }
 
 export async function deleteMainCategory(formData: FormData) {
@@ -22,7 +22,7 @@ export async function deleteMainCategory(formData: FormData) {
   const { error } = await supabase.from("main_categories").delete().eq("id", id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/categories");
+  //revalidatePath("/dashboard/categories");
 }
 
 // --- SUB CATEGORY ACTIONS ---
@@ -36,8 +36,8 @@ export async function createSubCategory(formData: FormData) {
   const { error } = await supabase.from("sub_categories").insert([{ name, main_category_id }]);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/categories");
-  revalidatePath("/dashboard/courses/create");
+  //revalidatePath("/dashboard/categories");
+  //revalidatePath("/dashboard/courses/create");
 }
 
 export async function deleteSubCategory(formData: FormData) {
@@ -46,7 +46,7 @@ export async function deleteSubCategory(formData: FormData) {
   const { error } = await supabase.from("sub_categories").delete().eq("id", id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/categories");
+  //revalidatePath("/dashboard/categories");
 }
 
 // --- LEVEL ACTIONS ---
@@ -58,8 +58,8 @@ export async function createLevel(formData: FormData) {
   const { error } = await supabase.from("course_levels").insert([{ name }]);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/categories");
-  revalidatePath("/dashboard/courses/create");
+  //revalidatePath("/dashboard/categories");
+  //revalidatePath("/dashboard/courses/create");
 }
 
 export async function deleteLevel(formData: FormData) {
@@ -68,5 +68,5 @@ export async function deleteLevel(formData: FormData) {
   const { error } = await supabase.from("course_levels").delete().eq("id", id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/categories");
+  //revalidatePath("/dashboard/categories");
 }

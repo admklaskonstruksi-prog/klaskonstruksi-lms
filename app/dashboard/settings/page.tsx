@@ -31,8 +31,8 @@ export default async function SettingsPage() {
         updated_at: new Date().toISOString()
     }).eq("id", user.id);
 
-    revalidatePath("/dashboard/settings");
-    revalidatePath("/dashboard");
+    //revalidatePath("/dashboard/settings");
+    //revalidatePath("/dashboard");
   }
 
   return (
