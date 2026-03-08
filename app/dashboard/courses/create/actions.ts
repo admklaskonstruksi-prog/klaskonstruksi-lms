@@ -6,6 +6,26 @@ import { redirect } from "next/navigation";
 export async function createNewCourse(formData: FormData) {
   const supabase = await createClient();
 
+  // =========================================================================
+  // 1. SECURITY: Proteksi Hak Akses (Cek Login & Role Admin)
+  // =========================================================================
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: "Akses ditolak. Anda belum login." };
+  }
+
+  // Cek role user di tabel profiles
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.role !== "admin") {
+    return { error: "Akses ilegal. Hanya admin yang dapat membuat kelas baru." };
+  }
+  // =========================================================================
+
   // 1. Ambil data teks standar dari form
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
@@ -23,7 +43,7 @@ export async function createNewCourse(formData: FormData) {
       return { error: "Judul, Kategori Utama, Sub Kategori, dan Level wajib diisi!" };
   }
 
-  // 3. LOGIKA UPLOAD THUMBNAIL (Sudah Diaktifkan)
+  // 3. LOGIKA UPLOAD THUMBNAIL
   const thumbnailFile = formData.get("thumbnail") as File;
   let thumbnail_url = null;
 

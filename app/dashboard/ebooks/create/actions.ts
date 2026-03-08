@@ -7,6 +7,26 @@ export async function createEbookAction(formData: FormData) {
   try {
     const supabase = await createClient();
 
+    // =========================================================================
+    // 1. SECURITY: Proteksi Hak Akses (Cek Login & Role Admin)
+    // =========================================================================
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { error: "Akses ditolak. Anda belum login." };
+    }
+
+    // Cek role user di tabel profiles
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.role !== "admin") {
+      return { error: "Akses ilegal. Hanya admin yang dapat merilis e-book." };
+    }
+    // =========================================================================
+
     // 1. Ambil data dari form
     const title = formData.get("title") as string;
     const price = parseFloat(formData.get("price") as string) || 0;
