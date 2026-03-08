@@ -1,7 +1,6 @@
 export const runtime = 'edge';
 
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js"; 
 
 export async function POST(req: Request) {
@@ -11,12 +10,16 @@ export async function POST(req: Request) {
     // =========================================================================
     // 1. SECURITY: Validasi Signature Key Midtrans (Cegah Injeksi Pembayaran)
     // =========================================================================
-    // Server Key Midtrans kamu (pastikan sudah disetting di file .env)
     const serverKey = process.env.MIDTRANS_SERVER_KEY || "";
-    
-    // Rumus wajib dari Midtrans: SHA512(order_id + status_code + gross_amount + server_key)
     const signatureRaw = `${body.order_id}${body.status_code}${body.gross_amount}${serverKey}`;
-    const calculatedSignature = crypto.createHash("sha512").update(signatureRaw).digest("hex");
+    
+    // --- MENGGUNAKAN WEB CRYPTO API (Khusus untuk Cloudflare / Edge Runtime) ---
+    const encoder = new TextEncoder();
+    const data = encoder.encode(signatureRaw);
+    const hashBuffer = await crypto.subtle.digest('SHA-512', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const calculatedSignature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // ---------------------------------------------------------------------------
 
     if (body.signature_key !== calculatedSignature) {
       console.warn("⚠️ Serangan terdeteksi: Signature Midtrans tidak valid!");
@@ -30,20 +33,14 @@ export async function POST(req: Request) {
     // =========================================================================
     // 2. SECURITY: Update Database menggunakan Service Role
     // =========================================================================
-    // Karena Webhook dipanggil oleh server Midtrans (bukan oleh user yang login),
-    // kita tidak punya session/cookie. Kita WAJIB menggunakan SUPABASE_SERVICE_ROLE_KEY
-    // agar backend memiliki akses "Super Admin" untuk update tabel transaksi (menembus RLS).
-    
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-    // CATATAN: Pastikan SUPABASE_SERVICE_ROLE_KEY ada di file .env kamu!
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""; 
     
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const transactionStatus = body.transaction_status;
-    const orderId = body.order_id; // Biasanya string seperti "ORDER-12345"
+    const orderId = body.order_id; 
     
-    // Tentukan status akhir yang akan disimpan ke database
     let paymentStatus = 'pending';
     if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
       paymentStatus = 'success';
@@ -51,8 +48,6 @@ export async function POST(req: Request) {
       paymentStatus = 'failed';
     }
 
-    // Lakukan update ke tabel database kamu 
-    // (Ubah 'transactions' dan 'order_id' sesuai dengan nama tabel di Supabase kamu)
     const { error } = await supabaseAdmin
       .from('transactions') 
       .update({ status: paymentStatus })
@@ -63,7 +58,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Gagal update database" }, { status: 500 });
     }
 
-    // Wajib mengembalikan status 200 OK ke Midtrans agar mereka tidak melakukan pengiriman ulang (retry)
     return NextResponse.json({ status: "success", message: "Webhook Midtrans berhasil divalidasi dan diproses" });
 
   } catch (error: any) {
