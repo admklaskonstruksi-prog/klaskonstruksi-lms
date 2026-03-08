@@ -75,7 +75,7 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/" className="text-[#00C9A7] font-bold transition-colors">Beranda</Link>
               <button onClick={() => scrollToSection("program")} className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Program Klas</button>
-              <Link href="/ebooks" className="text-[#00C9A7] font-bold transition-colors">Katalog E-Book</Link>
+              <button onClick={() => scrollToSection("program")} className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Katalog E-Book</button>
               <button onClick={() => scrollToSection("mentor")} className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">Daftar Mentor</button>
             </div>
             <div className="hidden md:flex items-center gap-3">
@@ -97,6 +97,7 @@ export default function LandingPage() {
             <div className="px-4 pt-2 pb-6 space-y-2">
               <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-bold text-[#00C9A7] bg-teal-50 rounded-lg">Beranda</Link>
               <button onClick={() => scrollToSection("program")} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Program Klas</button>
+              <button onClick={() => scrollToSection("ebooks")} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Katalog E-Book</button>
               <button onClick={() => scrollToSection("mentor")} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Daftar Mentor</button>
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
                 <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
