@@ -16,15 +16,28 @@ import {
   PlayCircle,
   Star,
   StarHalf,
-  BookText
+  BookText,
+  ShoppingCart
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [highlightCourses, setHighlightCourses] = useState<any[]>([]);
   const [latestEbooks, setLatestEbooks] = useState<any[]>([]);
+  const [cartItems, setCartItems] = useState<any[]>([]);
 
   useEffect(() => {
+    // Memuat keranjang dari localStorage saat komponen pertama kali dimuat
+    const savedCart = localStorage.getItem("klaskonstruksi_cart");
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch (e) {
+        console.error("Gagal memuat keranjang", e);
+      }
+    }
+
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
     const supabase = createClient();
     
@@ -54,6 +67,28 @@ export default function LandingPage() {
     fetchHighlightCourses();
     fetchEbooks();
   }, []);
+
+  // Fungsi untuk handle Tambah/Hapus Keranjang
+  const toggleCart = (e: React.MouseEvent, item: any, type: 'ebook' | 'course' = 'ebook') => {
+    e.preventDefault(); 
+    e.stopPropagation();
+
+    const isExist = cartItems.find((cartItem) => cartItem.id === item.id && cartItem.type === type);
+    let newCart;
+
+    if (isExist) {
+      newCart = cartItems.filter((cartItem) => !(cartItem.id === item.id && cartItem.type === type));
+      toast('Dihapus dari keranjang', { icon: '🗑️' });
+    } else {
+      newCart = [...cartItems, { ...item, type }];
+      toast.success("Ditambahkan ke keranjang");
+    }
+
+    setCartItems(newCart);
+    localStorage.setItem("klaskonstruksi_cart", JSON.stringify(newCart));
+    // Trigger event agar FloatingCartPublic mendeteksi perubahan state keranjang
+    window.dispatchEvent(new Event("cartUpdated")); 
+  };
 
   const scrollToSection = (id: string) => {
     setIsMobileMenuOpen(false);
@@ -209,7 +244,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ================= SECTION E-BOOK TERBARU (TANPA TOMBOL CART) ================= */}
+      {/* ================= SECTION E-BOOK TERBARU DENGAN TOMBOL CART ================= */}
       {latestEbooks.length > 0 && (
         <section className="py-20 bg-gray-50 border-t border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -227,8 +262,10 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {latestEbooks.map((ebook) => (
-                <Link href={`/ebooks/${ebook.id}`} key={ebook.id} className="group">
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-2 h-full flex flex-col">
+                <div key={ebook.id} className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 h-full flex flex-col relative">
+                  
+                  {/* Wrapper Link (Dibuat terpisah dari button untuk menghindari hydration error) */}
+                  <Link href={`/ebooks/${ebook.id}`} className="flex flex-col flex-1">
                     <div className="aspect-[4/3] bg-gradient-to-br from-teal-900 to-gray-900 relative flex items-center justify-center p-6 text-center">
                       <div className="absolute top-3 left-3 bg-[#F97316] text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider shadow-md">
                         E-Book
@@ -243,15 +280,35 @@ export default function LandingPage() {
                       </h3>
                       <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
                         <span className="text-sm font-black text-[#00C9A7]">
-                          {ebook.price === 0 ? "GRATIS" : `Rp ${ebook.price.toLocaleString("id-ID")}`}
+                          {Number(ebook.price) === 0 ? "GRATIS" : `Rp ${Number(ebook.price).toLocaleString("id-ID")}`}
                         </span>
                         <div className="text-xs text-gray-400 font-medium flex items-center gap-1">
-                          <BookText size={12} /> {ebook.sold_count} terjual
+                          <BookText size={12} /> {ebook.sold_count || 0} terjual
                         </div>
                       </div>
                     </div>
+                  </Link>
+
+                  {/* Tombol Keranjang dinamis */}
+                  <div className="px-5 pb-5">
+                    {cartItems.some(item => item.id === ebook.id && item.type === 'ebook') ? (
+                      <button 
+                        onClick={(e) => toggleCart(e, ebook, 'ebook')}
+                        className="w-full py-2.5 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 text-sm border border-red-100"
+                      >
+                        <ShoppingCart size={16} /> Hapus dari Keranjang
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={(e) => toggleCart(e, ebook, 'ebook')}
+                        className="w-full py-2.5 bg-[#00C9A7] text-white hover:bg-[#00b596] font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-md shadow-teal-500/20 hover:-translate-y-0.5"
+                      >
+                        <ShoppingCart size={16} /> Tambah ke Keranjang
+                      </button>
+                    )}
                   </div>
-                </Link>
+
+                </div>
               ))}
             </div>
           </div>
