@@ -1,5 +1,4 @@
 "use client";
-export const runtime = 'edge';
 
 import { useState } from "react";
 import { saveCourseContent } from "../actions"; 
@@ -86,15 +85,22 @@ export default function EditCourseForm({ course, categories = [], subCategories 
     const validKeypoints = keypointList.filter(k => k.trim() !== "");
     formData.set("keypoints", JSON.stringify(validKeypoints)); 
 
-    const result = await saveCourseContent(formData);
+    try {
+      const result = await saveCourseContent(formData);
 
-    if (result?.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("Detail kelas berhasil diperbarui!");
-      router.refresh();
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Detail kelas berhasil diperbarui!");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Gagal menyimpan data:", error);
+      toast.error("Terjadi kesalahan jaringan atau server. Coba matikan AdBlocker/Ekstensi.");
+    } finally {
+      // Baris ini PASTI dieksekusi walaupun kode error, sehingga tombol berhenti berputar
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   return (
@@ -209,7 +215,7 @@ export default function EditCourseForm({ course, categories = [], subCategories 
                     defaultValue={course.level_id || ""} 
                     required 
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-white cursor-pointer"
-                  >
+                 >
                     <option value="" disabled>-- Pilih Level --</option>
                     {levels.map((lvl) => (
                         <option key={lvl.id} value={lvl.id}>{lvl.name}</option>

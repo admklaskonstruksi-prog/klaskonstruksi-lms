@@ -1,5 +1,4 @@
 "use client";
-export const runtime = 'edge';
 
 import { useState } from "react";
 import { X, Loader2, Save, UploadCloud, Image as ImageIcon } from "lucide-react";
@@ -37,7 +36,7 @@ export default function EditCourseModal({ course, categories, onClose }: any) {
             window.location.reload(); 
         }
     } catch (error) {
-        toast.error("Gagal menyimpan perubahan.");
+        toast.error("Gagal menyimpan perubahan. Cek koneksi atau nonaktifkan AdBlock.");
     } finally {
         setIsLoading(false);
     }
