@@ -4,7 +4,6 @@ import { useState } from "react";
 import { saveCourseContent } from "../actions"; 
 import { Loader2, Save, Upload, ImageIcon, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 
 interface CourseData {
   id: string;
@@ -37,8 +36,6 @@ export default function EditCourseForm({ course, categories = [], subCategories 
   
   // State untuk filter Sub Kategori dinamis
   const [selectedMainCat, setSelectedMainCat] = useState(course.main_category_id || "");
-  
-  const router = useRouter();
 
   // Filter otomatis sub kategori
   const filteredSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
@@ -92,7 +89,8 @@ export default function EditCourseForm({ course, categories = [], subCategories 
         toast.error(result.error);
       } else {
         toast.success("Detail kelas berhasil diperbarui!");
-        router.refresh();
+        // Menggunakan hard reload agar Cloudflare tidak memblokir RSC request Next.js
+        window.location.reload(); 
       }
     } catch (error) {
       console.error("Gagal menyimpan data:", error);

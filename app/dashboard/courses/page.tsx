@@ -1,4 +1,5 @@
 export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
@@ -8,7 +9,6 @@ import Image from "next/image";
 import { Plus, Search, Edit3, LayoutList, ChevronUp, ChevronDown, BookOpen } from "lucide-react";
 import PublishToggle from "./components/PublishToggle";
 
-export const dynamic = "force-dynamic";
 
 export default async function AdminCoursesPage({ searchParams }: { searchParams?: Promise<any> | any }) {
   const supabase = await createClient();
