@@ -49,11 +49,11 @@ export default function PublicEbooksCatalog() {
               <Link href="/" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Beranda
               </Link>
-              <Link href="/ebooks" className="text-[#00C9A7] font-bold transition-colors">
-                Katalog E-Book
-              </Link>
-              <Link href="/#program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+              <Link href="/program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Program Klas
+              </Link>
+              <Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Katalog E-Book
               </Link>
             </div>
 
@@ -77,8 +77,12 @@ export default function PublicEbooksCatalog() {
           <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-2xl">
             <div className="px-4 pt-2 pb-6 space-y-2">
               <Link href="/" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Beranda</Link>
-              <Link href="/ebooks" className="block w-full text-left px-3 py-3 text-base font-bold text-[#00C9A7] bg-teal-50 rounded-lg">Katalog E-Book</Link>
-              <Link href="/#program" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Program Klas</Link>
+              <Link href="/program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Program Klas
+              </Link>
+              <Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Katalog E-Book
+              </Link>
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
                 <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
                 <Link href="/login?mode=register" className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
@@ -195,8 +199,12 @@ export default function PublicEbooksCatalog() {
             <h4 className="font-bold text-lg mb-6 text-white">Menu Navigasi</h4>
             <ul className="space-y-3 text-sm text-gray-400">
               <li><Link href="/" className="hover:text-[#00C9A7] transition-colors">Beranda</Link></li>
-              <li><Link href="/#program" className="hover:text-[#00C9A7] transition-colors">Program Klas</Link></li>
-              <li><Link href="/ebooks" className="hover:text-[#00C9A7] transition-colors text-[#00C9A7]">Katalog E-Book</Link></li>
+              <Link href="/program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Program Klas
+              </Link>
+              <Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Katalog E-Book
+              </Link>
             </ul>
           </div>
 
