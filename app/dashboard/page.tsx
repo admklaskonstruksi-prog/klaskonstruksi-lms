@@ -19,6 +19,14 @@ export default async function DashboardPage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   const isAdmin = profile?.role?.toLowerCase() === 'admin';
 
+  // Fungsi helper untuk memformat angka ke format Rupiah (tanpa "Rp" agar tidak double)
+  const formatRupiah = (angka: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(angka || 0);
+  };
+
   // ============================================================================
   // BLOKIR JIKA PROFIL GOOGLE BELUM LENGKAP
   // ============================================================================
@@ -39,7 +47,8 @@ export default async function DashboardPage() {
       address: formData.get("address") as string,
     }).eq("id", user.id);
 
-    //revalidatePath("/dashboard");
+    // Diaktifkan kembali agar halaman langsung ter-refresh dan modal hilang
+    revalidatePath("/dashboard");
   }
 
   if (isProfileIncomplete) {
@@ -125,7 +134,8 @@ export default async function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Pendapatan</p>
-                    <h3 className="text-2xl font-black text-gray-900 mb-3 truncate">Rp {totalRevenue.toLocaleString("id-ID")}</h3>
+                    {/* Class truncate Dihapus, menggunakan formatRupiah */}
+                    <h3 className="text-2xl font-black text-gray-900 mb-3">Rp {formatRupiah(totalRevenue)}</h3>
                     <div className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center"><Wallet size={16} /></div>
                 </div>
 
@@ -141,7 +151,6 @@ export default async function DashboardPage() {
                     <div className="w-8 h-8 rounded-lg bg-orange-100 text-[#F97316] flex items-center justify-center"><TrendingUp size={16} /></div>
                 </div>
 
-                {/* --- KOTAK BARU KHUSUS PENJUALAN E-BOOK --- */}
                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center border-l-4 border-l-[#00C9A7]">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Jual E-Book</p>
                     <h3 className="text-2xl font-black text-gray-900 mb-3">{ebookSalesCount || 0} <span className="text-sm font-medium text-gray-400">Lisensi</span></h3>
@@ -173,7 +182,8 @@ export default async function DashboardPage() {
                                     <p className="text-xs text-[#F97316] font-bold">{course.real_sales} Orang Daftar</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-black text-[#00C9A7]">Rp {(course.price * course.real_sales).toLocaleString("id-ID")}</p>
+                                    {/* Menerapkan formatRupiah di daftar Kelas Terlaris */}
+                                    <p className="text-sm font-black text-[#00C9A7]">Rp {formatRupiah(course.price * course.real_sales)}</p>
                                 </div>
                             </div>
                         ))}
