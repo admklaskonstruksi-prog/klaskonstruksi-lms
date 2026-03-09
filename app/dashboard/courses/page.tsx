@@ -5,10 +5,9 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-// Tambahkan icon BookOpen atau FileText untuk tombol E-Book
-import { Plus, Search, Edit3, LayoutList, ChevronUp, ChevronDown, BookOpen } from "lucide-react";
+import { Plus, Search, Edit3, LayoutList, ChevronUp, ChevronDown, BookOpen, Star } from "lucide-react";
 import PublishToggle from "./components/PublishToggle";
-
+import RatingToggle from "../components/RatingToggle"; // Import komponen Toggle Rating
 
 export default async function AdminCoursesPage({ searchParams }: { searchParams?: Promise<any> | any }) {
   const supabase = await createClient();
@@ -22,17 +21,18 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
   const searchQ = sp?.q || "";
   const sortFilter = sp?.sort || "terbaru";
 
+  // Tambahkan relasi reviews untuk mengambil rating asli
   let query = supabase.from("courses").select(`
     *,
     main_categories!main_category_id ( id, name ),
     sub_categories!sub_category_id ( id, name ),
     course_levels!level_id ( id, name ), 
-    chapters ( id )
+    chapters ( id ),
+    reviews ( rating ) 
   `);
 
   if (searchQ) query = query.ilike("title", `%${searchQ}%`);
 
-  // Sorting Native Database
   if (sortFilter === "terbaru") query = query.order("created_at", { ascending: false });
   if (sortFilter === "terlama") query = query.order("created_at", { ascending: true });
   if (sortFilter === "harga-tinggi") query = query.order("price", { ascending: false });
@@ -42,7 +42,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
 
   if (error) console.error("Error mengambil data kelas:", error);
 
-  // Sorting Custom untuk Relasi Kategori & Status
   if (courses) {
       if (sortFilter === "cat_asc") courses.sort((a, b) => (a.main_categories?.name || "").localeCompare(b.main_categories?.name || ""));
       if (sortFilter === "cat_desc") courses.sort((a, b) => (b.main_categories?.name || "").localeCompare(a.main_categories?.name || ""));
@@ -54,7 +53,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
       if (sortFilter === "status_desc") courses.sort((a, b) => (a.is_published === b.is_published ? 0 : a.is_published ? 1 : -1));
   }
 
-  // Komponen pembantu untuk Header Tabel yang bisa di-klik
   const SortableHeader = ({ label, sortKey }: { label: string, sortKey: string }) => {
       const isAsc = sortFilter === `${sortKey}_asc`;
       const isDesc = sortFilter === `${sortKey}_desc`;
@@ -79,7 +77,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
           <p className="text-gray-500 text-sm mt-1">Daftar semua kelas, e-book, kategori, dan status publikasi.</p>
         </div>
         
-        {/* BAGIAN TOMBOL ACTION DITAMBAH BUTTON E-BOOK */}
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/dashboard/courses/create" className="bg-[#00C9A7] text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#00b596] transition-colors shadow-lg shadow-[#00C9A7]/20">
             <Plus size={18} /> Buat Kelas Baru
@@ -90,7 +87,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
         </div>
       </div>
 
-      {/* FILTER BAR PENCARIAN & HARGA */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
         <form method="GET" className="flex flex-col md:flex-row gap-4">
            <div className="relative flex-1 flex items-center">
@@ -111,16 +107,15 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
         </form>
       </div>
 
-      {/* TABEL DATA KELAS */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
         <table className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
             <tr>
               <th className="px-6 py-4">Informasi Kelas</th>
-              <th className="px-6 py-4"><SortableHeader label="Kategori Utama" sortKey="cat" /></th>
-              <th className="px-6 py-4"><SortableHeader label="Sub Kategori" sortKey="sub" /></th>
+              <th className="px-6 py-4"><SortableHeader label="Kategori" sortKey="cat" /></th>
               <th className="px-6 py-4">Statistik</th>
               <th className="px-6 py-4"><SortableHeader label="Status" sortKey="status" /></th>
+              <th className="px-6 py-4">Mode Rating</th>
               <th className="px-6 py-4 text-right">Aksi</th>
             </tr>
           </thead>
@@ -129,7 +124,12 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                 <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">Belum ada kelas yang ditemukan.</td>
                 </tr>
-            ) : courses.map((course: any) => (
+            ) : courses.map((course: any) => {
+              // Menghitung rata-rata rating asli
+              const ratings = course.reviews?.map((r: any) => r.rating) || [];
+              const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";
+
+              return (
               <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
                 
                 <td className="px-6 py-4">
@@ -151,15 +151,14 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                 </td>
 
                 <td className="px-6 py-4">
-                    <span className="text-gray-900 font-bold text-xs bg-gray-100 px-2 py-1 rounded">
-                       {course.main_categories?.name || "Belum diatur"}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-gray-900 font-bold text-xs bg-gray-100 px-2 py-1 rounded w-max">
+                        {course.main_categories?.name || "Belum diatur"}
                     </span>
-                </td>
-
-                <td className="px-6 py-4">
-                    <span className="text-gray-500 font-medium text-xs">
+                    <span className="text-gray-500 font-medium text-[10px]">
                         {course.sub_categories?.name || "-"}
                     </span>
+                  </div>
                 </td>
 
                 <td className="px-6 py-4">
@@ -174,8 +173,17 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                 </td>
 
                 <td className="px-6 py-4">
-                    {/* KOMPONEN TOGGLE PUBLISH */}
                     <PublishToggle courseId={course.id} isPublished={course.is_published} />
+                </td>
+
+                {/* Kolom Mode Rating */}
+                <td className="px-6 py-4">
+                  <div className="flex flex-col gap-2">
+                    <RatingToggle id={course.id} initialUseDummy={course.use_dummy_rating} tableName="courses" />
+                    <div className="text-[10px] text-gray-500">
+                      Asli: <span className="font-bold text-gray-800">{realAvg} <Star size={10} className="inline text-yellow-400 fill-current -mt-0.5" /></span> | Dummy: {course.dummy_rating}
+                    </div>
+                  </div>
                 </td>
 
                 <td className="px-6 py-4 text-right">
@@ -188,11 +196,10 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                 </td>
 
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
     </div>
   );
-} 
-
+}

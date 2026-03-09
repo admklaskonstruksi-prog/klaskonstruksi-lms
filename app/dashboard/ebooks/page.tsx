@@ -1,83 +1,138 @@
-import { createClient } from "@/utils/supabase/server";
-import Link from "next/link";
-import { BookText, Star, ShoppingCart } from "lucide-react";
-
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export default async function EbooksCatalogPage() {
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { Search, Edit3, BookOpen, Star, Plus } from "lucide-react";
+import RatingToggle from "../components/RatingToggle";
+import EbookPublishToggle from "./components/EbookPublishToggle";
+
+export default async function AdminEbooksPage({ searchParams }: { searchParams?: Promise<any> | any }) {
   const supabase = await createClient();
-  
-  // Ambil semua data E-Book dari database
-  const { data: ebooks } = await supabase
-    .from("ebooks")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return redirect("/login");
+
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role?.toLowerCase() !== "admin") return redirect("/dashboard");
+
+  const sp = await searchParams;
+  const searchQ = sp?.q || "";
+
+  // Mengambil data ebooks beserta rating aslinya
+  let query = supabase.from("ebooks").select(`
+    *,
+    reviews ( rating )
+  `).order('created_at', { ascending: false });
+
+  if (searchQ) query = query.ilike("title", `%${searchQ}%`);
+
+  let { data: ebooks, error } = await query;
+
+  if (error) console.error("Error mengambil data ebook:", error);
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-12 pb-24">
-      <div className="max-w-6xl mx-auto px-6">
-        
-        <div className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">
-            Katalog E-Book <span className="text-[#00C9A7]">Konstruksi</span>
-          </h1>
-          <p className="text-gray-500 max-w-2xl mx-auto">
-            Tingkatkan pengetahuan dan keahlian Anda melalui panduan tertulis eksklusif dari para ahli di bidang konstruksi.
-          </p>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Kelola E-Book</h1>
+          <p className="text-gray-500 text-sm mt-1">Daftar semua e-book, harga, dan pengaturan rating.</p>
         </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/dashboard/ebooks/create" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20">
+            <Plus size={18} /> Buat E-Book Baru
+          </Link>
+        </div>
+      </div>
 
-        {(!ebooks || ebooks.length === 0) ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
-            <BookText size={48} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Belum Ada E-Book</h3>
-            <p className="text-gray-500">Saat ini belum ada E-Book yang dirilis. Nantikan update kami selanjutnya!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {ebooks.map((ebook) => (
-              <Link href={`/ebooks/${ebook.id}`} key={ebook.id} className="group">
-                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
-                  
-                  {/* Thumbnail Dummy / Cover */}
-                  <div className="aspect-[4/3] bg-gradient-to-br from-teal-900 to-gray-900 relative flex items-center justify-center p-6 text-center">
-                    <div className="absolute top-4 left-4 bg-orange-500 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
-                      E-Book
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+        <form method="GET" className="flex flex-col md:flex-row gap-4">
+           <div className="relative flex-1 flex items-center">
+             <Search size={18} className="absolute left-4 text-gray-400" />
+             <input type="text" name="q" defaultValue={searchQ} placeholder="Cari judul e-book..." className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+           </div>
+           <button type="submit" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors whitespace-nowrap">
+              Cari E-Book
+           </button>
+        </form>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
+        <table className="w-full text-left text-sm whitespace-nowrap">
+          <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
+            <tr>
+              <th className="px-6 py-4">Informasi E-Book</th>
+              <th className="px-6 py-4">Terjual</th>
+              <th className="px-6 py-4">Status</th> {/* Header Status Baru */}
+              <th className="px-6 py-4">Mode Rating</th>
+              <th className="px-6 py-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {!ebooks || ebooks.length === 0 ? (
+                <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400 font-medium">Belum ada e-book yang ditemukan.</td>
+                </tr>
+            ) : ebooks.map((ebook: any) => {
+              
+              // Menghitung rata-rata rating asli
+              const ratings = ebook.reviews?.map((r: any) => r.rating) || [];
+              const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";
+
+              return (
+              <tr key={ebook.id} className="hover:bg-gray-50/50 transition-colors">
+                
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-12 h-16 bg-blue-50 rounded overflow-hidden flex-shrink-0 border border-blue-100 flex items-center justify-center">
+                        <BookOpen size={24} className="text-blue-300" />
                     </div>
-                    <h3 className="text-white font-bold text-xl leading-snug drop-shadow-md">
-                      {ebook.title}
-                    </h3>
+                    <div>
+                      <h3 className="font-bold text-gray-900 max-w-[250px] truncate">{ebook.title}</h3>
+                      <p className="text-xs text-blue-600 font-bold mt-1">
+                        {ebook.price > 0 ? `Rp ${ebook.price.toLocaleString("id-ID")}` : "Gratis"}
+                      </p>
+                    </div>
                   </div>
+                </td>
 
-                  <div className="p-6">
-                    <h2 className="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#00C9A7] transition-colors">
-                      {ebook.title}
-                    </h2>
-                    
-                    <div className="flex items-center gap-4 mb-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1 text-orange-400">
-                        <Star size={16} className="fill-current" />
-                        <span className="font-bold text-gray-700">{ebook.rating}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <ShoppingCart size={16} />
-                        <span>{ebook.sold_count} terjual</span>
-                      </div>
-                    </div>
+                <td className="px-6 py-4">
+                  <span className="text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-full text-xs">
+                     {ebook.sold_count || 0} Pembelian
+                  </span>
+                </td>
 
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-                      <span className="text-lg font-black text-[#00C9A7]">
-                        {ebook.price === 0 ? "GRATIS" : `Rp ${ebook.price.toLocaleString("id-ID")}`}
-                      </span>
-                      <span className="text-sm font-semibold text-gray-900 bg-gray-50 px-3 py-1.5 rounded-lg group-hover:bg-[#00C9A7] group-hover:text-white transition-colors">
-                        Lihat Detail
-                      </span>
+                {/* Kolom Status (Publish Toggle) Baru */}
+                <td className="px-6 py-4">
+                  <EbookPublishToggle ebookId={ebook.id} isPublished={ebook.is_published} />
+                </td>
+
+                {/* Kolom Mode Rating */}
+                <td className="px-6 py-4">
+                  <div className="flex flex-col gap-2">
+                    {/* Perhatikan prop tableName="ebooks" */}
+                    <RatingToggle id={ebook.id} initialUseDummy={ebook.use_dummy_rating} tableName="ebooks" />
+                    <div className="text-[10px] text-gray-500">
+                      Asli: <span className="font-bold text-gray-800">{realAvg} <Star size={10} className="inline text-yellow-400 fill-current -mt-0.5" /></span> | Dummy: {ebook.dummy_rating}
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+                </td>
+
+                <td className="px-6 py-4 text-right">
+                  <Link 
+                    href={`/dashboard/ebooks/${ebook.id}`} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-lg transition-colors border border-blue-100"
+                  >
+                    <Edit3 size={16} /> Edit
+                  </Link>
+                </td>
+
+              </tr>
+            )})}
+          </tbody>
+        </table>
       </div>
     </div>
   );
