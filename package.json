@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:cf": "npx @opennextjs/cloudflare build && mv .open-next/worker.js .open-next/assets/_worker.js"
+"build:cf": "npx @opennextjs/cloudflare build && echo \"export * from '../worker.js'; export { default } from '../worker.js';\" > .open-next/assets/_worker.js"
   },
   "dependencies": {
     "@lottiefiles/react-lottie-player": "^3.6.0",
