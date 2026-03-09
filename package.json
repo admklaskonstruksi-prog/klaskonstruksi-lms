@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "opennextjs-cloudflare build && wrangler pages deploy"
+    "build:cf": "npx @opennextjs/cloudflare build && cp .open-next/worker.js .open-next/assets/_worker.js"
   },
   "dependencies": {
     "@lottiefiles/react-lottie-player": "^3.6.0",
