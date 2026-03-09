@@ -1,40 +1,42 @@
-"use client";
-export const runtime = 'nodejs';
+'use client';
 
-import { useTransition } from "react";
-// Import diarahkan ke folder [id] tempat actions.ts berada
-import { toggleCoursePublish } from "../[id]/actions"; 
-import toast from "react-hot-toast";
+import { useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function PublishToggle({ courseId, isPublished }: { courseId: string, isPublished: boolean }) {
-    const [isPending, startTransition] = useTransition();
+  const [published, setPublished] = useState(isPublished);
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClient();
+  const router = useRouter();
 
-    const handleToggle = () => {
-        startTransition(async () => {
-            const result = await toggleCoursePublish(courseId, isPublished);
-            if (result?.error) {
-                toast.error("Gagal mengubah status: " + result.error);
-            } else {
-                toast.success(isPublished ? "Kelas diubah menjadi Draft" : "Kelas berhasil di-Live-kan!");
-            }
-        });
-    };
+  const handleToggle = async () => {
+    setIsLoading(true);
+    const newValue = !published;
+    
+    const { error } = await supabase.from('courses').update({ is_published: newValue }).eq('id', courseId);
 
-    return (
-        <div className="flex items-center gap-2">
-            <label className={`relative inline-flex items-center cursor-pointer ${isPending ? 'opacity-50' : ''}`}>
-                <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={isPublished} 
-                    onChange={handleToggle} 
-                    disabled={isPending} 
-                />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00C9A7]"></div>
-            </label>
-            <span className={`text-[11px] font-bold ${isPublished ? 'text-[#00C9A7]' : 'text-gray-400'}`}>
-                {isPublished ? "Live" : "Draft"}
-            </span>
-        </div>
-    );
+    if (!error) {
+      setPublished(newValue);
+      router.refresh();
+    } else {
+      alert("Gagal mengubah status. Pastikan koneksi aman.");
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <button 
+        onClick={handleToggle}
+        disabled={isLoading}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${published ? 'bg-[#00C9A7]' : 'bg-gray-200'} ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${published ? 'translate-x-6' : 'translate-x-1'}`} />
+      </button>
+      <span className={`text-xs font-bold ${published ? 'text-[#00C9A7]' : 'text-gray-400'}`}>
+        {published ? 'Live' : 'Draft'}
+      </span>
+    </div>
+  );
 }

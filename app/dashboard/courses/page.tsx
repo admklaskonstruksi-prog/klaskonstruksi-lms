@@ -21,7 +21,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
   const searchQ = sp?.q || "";
   const sortFilter = sp?.sort || "terbaru";
 
-  // 1. QUERY DIPERBAIKI: Menghapus reviews(rating) agar tidak terjadi PostgREST error
   let query = supabase.from("courses").select(`
     *,
     main_categories!main_category_id ( id, name ),
@@ -40,7 +39,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
   let { data: courses, error } = await query;
   if (error) console.error("Error mengambil data kelas:", error);
 
-  // 2. MENGAMBIL RATING SECARA TERPISAH
   const { data: allReviews } = await supabase
     .from("reviews")
     .select("item_id, rating")
@@ -83,7 +81,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
           <Link href="/dashboard/courses/create" className="bg-[#00C9A7] text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#00b596] transition-colors shadow-lg shadow-[#00C9A7]/20">
             <Plus size={18} /> Buat Kelas Baru
           </Link>
-          <Link href="/dashboard/ebooks/create" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20">
+          <Link href="/dashboard/ebooks/create" className="bg-[#F97316] text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#ea580c] transition-colors shadow-lg shadow-[#F97316]/20">
             <BookOpen size={18} /> Buat E-Book (PDF)
           </Link>
         </div>
@@ -128,7 +126,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                 </tr>
             ) : courses.map((course: any) => {
               
-              // 3. MENGHITUNG RATA-RATA DARI HASIL FETCH TERPISAH
               const ratings = allReviews?.filter((r: any) => r.item_id === course.id).map((r: any) => r.rating) || [];
               const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";
 

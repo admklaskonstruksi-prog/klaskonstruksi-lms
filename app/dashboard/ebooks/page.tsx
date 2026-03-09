@@ -19,7 +19,6 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
   const sp = await searchParams;
   const searchQ = sp?.q || "";
 
-  // 1. QUERY DIPERBAIKI: Hapus relasi reviews
   let query = supabase.from("ebooks").select('*').order('created_at', { ascending: false });
 
   if (searchQ) query = query.ilike("title", `%${searchQ}%`);
@@ -27,7 +26,6 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
   let { data: ebooks, error } = await query;
   if (error) console.error("Error mengambil data ebook:", error);
 
-  // 2. FETCH REVIEW TERPISAH
   const { data: allReviews } = await supabase
     .from("reviews")
     .select("item_id, rating")
@@ -42,7 +40,7 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/dashboard/ebooks/create" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20">
+          <Link href="/dashboard/ebooks/create" className="bg-[#F97316] text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#ea580c] transition-colors shadow-lg shadow-[#F97316]/20">
             <Plus size={18} /> Buat E-Book Baru
           </Link>
         </div>
@@ -52,9 +50,9 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
         <form method="GET" className="flex flex-col md:flex-row gap-4">
            <div className="relative flex-1 flex items-center">
              <Search size={18} className="absolute left-4 text-gray-400" />
-             <input type="text" name="q" defaultValue={searchQ} placeholder="Cari judul e-book..." className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+             <input type="text" name="q" defaultValue={searchQ} placeholder="Cari judul e-book..." className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#00C9A7] outline-none" />
            </div>
-           <button type="submit" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors whitespace-nowrap">
+           <button type="submit" className="bg-[#00C9A7] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#00b596] transition-colors whitespace-nowrap">
               Cari E-Book
            </button>
         </form>
@@ -78,7 +76,6 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
                 </tr>
             ) : ebooks.map((ebook: any) => {
               
-              // 3. MENGHITUNG RATA-RATA DARI HASIL FETCH TERPISAH
               const ratings = allReviews?.filter((r: any) => r.item_id === ebook.id).map((r: any) => r.rating) || [];
               const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";
 
@@ -86,12 +83,12 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
               <tr key={ebook.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
-                    <div className="relative w-12 h-16 bg-blue-50 rounded overflow-hidden flex-shrink-0 border border-blue-100 flex items-center justify-center">
-                        <BookOpen size={24} className="text-blue-300" />
+                    <div className="relative w-12 h-16 bg-teal-50 rounded overflow-hidden flex-shrink-0 border border-teal-100 flex items-center justify-center">
+                        <BookOpen size={24} className="text-[#00C9A7]" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 max-w-[250px] truncate">{ebook.title}</h3>
-                      <p className="text-xs text-blue-600 font-bold mt-1">
+                      <p className="text-xs text-[#00C9A7] font-bold mt-1">
                         {ebook.price > 0 ? `Rp ${ebook.price.toLocaleString("id-ID")}` : "Gratis"}
                       </p>
                     </div>
@@ -99,8 +96,8 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
                 </td>
 
                 <td className="px-6 py-4">
-                  <span className="text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-full text-xs">
-                     {ebook.sold_count || 0} Pembelian
+                  <span className="text-gray-900 font-bold text-xs bg-gray-100 px-3 py-1.5 rounded-full w-max">
+                     {ebook.sold_count || 0} Lisensi
                   </span>
                 </td>
 
@@ -120,7 +117,7 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
                 <td className="px-6 py-4 text-right">
                   <Link 
                     href={`/dashboard/ebooks/${ebook.id}`} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-lg transition-colors border border-blue-100"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-[#00C9A7] bg-teal-50 hover:bg-[#00C9A7] hover:text-white rounded-lg transition-colors border border-teal-100"
                   >
                     <Edit3 size={16} /> Edit
                   </Link>
