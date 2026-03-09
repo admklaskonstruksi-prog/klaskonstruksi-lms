@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Image as ImageIcon, FileText } from "lucide-react";
+import { ArrowLeft, Save, Image as ImageIcon, FileText, CheckCircle2 } from "lucide-react";
 import { revalidatePath } from "next/cache";
 
 export default async function EditEbookPage({ params }: { params: Promise<{ id: string }> }) {
@@ -52,13 +52,12 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
     const pdfFile = formData.get("pdf_file") as File | null;
     const coverFile = formData.get("cover_image") as File | null;
 
-    // Dapatkan data lama untuk fallback URL jika tidak ada file baru yang diunggah
     const { data: currentEbook } = await supabaseClient.from("ebooks").select("file_url, thumbnail_url").eq("id", ebookId).single();
 
     let finalPdfUrl = currentEbook?.file_url;
     let finalCoverUrl = currentEbook?.thumbnail_url;
 
-    // Upload PDF Baru (Jika Admin Memilih File Baru)
+    // Upload PDF Baru
     if (pdfFile && pdfFile.size > 0) {
       const fileExt = pdfFile.name.split('.').pop();
       const fileName = `pdfs/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -69,7 +68,7 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
       }
     }
 
-    // Upload Cover Baru (Jika Admin Memilih Gambar Baru)
+    // Upload Cover Baru
     if (coverFile && coverFile.size > 0) {
       const coverExt = coverFile.name.split('.').pop();
       const coverName = `covers/cover-${Date.now()}-${Math.random().toString(36).substring(7)}.${coverExt}`;
@@ -120,7 +119,6 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
               defaultValue={ebook.title} 
               required 
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none transition-all"
-              placeholder="Contoh: Panduan RAB Terlengkap"
             />
           </div>
 
@@ -133,7 +131,6 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
               required 
               min="0"
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none transition-all"
-              placeholder="0 untuk gratis"
             />
           </div>
 
@@ -144,54 +141,90 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
               defaultValue={ebook.description || ""} 
               rows={4}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none transition-all resize-none"
-              placeholder="Jelaskan apa yang akan dipelajari dari E-Book ini..."
             ></textarea>
           </div>
 
-          {/* AREA UPLOAD FILE */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                <ImageIcon size={16} className="text-gray-400" /> Ganti Cover / Thumbnail
+          {/* AREA UPLOAD FILE DENGAN PREVIEW */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-gray-100 mt-6">
+            
+            {/* KOLOM COVER */}
+            <div className="flex flex-col">
+              <label className="block text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <ImageIcon size={16} className="text-[#F97316]" /> Pengaturan Cover
               </label>
-              <input 
-                type="file" 
-                name="cover_image" 
-                accept="image/png, image/jpeg, image/jpg, image/webp"
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-[#F97316] file:text-white hover:file:bg-[#ea580c] transition-all cursor-pointer border border-gray-200 rounded-xl p-2 bg-gray-50" 
-              />
-              <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                Biarkan kosong jika tidak ingin mengganti cover. <br/>
-                {ebook.thumbnail_url && (
-                  <a href={ebook.thumbnail_url} target="_blank" rel="noreferrer" className="text-[#00C9A7] font-bold hover:underline">
-                    Lihat Cover Saat Ini ↗
-                  </a>
-                )}
-              </p>
+              
+              {/* Preview Cover Lama */}
+              {ebook.thumbnail_url && (
+                <div className="mb-4 bg-orange-50/50 p-4 rounded-2xl border border-orange-100 flex items-start gap-4">
+                   <div className="w-20 h-28 bg-gray-200 rounded-lg overflow-hidden shrink-0 shadow-sm border border-gray-200">
+                      {/* Menggunakan tag img standar agar tidak terblokir next.config domains */}
+                      <img src={ebook.thumbnail_url} alt="Cover saat ini" className="w-full h-full object-cover" />
+                   </div>
+                   <div>
+                     <p className="text-xs font-black text-orange-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                       <CheckCircle2 size={12} /> Cover Aktif
+                     </p>
+                     <p className="text-xs text-gray-600 leading-relaxed mb-2">Ini adalah cover yang sedang tampil di katalog pembeli.</p>
+                     <a href={ebook.thumbnail_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#F97316] hover:underline">
+                       Buka Gambar Penuh ↗
+                     </a>
+                   </div>
+                </div>
+              )}
+
+              {/* Input Ganti Cover */}
+              <div className="mt-auto">
+                <p className="text-xs font-bold text-gray-700 mb-2">Ganti dengan file baru:</p>
+                <input 
+                  type="file" 
+                  name="cover_image" 
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all cursor-pointer border border-gray-200 rounded-xl p-2 bg-white" 
+                />
+                <p className="text-[11px] text-gray-400 mt-2">Biarkan kosong jika tidak ingin mengganti cover.</p>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                <FileText size={16} className="text-gray-400" /> Ganti File E-Book (PDF)
+            {/* KOLOM PDF */}
+            <div className="flex flex-col">
+              <label className="block text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <FileText size={16} className="text-[#00C9A7]" /> Pengaturan File PDF
               </label>
-              <input 
-                type="file" 
-                name="pdf_file" 
-                accept="application/pdf"
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-[#00C9A7] file:text-white hover:file:bg-[#00b596] transition-all cursor-pointer border border-gray-200 rounded-xl p-2 bg-gray-50" 
-              />
-              <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                Biarkan kosong jika tidak ingin mengganti file PDF. <br/>
-                {ebook.file_url && (
-                  <a href={ebook.file_url} target="_blank" rel="noreferrer" className="text-[#00C9A7] font-bold hover:underline">
-                    Lihat PDF Saat Ini ↗
-                  </a>
-                )}
-              </p>
+              
+              {/* Preview PDF Lama */}
+              {ebook.file_url && (
+                <div className="mb-4 bg-teal-50/50 p-4 rounded-2xl border border-teal-100 flex items-start gap-4">
+                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-teal-100 text-[#00C9A7]">
+                      <FileText size={24} />
+                   </div>
+                   <div>
+                     <p className="text-xs font-black text-teal-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                       <CheckCircle2 size={12} /> PDF Aktif
+                     </p>
+                     <p className="text-xs text-gray-600 leading-relaxed mb-2">Dokumen ini yang akan diunduh oleh pembeli saat ini.</p>
+                     <a href={ebook.file_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#00C9A7] hover:underline">
+                       Baca Dokumen Saat Ini ↗
+                     </a>
+                   </div>
+                </div>
+              )}
+
+              {/* Input Ganti PDF */}
+              <div className="mt-auto">
+                <p className="text-xs font-bold text-gray-700 mb-2">Ganti dengan file PDF baru:</p>
+                <input 
+                  type="file" 
+                  name="pdf_file" 
+                  accept="application/pdf"
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-all cursor-pointer border border-gray-200 rounded-xl p-2 bg-white" 
+                />
+                <p className="text-[11px] text-gray-400 mt-2">Biarkan kosong jika tidak ingin mengganti file PDF.</p>
+              </div>
             </div>
+
           </div>
 
-          <div className="pt-8 flex justify-end gap-3">
+          <div className="pt-8 flex justify-end gap-3 mt-4 border-t border-gray-100">
             <Link href="/dashboard/ebooks" className="px-6 py-3 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
               Batal
             </Link>
