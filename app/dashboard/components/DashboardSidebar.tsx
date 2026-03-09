@@ -10,7 +10,8 @@ import toast from "react-hot-toast";
 import { 
   LayoutDashboard, BookOpen, PlusSquare, Tags, 
   Users, BarChart3, Settings, LogOut, 
-  ChevronLeft, ChevronRight, Compass, Library, Loader2, ShoppingCart, BookText
+  Compass, Library, Loader2, ShoppingCart, BookText,
+  PanelLeftClose, PanelLeftOpen // Icon baru untuk toggle ala Cloudflare
 } from "lucide-react";
 
 interface DashboardSidebarProps {
@@ -64,25 +65,23 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
 
   const handleLogout = async () => {
     const toastId = toast.loading("Mengeluarkan akun..."); 
-    
     await supabase.auth.signOut();
-    
     toast.dismiss(toastId);
     window.location.href = "/login"; 
   };
 
   const adminMenus = [
-    { title: "MENU", items: [{ name: "Ringkasan", icon: LayoutDashboard, path: "/dashboard" }] },
-    { title: "ADMIN STUDIO", items: [
+    { title: "Dashboard", items: [{ name: "Ringkasan", icon: LayoutDashboard, path: "/dashboard" }] },
+    { title: "Admin Studio", items: [
         { name: "Daftar Kelas", icon: BookOpen, path: "/dashboard/courses" },
         { name: "Buat Kelas Baru", icon: PlusSquare, path: "/dashboard/courses/create" },
         { name: "Kelola Kategori", icon: Tags, path: "/dashboard/categories" },
     ]},
-    { title: "E-BOOK STUDIO", items: [
+    { title: "E-Book Studio", items: [
         { name: "Daftar E-Book", icon: Library, path: "/dashboard/ebooks" },
         { name: "Buat E-Book Baru", icon: BookText, path: "/dashboard/ebooks/create" },
     ]},
-    { title: "LAPORAN & DATA", items: [
+    { title: "Laporan & Data", items: [
         { name: "Analitik", icon: Users, path: "/dashboard/users" },
         { name: "Laporan", icon: BarChart3, path: "/dashboard/sales" },
         { name: "Pengaturan", icon: Settings, path: "/dashboard/settings" },
@@ -90,7 +89,7 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
   ];
 
   const studentMenus = [
-    { title: "MENU", items: [
+    { title: "Dashboard", items: [
         { name: "Jelajah Kelas", icon: Compass, path: "/dashboard" },
         { name: "Jelajah E-Book", icon: BookText, path: "/dashboard/explore-ebooks" },
         { name: "Kelas Saya", icon: Library, path: "/dashboard/my-courses" },
@@ -103,59 +102,56 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
   return (
     <>
       <aside 
-        className={`bg-white border-r border-gray-100 flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out z-20 ${
-          isMinimized ? "w-20" : "w-64"
+        className={`bg-[#FDFDFD] border-r border-gray-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out z-20 ${
+          isMinimized ? "w-[60px]" : "w-64"
         }`}
       >
-        <div className="h-24 flex items-center justify-between px-4 border-b border-gray-100 shrink-0 relative">
-          <div className={`overflow-hidden whitespace-nowrap transition-all ${isMinimized ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-              <Image 
-                 src="/logo.png" 
-                 alt="Klas Konstruksi Logo" 
-                 width={140} 
-                 height={45} 
-                 className="object-contain"
-                 priority 
-              />
+        {/* TOP BRANDING AREA ALA CLOUDFLARE */}
+        <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200 shrink-0">
+          <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all ${isMinimized ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+             <div className="text-[#F97316]">
+                <LayoutDashboard size={22} className="fill-current text-[#F97316]" /> 
+             </div>
+             <span className="font-semibold text-gray-900 text-[14px] tracking-tight">KlasKonstruksi...</span>
           </div>
           
+          {/* Logo Minim */}
           {isMinimized && (
-              <h1 className="font-black text-2xl text-[#00C9A7] absolute left-1/2 -translate-x-1/2">
-                  KK
-              </h1>
+              <div className="w-full flex justify-center text-[#F97316]">
+                 <LayoutDashboard size={20} className="fill-current text-[#F97316]" />
+              </div>
           )}
-
-          <button 
-            onClick={() => setIsMinimized(!isMinimized)} 
-            className="absolute right-4 p-1.5 rounded-lg text-gray-400 hover:bg-teal-50 hover:text-[#00C9A7] transition-colors z-10"
-          >
-            {isMinimized ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </button>
         </div>
 
-        <div className="p-4 shrink-0">
-          <div className={`flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 transition-all ${isMinimized ? "justify-center p-2" : ""}`}>
-            <div className="w-10 h-10 rounded-full bg-[#00C9A7] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-inner">
-               {isLoading ? <Loader2 size={16} className="animate-spin" /> : userName.charAt(0).toUpperCase()}
+        {/* ACCOUNT SELECTOR */}
+        <div className="px-3 pt-3 pb-1 shrink-0">
+          <div className={`flex items-center gap-2.5 hover:bg-gray-100/80 p-1.5 rounded-lg border border-transparent transition-colors cursor-pointer ${isMinimized ? "justify-center" : ""}`}>
+            <div className="w-7 h-7 rounded bg-gradient-to-tr from-[#00C9A7] to-teal-400 text-white flex items-center justify-center font-semibold text-xs shrink-0 shadow-sm">
+               {isLoading ? <Loader2 size={12} className="animate-spin" /> : userName.charAt(0).toUpperCase()}
             </div>
             
-            <div className={`overflow-hidden transition-all ${isMinimized ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-              <p className="text-sm font-bold text-gray-900 whitespace-nowrap truncate">{userName}</p>
-              <p className="text-xs text-[#F97316] font-bold capitalize">{role || "Siswa"}</p>
-            </div>
+            {!isMinimized && (
+              <div className="flex flex-col justify-center overflow-hidden">
+                <span className="text-[13px] font-medium text-gray-900 leading-tight truncate">{userName}</span>
+                <span className="text-[11px] text-gray-500 capitalize leading-tight">{role || "Siswa"}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-2 px-3 space-y-6 scrollbar-hide">
+        {/* NAVIGATION LINKS */}
+        <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-4 scrollbar-hide">
           {menusToShow.map((group, idx) => (
-            <div key={idx}>
-              <div className={`overflow-hidden transition-all ${isMinimized ? "h-0 opacity-0 mb-0" : "h-auto opacity-100 mb-2"}`}>
-                 <h3 className="px-3 text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">
+            <div key={idx} className="flex flex-col">
+              {/* Judul Grup */}
+              {!isMinimized && (
+                 <h3 className="px-2 mb-1 text-[11px] font-medium text-gray-400">
                     {group.title}
                  </h3>
-              </div>
+              )}
 
-              <div className="space-y-1">
+              {/* Item List */}
+              <div className="space-y-0.5">
                 {group.items.map((item, i) => {
                   const isActive = pathname === item.path;
                   return (
@@ -163,38 +159,63 @@ export default function DashboardSidebar({ user }: DashboardSidebarProps) {
                       href={item.path} 
                       key={i} 
                       title={isMinimized ? item.name : ""} 
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                      className={`flex items-center gap-3 px-2 py-1.5 rounded-md transition-all group ${
                         isActive 
-                          ? 'bg-[#00C9A7]/10 text-[#00C9A7] font-bold shadow-sm' 
-                          : 'text-gray-500 hover:bg-gray-50 hover:text-[#00C9A7] font-medium'
-                      } ${isMinimized ? 'justify-center' : ''}`}
+                          ? 'bg-gray-100 text-gray-900 font-medium' 
+                          : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+                      } ${isMinimized ? 'justify-center py-2' : ''}`}
                     >
-                      <item.icon size={20} className={`shrink-0 ${isActive ? 'text-[#00C9A7]' : 'text-gray-400'}`} />
+                      <item.icon 
+                        size={16} 
+                        strokeWidth={isActive ? 2.5 : 2}
+                        className={`shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-800'}`} 
+                      />
                       
-                      <span className={`whitespace-nowrap overflow-hidden transition-all ${isMinimized ? "w-0 opacity-0" : "w-auto opacity-100"} text-sm`}>
-                         {item.name}
-                      </span>
+                      {!isMinimized && (
+                        <span className="text-[13px] whitespace-nowrap truncate tracking-tight">
+                           {item.name}
+                        </span>
+                      )}
                     </Link>
                   )
                 })}
               </div>
             </div>
           ))}
-        </div>
+        </nav>
 
-        <div className="p-4 border-t border-gray-100 shrink-0">
+        {/* BOTTOM ACTIONS (TOGGLE & LOGOUT) */}
+        <div className="p-2 border-t border-gray-200 shrink-0 flex flex-col gap-1">
           <button 
             onClick={handleLogout} 
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all w-full ${isMinimized ? 'justify-center' : ''}`}
+            title={isMinimized ? "Keluar Akun" : ""}
+            className={`flex items-center gap-3 px-2 py-1.5 rounded-md text-gray-600 hover:bg-gray-100/80 hover:text-gray-900 transition-all w-full ${isMinimized ? 'justify-center py-2' : ''}`}
           >
-            <LogOut size={20} className="shrink-0" />
-            <span className={`whitespace-nowrap overflow-hidden transition-all ${isMinimized ? "w-0 opacity-0" : "w-auto opacity-100"} text-sm font-bold`}>
-               Keluar Akun
-            </span>
+            <LogOut size={16} className="shrink-0 text-gray-500" />
+            {!isMinimized && (
+              <span className="text-[13px] tracking-tight">Logout</span>
+            )}
+          </button>
+
+          {/* TOGGLE MINIMIZE (Sesuai gaya Cloudflare di pojok kiri bawah) */}
+          <button 
+            onClick={() => setIsMinimized(!isMinimized)} 
+            title={isMinimized ? "Perluas Sidebar" : "Kecilkan Sidebar"}
+            className={`flex items-center gap-3 px-2 py-1.5 rounded-md text-gray-400 hover:bg-gray-100/80 hover:text-gray-900 transition-all w-full mt-1 ${isMinimized ? 'justify-center py-2' : ''}`}
+          >
+            {isMinimized ? (
+               <PanelLeftOpen size={16} className="shrink-0" />
+            ) : (
+               <PanelLeftClose size={16} className="shrink-0" />
+            )}
+            {!isMinimized && (
+              <span className="text-[13px] tracking-tight">Tutup Sidebar</span>
+            )}
           </button>
         </div>
       </aside>
 
+      {/* FLOATING CART (Tetap dipertahankan untuk Siswa) */}
       {role !== "admin" && cartCount > 0 && pathname !== "/cart" && (
         <Link 
           href="/cart"
