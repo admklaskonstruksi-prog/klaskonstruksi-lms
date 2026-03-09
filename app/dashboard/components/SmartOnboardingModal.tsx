@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 import { useState } from "react";
 import { Sparkles, GraduationCap, Target, Briefcase, LayoutGrid, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";

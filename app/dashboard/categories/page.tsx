@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 import CategoryManager from "./components/CategoryManager";
 import { createClient } from "@/utils/supabase/server";

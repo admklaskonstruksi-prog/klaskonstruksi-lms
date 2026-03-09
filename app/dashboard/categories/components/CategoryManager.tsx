@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 import { useState } from "react";
 import { Trash2, Plus, Tag, Loader2, Layers, ListTree, BarChart } from "lucide-react";

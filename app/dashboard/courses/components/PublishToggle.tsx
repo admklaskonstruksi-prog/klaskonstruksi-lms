@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 import { useTransition } from "react";
 // Import diarahkan ke folder [id] tempat actions.ts berada

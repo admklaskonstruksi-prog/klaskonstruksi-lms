@@ -6,7 +6,7 @@ import Image from "next/image";
 import AddToCartEbook from "./AddToCartEbook";
 import FloatingCartPublic from "@/app/components/FloatingCartPublic";
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = "force-dynamic";
 
 export default async function EbookDetailPage({ params }: { params: Promise<{ id: string }> }) {

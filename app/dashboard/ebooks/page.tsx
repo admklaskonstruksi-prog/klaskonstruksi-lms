@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { BookText, Star, ShoppingCart } from "lucide-react";
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export default async function EbooksCatalogPage() {
   const supabase = await createClient();

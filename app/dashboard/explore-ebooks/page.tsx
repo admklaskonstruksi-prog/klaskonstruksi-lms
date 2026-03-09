@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import EbookExplorer from "./EbookExplorer";
 import { redirect } from "next/navigation";
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = "force-dynamic";
 
 export default async function ExploreEbooksDashboardPage() {

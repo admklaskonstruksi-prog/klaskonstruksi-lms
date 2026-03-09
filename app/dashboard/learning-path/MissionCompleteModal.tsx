@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -128,3 +128,4 @@ export default function MissionCompleteModal({
     </div>
   );
 }
+

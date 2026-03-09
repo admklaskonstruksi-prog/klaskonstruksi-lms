@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { createClient } from "@/utils/supabase/server";
@@ -195,3 +195,4 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
     </div>
   );
 } 
+

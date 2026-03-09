@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 import { useState, useEffect, useTransition } from "react";
 import { PlayCircle, CheckCircle, ChevronDown, ChevronRight, BookOpen, Star, ArrowRight, Loader2 } from "lucide-react";

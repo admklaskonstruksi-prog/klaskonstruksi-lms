@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle, Star, Target, Zap, DownloadCloud, BookOpen } fr
 import Link from "next/link";
 import AddToCartEbook from "./AddToCartEbook"; 
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = "force-dynamic";
 
 export default async function EbookDetailPage({ params }: any) {

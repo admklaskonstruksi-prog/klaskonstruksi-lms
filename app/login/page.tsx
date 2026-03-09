@@ -1,6 +1,6 @@
 
 "use client";
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 import { useState, useTransition, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation"; // 1. Tambahkan useRouter

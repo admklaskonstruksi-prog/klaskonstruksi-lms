@@ -1,5 +1,5 @@
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 import Link from "next/link";
 import { signUp } from "./actions";
