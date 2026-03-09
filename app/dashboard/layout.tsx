@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardSidebar from "./components/DashboardSidebar";
+import AutoLogout from "./components/AutoLogout"; // 1. Import komponen AutoLogout
 import { ReactNode } from "react";
 
 export default async function DashboardLayout({
@@ -13,17 +14,25 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // 2. Tambahkan penanganan error pada getUser untuk keamanan ekstra
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  if (!user) {
+  // Jika tidak ada user atau sesi tidak valid, arahkan ke login
+  if (userError || !user) {
     return redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  // Ambil data profil dengan penanganan error
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("full_name, role")
     .eq("id", user.id)
     .single();
+
+  // Opsional: Log error di server jika gagal mengambil profil (kecuali error data tidak ditemukan)
+  if (profileError && profileError.code !== 'PGRST116') {
+    console.error("Error fetching user profile:", profileError.message);
+  }
 
   const userData = {
     fullName: profile?.full_name || user.email || "Pengguna",
@@ -31,14 +40,18 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* 4. SEKARANG SUDAH MATCH: Sidebar menerima prop 'user' */}
-      <DashboardSidebar user={userData} />
+    // 3. Bungkus seluruh layout dashboard dengan AutoLogout
+    <AutoLogout>
+      <div className="flex min-h-screen bg-gray-50">
+        <DashboardSidebar user={userData} />
 
-      {/* Perbaikan layout: Sesuaikan margin kiri dengan lebar sidebar (64px = ml-64) */}
-      <main className="flex-1 md:ml-0 transition-all duration-300">
-        {children}
-      </main>
-    </div>
+        {/* 4. Perbaikan CSS Layout: Gunakan md:ml-64 jika sidebar kamu lebarnya w-64 di desktop */}
+        <main className="flex-1 w-full md:ml-64 transition-all duration-300 min-h-screen">
+          <div className="p-4 md:p-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    </AutoLogout>
   );
 }
