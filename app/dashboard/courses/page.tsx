@@ -7,7 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Plus, Search, Edit3, LayoutList, ChevronUp, ChevronDown, BookOpen, Star } from "lucide-react";
 import PublishToggle from "./components/PublishToggle";
-import RatingToggle from "../components/RatingToggle"; // Import komponen Toggle Rating
+import RatingToggle from "../components/RatingToggle"; 
 
 export default async function AdminCoursesPage({ searchParams }: { searchParams?: Promise<any> | any }) {
   const supabase = await createClient();
@@ -21,14 +21,13 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
   const searchQ = sp?.q || "";
   const sortFilter = sp?.sort || "terbaru";
 
-  // Tambahkan relasi reviews untuk mengambil rating asli
+  // 1. QUERY DIPERBAIKI: Menghapus reviews(rating) agar tidak terjadi PostgREST error
   let query = supabase.from("courses").select(`
     *,
     main_categories!main_category_id ( id, name ),
     sub_categories!sub_category_id ( id, name ),
     course_levels!level_id ( id, name ), 
-    chapters ( id ),
-    reviews ( rating ) 
+    chapters ( id )
   `);
 
   if (searchQ) query = query.ilike("title", `%${searchQ}%`);
@@ -39,16 +38,19 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
   if (sortFilter === "harga-rendah") query = query.order("price", { ascending: true });
 
   let { data: courses, error } = await query;
-
   if (error) console.error("Error mengambil data kelas:", error);
+
+  // 2. MENGAMBIL RATING SECARA TERPISAH
+  const { data: allReviews } = await supabase
+    .from("reviews")
+    .select("item_id, rating")
+    .eq("item_type", "course");
 
   if (courses) {
       if (sortFilter === "cat_asc") courses.sort((a, b) => (a.main_categories?.name || "").localeCompare(b.main_categories?.name || ""));
       if (sortFilter === "cat_desc") courses.sort((a, b) => (b.main_categories?.name || "").localeCompare(a.main_categories?.name || ""));
-      
       if (sortFilter === "sub_asc") courses.sort((a, b) => (a.sub_categories?.name || "").localeCompare(b.sub_categories?.name || ""));
       if (sortFilter === "sub_desc") courses.sort((a, b) => (b.sub_categories?.name || "").localeCompare(a.sub_categories?.name || ""));
-      
       if (sortFilter === "status_asc") courses.sort((a, b) => (a.is_published === b.is_published ? 0 : a.is_published ? -1 : 1));
       if (sortFilter === "status_desc") courses.sort((a, b) => (a.is_published === b.is_published ? 0 : a.is_published ? 1 : -1));
   }
@@ -125,13 +127,13 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">Belum ada kelas yang ditemukan.</td>
                 </tr>
             ) : courses.map((course: any) => {
-              // Menghitung rata-rata rating asli
-              const ratings = course.reviews?.map((r: any) => r.rating) || [];
+              
+              // 3. MENGHITUNG RATA-RATA DARI HASIL FETCH TERPISAH
+              const ratings = allReviews?.filter((r: any) => r.item_id === course.id).map((r: any) => r.rating) || [];
               const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";
 
               return (
               <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
-                
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <div className="relative w-16 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0 border border-gray-200">
@@ -176,7 +178,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                     <PublishToggle courseId={course.id} isPublished={course.is_published} />
                 </td>
 
-                {/* Kolom Mode Rating */}
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-2">
                     <RatingToggle id={course.id} initialUseDummy={course.use_dummy_rating} tableName="courses" />
@@ -194,7 +195,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
                     <Edit3 size={16} /> Edit
                   </Link>
                 </td>
-
               </tr>
             )})}
           </tbody>

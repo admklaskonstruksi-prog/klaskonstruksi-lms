@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Search, Edit3, BookOpen, Star, Plus } from "lucide-react";
 import RatingToggle from "../components/RatingToggle";
 import EbookPublishToggle from "./components/EbookPublishToggle";
@@ -20,17 +19,19 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
   const sp = await searchParams;
   const searchQ = sp?.q || "";
 
-  // Mengambil data ebooks beserta rating aslinya
-  let query = supabase.from("ebooks").select(`
-    *,
-    reviews ( rating )
-  `).order('created_at', { ascending: false });
+  // 1. QUERY DIPERBAIKI: Hapus relasi reviews
+  let query = supabase.from("ebooks").select('*').order('created_at', { ascending: false });
 
   if (searchQ) query = query.ilike("title", `%${searchQ}%`);
 
   let { data: ebooks, error } = await query;
-
   if (error) console.error("Error mengambil data ebook:", error);
+
+  // 2. FETCH REVIEW TERPISAH
+  const { data: allReviews } = await supabase
+    .from("reviews")
+    .select("item_id, rating")
+    .eq("item_type", "ebook");
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
@@ -65,7 +66,7 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
             <tr>
               <th className="px-6 py-4">Informasi E-Book</th>
               <th className="px-6 py-4">Terjual</th>
-              <th className="px-6 py-4">Status</th> {/* Header Status Baru */}
+              <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4">Mode Rating</th>
               <th className="px-6 py-4 text-right">Aksi</th>
             </tr>
@@ -77,13 +78,12 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
                 </tr>
             ) : ebooks.map((ebook: any) => {
               
-              // Menghitung rata-rata rating asli
-              const ratings = ebook.reviews?.map((r: any) => r.rating) || [];
+              // 3. MENGHITUNG RATA-RATA DARI HASIL FETCH TERPISAH
+              const ratings = allReviews?.filter((r: any) => r.item_id === ebook.id).map((r: any) => r.rating) || [];
               const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";
 
               return (
               <tr key={ebook.id} className="hover:bg-gray-50/50 transition-colors">
-                
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
                     <div className="relative w-12 h-16 bg-blue-50 rounded overflow-hidden flex-shrink-0 border border-blue-100 flex items-center justify-center">
@@ -104,15 +104,12 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
                   </span>
                 </td>
 
-                {/* Kolom Status (Publish Toggle) Baru */}
                 <td className="px-6 py-4">
                   <EbookPublishToggle ebookId={ebook.id} isPublished={ebook.is_published} />
                 </td>
 
-                {/* Kolom Mode Rating */}
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-2">
-                    {/* Perhatikan prop tableName="ebooks" */}
                     <RatingToggle id={ebook.id} initialUseDummy={ebook.use_dummy_rating} tableName="ebooks" />
                     <div className="text-[10px] text-gray-500">
                       Asli: <span className="font-bold text-gray-800">{realAvg} <Star size={10} className="inline text-yellow-400 fill-current -mt-0.5" /></span> | Dummy: {ebook.dummy_rating}
@@ -128,7 +125,6 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
                     <Edit3 size={16} /> Edit
                   </Link>
                 </td>
-
               </tr>
             )})}
           </tbody>
