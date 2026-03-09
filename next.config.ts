@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Pengaturan Domain Gambar (Jangan Dihapus)
-  // Berfungsi untuk mengizinkan gambar dari Bunny, Supabase, dll.
+  // Wajib untuk Cloudflare Pages
+  output: 'standalone',
+  
+  // Pengaturan Domain Gambar
   images: {
     remotePatterns: [
       {
@@ -10,22 +12,15 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
+    // Cloudflare tidak support next/image optimization, pakai unoptimized
+    unoptimized: true,
   },
   
-  // Optimasi bundle untuk Cloudflare Pages & Pengaturan Server Actions
   experimental: {
     optimizePackageImports: ["lucide-react", "@lottiefiles/react-lottie-player"],
     serverActions: {
-      bodySizeLimit: '50mb', // Menaikkan batas maksimal upload file menjadi 50 MB
+      bodySizeLimit: '50mb',
     },
-  },
-  
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.optimization = config.optimization || {};
-      config.optimization.minimize = true;
-    }
-    return config;
   },
 };
 

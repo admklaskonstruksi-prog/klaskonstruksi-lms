@@ -15,12 +15,13 @@
     "axios": "^1.13.4",
     "hls.js": "^1.6.15",
     "lucide-react": "^0.563.0",
-    "next": "16.1.5",
+    "next": "15.5.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -30,6 +31,7 @@
     "eslint-config-next": "16.1.5",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^50.28.0"
   }
 }

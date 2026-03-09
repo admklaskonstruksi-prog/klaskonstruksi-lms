@@ -1,0 +1,6 @@
+/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  Access-Control-Allow-Origin: *
+
+/dashboard/*
+  Cache-Control: no-cache, no-store, must-revalidate
