@@ -108,7 +108,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
-        <table className="w-full text-left text-sm whitespace-nowrap">
+      <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
             <tr>
               <th className="px-6 py-4">Informasi Kelas</th>
