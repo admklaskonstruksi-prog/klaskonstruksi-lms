@@ -1,67 +1,90 @@
-export const runtime = 'nodejs';
-
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js"; 
+import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
-    // =========================================================================
-    // 1. SECURITY: Validasi Signature Key Midtrans (Cegah Injeksi Pembayaran)
-    // =========================================================================
-    const serverKey = process.env.MIDTRANS_SERVER_KEY || "";
-    const signatureRaw = `${body.order_id}${body.status_code}${body.gross_amount}${serverKey}`;
     
-    // --- MENGGUNAKAN WEB CRYPTO API (Khusus untuk Cloudflare / Edge Runtime) ---
-    const encoder = new TextEncoder();
-    const data = encoder.encode(signatureRaw);
-    const hashBuffer = await crypto.subtle.digest('SHA-512', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const calculatedSignature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    // ---------------------------------------------------------------------------
+    const {
+      order_id,
+      status_code,
+      gross_amount,
+      signature_key,
+      transaction_status,
+      fraud_status,
+    } = body;
 
-    if (body.signature_key !== calculatedSignature) {
-      console.warn("⚠️ Serangan terdeteksi: Signature Midtrans tidak valid!");
-      return NextResponse.json(
-        { error: "Akses ilegal. Signature Midtrans tidak cocok." }, 
-        { status: 403 }
-      );
-    }
-    // =========================================================================
+    const serverKey = process.env.MIDTRANS_SERVER_KEY;
+    if (!serverKey) return NextResponse.json({ error: "Server Key tidak ada" }, { status: 500 });
 
-    // =========================================================================
-    // 2. SECURITY: Update Database menggunakan Service Role
-    // =========================================================================
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""; 
-    
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    // 1. VALIDASI SIGNATURE KEY (Anti-Hacker Bypass)
+    const hash = crypto.createHash("sha512");
+    const dataToHash = `${order_id}${status_code}${gross_amount}${serverKey}`;
+    const calculatedSignature = hash.update(dataToHash, "utf-8").digest("hex");
 
-    const transactionStatus = body.transaction_status;
-    const orderId = body.order_id; 
-    
-    let paymentStatus = 'pending';
-    if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
-      paymentStatus = 'success';
-    } else if (transactionStatus === 'cancel' || transactionStatus === 'expire' || transactionStatus === 'deny') {
-      paymentStatus = 'failed';
+    if (calculatedSignature !== signature_key) {
+      console.warn(`🚨 Akses Webhook Ditolak! Signature tidak valid.`);
+      return NextResponse.json({ error: "Signature Invalid" }, { status: 403 });
     }
 
-    const { error } = await supabaseAdmin
-      .from('transactions') 
-      .update({ status: paymentStatus })
-      .eq('order_id', orderId); 
+    // 2. AKSES DATABASE SEBAGAI SUPERADMIN (Tembus RLS)
+    // Pastikan SUPABASE_SERVICE_ROLE_KEY sudah dimasukkan ke Cloudflare Pages Environment
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY! 
+    );
 
-    if (error) {
-      console.error("Gagal update status di database:", error);
-      return NextResponse.json({ error: "Gagal update database" }, { status: 500 });
+    // Ambil data transaksi dari database berdasarkan order_id dari Midtrans
+    const { data: trxData, error: trxError } = await supabaseAdmin
+      .from("transactions")
+      .select("*")
+      .eq("order_id", order_id)
+      .single();
+
+    if (trxError || !trxData) {
+      console.error(`🚨 Transaksi tidak ditemukan di database: ${order_id}`);
+      return NextResponse.json({ status: "success" }, { status: 200 }); // Tetap 200 agar Midtrans tidak spam error
     }
 
-    return NextResponse.json({ status: "success", message: "Webhook Midtrans berhasil divalidasi dan diproses" });
+    // 3. LOGIKA PEMROSESAN STATUS
+    if (transaction_status === "capture" || transaction_status === "settlement") {
+      if (fraud_status === "accept" || !fraud_status) {
+        
+        // A. Update status transaksi menjadi PAID
+        await supabaseAdmin.from("transactions").update({ status: "PAID" }).eq("order_id", order_id);
+
+        // B. BERIKAN AKSES KELAS / EBOOK KE SISWA
+        if (trxData.item_type === "course") {
+          // Masukkan ke tabel enrollments
+          await supabaseAdmin.from("enrollments").insert({
+            user_id: trxData.user_id,
+            course_id: trxData.item_id,
+            amount_paid: trxData.amount, // atau ambil gross_amount dari midtrans
+            status: "active"
+          });
+          console.log(`✅ Akses KELAS diberikan untuk User: ${trxData.user_id}`);
+          
+        } else if (trxData.item_type === "ebook") {
+          // Masukkan ke tabel ebook_purchases (pastikan tabel ini sudah kamu buat)
+          await supabaseAdmin.from("ebook_purchases").insert({
+            user_id: trxData.user_id,
+            ebook_id: trxData.item_id,
+            amount_paid: trxData.amount
+          });
+          console.log(`✅ Akses E-BOOK diberikan untuk User: ${trxData.user_id}`);
+        }
+      }
+    } 
+    else if (transaction_status === "cancel" || transaction_status === "deny" || transaction_status === "expire") {
+      // Pembayaran Gagal/Batal -> Update status transaksi jadi FAILED
+      await supabaseAdmin.from("transactions").update({ status: "FAILED" }).eq("order_id", order_id);
+    }
+
+    return NextResponse.json({ status: "success" }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Webhook Error:", error);
+    console.error("🚨 Webhook Error:", error.message);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

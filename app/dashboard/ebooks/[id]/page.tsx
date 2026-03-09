@@ -30,10 +30,19 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
     );
   }
 
-  // Server Action untuk Update Data
+  // =====================================================================
+  // SECURITY UPDATE: Role Validation di dalam Server Action
+  // =====================================================================
   async function updateEbook(formData: FormData) {
     "use server";
     const supabaseClient = await createClient();
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    // VALIDASI KEAMANAN MUTLAK!
+    const { data: authProfile } = await supabaseClient.from("profiles").select("role").eq("id", user?.id).single();
+    if (authProfile?.role?.toLowerCase() !== "admin") {
+      throw new Error("Akses Ilegal: Hanya admin yang diizinkan memodifikasi data ini.");
+    }
     
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;

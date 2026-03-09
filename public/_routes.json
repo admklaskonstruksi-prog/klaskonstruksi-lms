@@ -1,19 +1,14 @@
 {
-    "version": 1,
-    "include": ["/*"],
-    "exclude": [
-      "/_next/static/*",
-      "/_next/image/*",
-      "/animasi-pekerja.json",
-      "/cyber-grid.jpg",
-      "/favicon.ico",
-      "/file.svg",
-      "/globe.svg",
-      "/header-bg-new.png",
-      "/hero-anime.png",
-      "/logo.png",
-      "/next.svg",
-      "/vercel.svg",
-      "/window.svg"
-    ]
-  }
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/_next/static/*",
+    "/_next/image/*",
+    "/animasi-pekerja.json",
+    "/cyber-grid.jpg",
+    "/favicon.ico",
+    "/header-bg-new.png",
+    "/hero-anime.png",
+    "/logo.png"
+  ]
+}

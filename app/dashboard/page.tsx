@@ -6,7 +6,6 @@ import Image from "next/image";
 import { Wallet, TrendingUp, Users, BookOpen, Award, BookText } from "lucide-react"; 
 import SmartOnboardingModal from "./components/SmartOnboardingModal";
 import StudentMarketplace from "./components/StudentMarketplace"; 
-import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +18,6 @@ export default async function DashboardPage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   const isAdmin = profile?.role?.toLowerCase() === 'admin';
 
-  // Fungsi helper untuk memformat angka ke format Rupiah (tanpa "Rp" agar tidak double)
   const formatRupiah = (angka: number) => {
     return new Intl.NumberFormat('id-ID', {
       minimumFractionDigits: 0,
@@ -28,85 +26,12 @@ export default async function DashboardPage() {
   };
 
   // ============================================================================
-  // BLOKIR JIKA PROFIL GOOGLE BELUM LENGKAP
-  // ============================================================================
-  const isProfileIncomplete = !isAdmin && (!profile?.phone || !profile?.address || !profile?.country || !profile?.province || !profile?.city);
-
-  async function saveMissingProfile(formData: FormData) {
-    "use server";
-    const supabaseClient = await createClient();
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) return;
-
-    await supabaseClient.from("profiles").update({
-      full_name: formData.get("full_name") as string,
-      phone: formData.get("phone") as string,
-      country: formData.get("country") as string,
-      province: formData.get("province") as string,
-      city: formData.get("city") as string,
-      address: formData.get("address") as string,
-    }).eq("id", user.id);
-
-    // Diaktifkan kembali agar halaman langsung ter-refresh dan modal hilang
-    revalidatePath("/dashboard");
-  }
-
-  if (isProfileIncomplete) {
-      return (
-          <div className="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center p-6 overflow-y-auto">
-              <div className="bg-white max-w-lg w-full p-8 rounded-3xl shadow-2xl border border-gray-100 my-auto">
-                  <h2 className="text-2xl font-black text-gray-900 mb-2">Lengkapi Data Diri</h2>
-                  <p className="text-gray-500 text-sm mb-6">Sebelum mulai belajar, lengkapi profil Anda untuk keperluan sertifikat dan keamanan.</p>
-                  
-                  <form action={saveMissingProfile} className="space-y-4">
-                      <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap</label>
-                          <input type="text" name="full_name" defaultValue={profile?.full_name || user.user_metadata?.full_name || ""} required placeholder="Budi Santoso" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
-                      </div>
-                      <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">No. WhatsApp</label>
-                          <input type="tel" name="phone" defaultValue={profile?.phone || ""} required placeholder="0812xxxxxx" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                          <div>
-                              <label className="block text-sm font-bold text-gray-700 mb-1">Negara</label>
-                              <input type="text" name="country" defaultValue={profile?.country || "Indonesia"} required placeholder="Indonesia" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
-                          </div>
-                          <div>
-                              <label className="block text-sm font-bold text-gray-700 mb-1">Provinsi</label>
-                              <input type="text" name="province" defaultValue={profile?.province || ""} required placeholder="Jawa Timur" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
-                          </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                          <div className="col-span-2">
-                              <label className="block text-sm font-bold text-gray-700 mb-1">Kota / Kabupaten</label>
-                              <input type="text" name="city" defaultValue={profile?.city || ""} required placeholder="Malang" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm" />
-                          </div>
-                      </div>
-
-                      <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Detail Alamat (Jalan/No. Rumah)</label>
-                          <textarea name="address" defaultValue={profile?.address || ""} required placeholder="Jl. Raya No. 123..." rows={2} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white text-sm"></textarea>
-                      </div>
-
-                      <button type="submit" className="w-full bg-[#F97316] text-white font-bold py-3.5 rounded-xl hover:bg-[#ea580c] transition mt-4 shadow-lg shadow-[#F97316]/20">Simpan & Lanjutkan</button>
-                  </form>
-              </div>
-          </div>
-      );
-  }
-
-  // ============================================================================
   // TAMPILAN KHUSUS ADMIN
   // ============================================================================
   if (isAdmin) {
     const { count: totalStudents } = await supabase.from("profiles").select("*", { count: "exact", head: true }).neq("role", "admin");
     const { count: activeCourses } = await supabase.from("courses").select("*", { count: "exact", head: true }).eq("is_published", true);
     const { data: realEnrollments } = await supabase.from("enrollments").select("course_id, courses(id, title, price, thumbnail_url)");
-    
-    // TAMBAHAN: Hitung Penjualan E-Book
     const { count: ebookSalesCount } = await supabase.from("ebook_purchases").select("*", { count: "exact", head: true });
 
     let totalRevenue = 0;
@@ -130,11 +55,9 @@ export default async function DashboardPage() {
                 <p className="text-gray-500 mt-1">Berikut adalah ringkasan performa nyata platform Anda hari ini.</p>
             </div>
 
-            {/* KOTAK METRIK ADMIN */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-center">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Pendapatan</p>
-                    {/* Class truncate Dihapus, menggunakan formatRupiah */}
                     <h3 className="text-2xl font-black text-gray-900 mb-3">Rp {formatRupiah(totalRevenue)}</h3>
                     <div className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center"><Wallet size={16} /></div>
                 </div>
@@ -164,7 +87,6 @@ export default async function DashboardPage() {
                 </div>
             </div>
 
-            {/* TABEL KELAS TERLARIS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-3">
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-6"><Award size={20} className="text-[#F97316]" /> Kelas Terlaris</h3>
@@ -182,7 +104,6 @@ export default async function DashboardPage() {
                                     <p className="text-xs text-[#F97316] font-bold">{course.real_sales} Orang Daftar</p>
                                 </div>
                                 <div className="text-right">
-                                    {/* Menerapkan formatRupiah di daftar Kelas Terlaris */}
                                     <p className="text-sm font-black text-[#00C9A7]">Rp {formatRupiah(course.price * course.real_sales)}</p>
                                 </div>
                             </div>
@@ -195,7 +116,7 @@ export default async function DashboardPage() {
   }
 
   // ============================================================================
-  // TAMPILAN SISWA (MENGGUNAKAN STUDENT MARKETPLACE BARU)
+  // TAMPILAN SISWA 
   // ============================================================================
   const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
   const ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];

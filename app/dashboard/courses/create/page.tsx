@@ -2,9 +2,20 @@ export const runtime = 'nodejs';
 
 import CreateCourseForm from "./CreateCourseForm";
 import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
 export default async function CreateCoursePage() {
   const supabase = await createClient();
+
+  // ========================================================
+  // SECURITY UI: Cegah Siswa Masuk ke Halaman Ini
+  // ========================================================
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return redirect("/login");
+
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role?.toLowerCase() !== "admin") return redirect("/dashboard");
+  // ========================================================
 
   // Mengambil data dari 3 tabel hierarki kategori
   const { data: mainCategories } = await supabase
