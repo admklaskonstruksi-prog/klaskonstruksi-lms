@@ -26,7 +26,6 @@ export async function createCourse(formData: FormData) {
   redirect(`/dashboard/courses/${data.id}`);
 }
 
-// [FUNGSI UPDATE YANG DIPERBAIKI]
 export async function updateCourse(formData: FormData) {
   const supabase = await createClient();
   
@@ -35,9 +34,8 @@ export async function updateCourse(formData: FormData) {
   const price = Number(formData.get("price"));
   const category_id = formData.get("category_id") as string;
   const difficulty = formData.get("difficulty") as string;
-  const thumbnailFile = formData.get("thumbnail") as File; // Tangkap file gambar
+  const thumbnailFile = formData.get("thumbnail") as File;
 
-  // 1. Siapkan object update dasar
   const updates: any = { 
     title, 
     price, 
@@ -46,12 +44,9 @@ export async function updateCourse(formData: FormData) {
     updated_at: new Date().toISOString()
   };
 
-  // 2. Cek apakah ada gambar baru diupload?
   if (thumbnailFile && thumbnailFile.size > 0) {
-    // Generate nama file unik: timestamp-namafile
     const fileName = `${Date.now()}-${thumbnailFile.name.replace(/\s+/g, '-')}`;
     
-    // Upload ke Supabase Storage (Bucket 'covers')
     const { error: uploadError } = await supabase.storage
       .from('covers')
       .upload(fileName, thumbnailFile, {
@@ -63,16 +58,13 @@ export async function updateCourse(formData: FormData) {
       return { error: "Gagal upload gambar: " + uploadError.message };
     }
 
-    // Ambil Public URL
     const { data: urlData } = supabase.storage
       .from('covers')
       .getPublicUrl(fileName);
 
-    // Masukkan URL ke object update
     updates.thumbnail_url = urlData.publicUrl;
   }
 
-  // 3. Update data ke Database
   const { error } = await supabase
     .from("courses")
     .update(updates)
@@ -80,7 +72,7 @@ export async function updateCourse(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  //revalidatePath("/dashboard/courses");
+  revalidatePath("/dashboard/courses");
   return { success: true };
 }
 
@@ -105,7 +97,7 @@ export async function deleteCourse(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  //revalidatePath("/dashboard/courses");
+  revalidatePath("/dashboard/courses");
   return { success: true };
 }
 
@@ -121,7 +113,6 @@ export async function deleteLesson(formData: FormData) {
   
   if (error) return { error: error.message };
   
-  //revalidatePath("/dashboard/courses", "layout");
   return { success: true };
 }
 
@@ -150,13 +141,10 @@ export async function saveLesson(formData: FormData) {
 
   if (error) return { error: error.message };
   
-  //revalidatePath("/dashboard/courses", "layout");
   return { success: true };
 }
-// Cuma import yang upload saja
-import { uploadVideoToBunny } from "./bunnyUtils";
 
-// Cuma export yang upload saja
+import { uploadVideoToBunny } from "./bunnyUtils";
 export { uploadVideoToBunny };
 
 // --- TAMBAHAN BARU: TOGGLE STATUS KELAS CEPAT ---
@@ -170,6 +158,26 @@ export async function toggleCourseStatus(courseId: string, newStatus: boolean) {
 
   if (error) return { error: error.message };
   
-  //revalidatePath("/dashboard/courses"); // Refresh halaman list kelas
+  revalidatePath("/dashboard/courses"); 
+  return { success: true };
+}
+
+// --- TAMBAHAN BARU: TOGGLE RATING ASLI / DUMMY ---
+export async function toggleDummyRating(id: string, tableName: string, newStatus: boolean) {
+  const supabase = await createClient();
+  
+  const { error } = await supabase
+    .from(tableName)
+    .update({ use_dummy_rating: newStatus })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Gagal update rating:", error);
+    return { error: error.message };
+  }
+  
+  // Refresh cache Next.js agar data baru langsung tampil di layar
+  revalidatePath("/dashboard/courses");
+  revalidatePath("/dashboard/ebooks"); 
   return { success: true };
 }
