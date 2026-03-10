@@ -2,6 +2,8 @@
 export const runtime = 'nodejs';
 
 import { useState, useTransition, useEffect } from "react";
+// IMPORT ROUTER DARI NEXT NAVIGATION
+import { useRouter } from "next/navigation"; 
 import { createChapter, deleteChapter } from "../actions";
 import { createLesson, deleteLesson, updateLesson } from "../../lessons-actions";
 import { Trash2, Plus, PlayCircle, ChevronDown, ChevronUp, Loader2, Video, Edit3, X, CheckCircle2 } from "lucide-react";
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export default function ChaptersList({ initialData, courseId }: Props) {
+  const router = useRouter(); // INISIALISASI ROUTER
   const [expandedChapters, setExpandedChapters] = useState<string[]>(initialData.map(ch => ch.id));
   const [isPending, startTransition] = useTransition();
 
@@ -73,14 +76,12 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     if (videoSource === 'upload' && selectedFile) {
       setIsUploading(true);
       try {
-        // 1. Minta Slot & Kredensial ke API Lokal
         const res = await fetch('/api/bunny/create', {
           method: 'POST',
           body: JSON.stringify({ title })
         });
         const { videoId: newId, libraryId, apiKey } = await res.json();
         
-        // 2. Upload Langsung dari Browser (Bypass Server)
         await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.upload.addEventListener("progress", (event) => {
@@ -120,6 +121,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
       else {
         toast.success("Bab berhasil ditambahkan!");
         setNewChapterTitle("");
+        router.refresh(); // REFRESH DATA UI
       }
     });
   };
@@ -129,6 +131,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     startTransition(async () => {
       await deleteChapter(chapterId, courseId);
       toast.success("Bab berhasil dihapus!");
+      router.refresh(); // REFRESH DATA UI
     });
   };
 
@@ -151,6 +154,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
         else {
           toast.success("Materi berhasil ditambahkan!");
           setAddingLessonTo(null);
+          router.refresh(); // REFRESH DATA UI
         }
       });
     } catch (e) {
@@ -176,6 +180,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
         else {
           toast.success("Materi berhasil diperbarui!");
           setEditingLesson(null);
+          router.refresh(); // REFRESH DATA UI AGAR ID VIDEO MUNCUL
         }
       });
     } catch (e) {
@@ -188,10 +193,10 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     startTransition(async () => {
       await deleteLesson(lessonId, courseId);
       toast.success("Materi berhasil dihapus!");
+      router.refresh(); // REFRESH DATA UI
     });
   };
 
-  // --- KOMPONEN UI PILIHAN VIDEO (Digunakan di Add & Edit) ---
   const renderVideoSelector = () => (
     <div className="mb-4 space-y-2">
       <label className="block text-sm font-bold text-gray-700">Video Materi (Opsional)</label>
