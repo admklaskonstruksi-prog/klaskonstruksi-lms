@@ -35,7 +35,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
   const toggleAccordion = (id: string) => { setOpenAccordion(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]); };
   const activeSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
-  // FILTERING DENGAN LOGIKA RATING ASLI/DUMMY DARI DATABASE
+  // FILTERING DENGAN LOGIKA RATING & SALES ASLI/DUMMY
   const filteredCourses = courses.filter((course) => {
     const isDummy = course.use_dummy_rating ?? true;
     const courseRating = isDummy ? Number(course.dummy_rating || 5.0) : Number(course.rating || 0);
@@ -243,10 +243,11 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                    const isOwned = ownedCourseIds.includes(course.id);
                    const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`;
                    
-                   // LOGIKA RATING ASLI/DUMMY UNTUK CARD
+                   // LOGIKA RATING & SALES ASLI/DUMMY UNTUK CARD
                    const isDummy = course.use_dummy_rating ?? true;
                    const displayRating = isDummy ? Number(course.dummy_rating || 5.0) : Number(course.rating || 0);
                    const displayReviews = isDummy ? Number(course.dummy_rating_count || 5) : Number(course.review_count || 0);
+                   const displaySales = isDummy ? Number(course.dummy_sales_count || 120) : Number(course.sales_count || 0);
 
                    return (
                      <Link href={targetHref} key={course.id} className={`group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative ${isOwned ? 'opacity-80 grayscale-[40%]' : ''}`}>
@@ -270,7 +271,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                                   {displayRating.toFixed(1)} <span className="opacity-70 font-medium">({displayReviews})</span>
                                </span>
                                <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1.5 rounded-md border border-blue-100 font-bold" title="Total Siswa Terdaftar">
-                                  <Users size={12} /> {course.sales_count || 0}
+                                  <Users size={12} /> {displaySales}
                                </span>
                             </div>
                          </div>

@@ -54,10 +54,11 @@ export default async function PublicCourseDetail({ params }: { params: Promise<{
     if (enrollment) isOwned = true;
   }
 
-  // LOGIKA RATING ASLI/DUMMY DARI DATABASE
+  // LOGIKA RATING & SALES ASLI/DUMMY DARI DATABASE
   const isDummy = course.use_dummy_rating ?? true;
   const displayRating = isDummy ? Number(course.dummy_rating || 5.0) : Number(course.rating || 0);
   const displayReviews = isDummy ? Number(course.dummy_rating_count || 5) : Number(course.review_count || 0);
+  const displaySales = isDummy ? Number(course.dummy_sales_count || 120) : Number(course.sales_count || 0);
 
   const safePrice = Number(course.price || 0);
   const safeStrikePrice = Number(course.strike_price || 0);
@@ -90,7 +91,7 @@ export default async function PublicCourseDetail({ params }: { params: Promise<{
                <div className="flex flex-wrap items-center gap-y-3 gap-x-8 text-base text-gray-300 border-t border-gray-800 pt-8 mt-8">
                   <span className="flex items-center gap-2 font-semibold"><Star size={20} className="text-yellow-400 fill-yellow-400"/> {displayRating.toFixed(1)} Rating Kelas ({displayReviews} Ulasan)</span>
                   <span className="flex items-center gap-2 font-semibold"><Layers size={20} className="text-[#00C9A7]"/> {course.course_levels?.name || "All Level"}</span>
-                  <span className="flex items-center gap-2 font-semibold"><Users size={20} className="text-[#00C9A7]"/> {course.sales_count || 0} Siswa Terdaftar</span>
+                  <span className="flex items-center gap-2 font-semibold"><Users size={20} className="text-[#00C9A7]"/> {displaySales} Siswa Terdaftar</span>
                </div>
             </div>
          </div>
