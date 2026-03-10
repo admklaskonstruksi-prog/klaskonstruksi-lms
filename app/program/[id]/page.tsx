@@ -54,10 +54,10 @@ export default async function PublicCourseDetail({ params }: { params: Promise<{
     if (enrollment) isOwned = true;
   }
 
-  // LOGIKA RATING ASLI/DUMMY
+  // LOGIKA RATING ASLI/DUMMY DARI DATABASE
   const isDummy = course.use_dummy_rating ?? true;
-  const displayRating = isDummy ? 5.0 : Number(course.rating || 0);
-  const displayReviews = isDummy ? 5 : Number(course.review_count || 0);
+  const displayRating = isDummy ? Number(course.dummy_rating || 5.0) : Number(course.rating || 0);
+  const displayReviews = isDummy ? Number(course.dummy_rating_count || 5) : Number(course.review_count || 0);
 
   const safePrice = Number(course.price || 0);
   const safeStrikePrice = Number(course.strike_price || 0);

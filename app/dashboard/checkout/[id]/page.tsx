@@ -156,10 +156,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     ? Math.round(((safeStrikePrice - safePrice) / safeStrikePrice) * 100) 
     : 0;
 
-  // LOGIKA RATING ASLI/DUMMY UNTUK CHECKOUT
+  // LOGIKA RATING ASLI/DUMMY UNTUK CHECKOUT DARI DATABASE
   const isDummy = course?.use_dummy_rating ?? true;
-  const displayRating = isDummy ? 5.0 : Number(course?.rating || 0);
-  const displayReviews = isDummy ? 5 : Number(course?.review_count || 0);
+  const displayRating = isDummy ? Number(course?.dummy_rating || 5.0) : Number(course?.rating || 0);
+  const displayReviews = isDummy ? Number(course?.dummy_rating_count || 5) : Number(course?.review_count || 0);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] selection:bg-[#F97316] selection:text-white flex flex-col">

@@ -35,10 +35,10 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
   const toggleAccordion = (id: string) => { setOpenAccordion(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]); };
   const activeSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
-  // FILTERING DENGAN LOGIKA RATING ASLI/DUMMY
+  // FILTERING DENGAN LOGIKA RATING ASLI/DUMMY DARI DATABASE
   const filteredCourses = courses.filter((course) => {
     const isDummy = course.use_dummy_rating ?? true;
-    const courseRating = isDummy ? 5.0 : Number(course.rating || 0);
+    const courseRating = isDummy ? Number(course.dummy_rating || 5.0) : Number(course.rating || 0);
 
     const matchTitle = course.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchMain = selectedMainCat === "All" || course.main_category_id === selectedMainCat;
@@ -245,8 +245,8 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                    
                    // LOGIKA RATING ASLI/DUMMY UNTUK CARD
                    const isDummy = course.use_dummy_rating ?? true;
-                   const displayRating = isDummy ? 5.0 : Number(course.rating || 0);
-                   const displayReviews = isDummy ? 5 : Number(course.review_count || 0);
+                   const displayRating = isDummy ? Number(course.dummy_rating || 5.0) : Number(course.rating || 0);
+                   const displayReviews = isDummy ? Number(course.dummy_rating_count || 5) : Number(course.review_count || 0);
 
                    return (
                      <Link href={targetHref} key={course.id} className={`group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative ${isOwned ? 'opacity-80 grayscale-[40%]' : ''}`}>
