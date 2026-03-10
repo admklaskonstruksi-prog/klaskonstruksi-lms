@@ -166,18 +166,24 @@ export async function toggleCourseStatus(courseId: string, newStatus: boolean) {
 export async function toggleDummyRating(id: string, tableName: string, newStatus: boolean) {
   const supabase = await createClient();
   
-  const { error } = await supabase
+  // KITA TAMBAHKAN .select() UNTUK MEMAKSA SUPABASE MENGEMBALIKAN HASILNYA
+  const { data, error } = await supabase
     .from(tableName)
     .update({ use_dummy_rating: newStatus })
-    .eq("id", id);
+    .eq("id", id)
+    .select(); // <--- INI KUNCI PENTINGNYA
 
   if (error) {
-    console.error("Gagal update rating:", error);
     return { error: error.message };
   }
+
+  // JIKA ROW YANG DIUPDATE = 0, BERARTI DATABASE MEMBLOKIRNYA
+  if (!data || data.length === 0) {
+    return { error: "Update Ditolak Database: RLS memblokir aksi ini atau kolom belum siap." };
+  }
   
-  // Refresh cache Next.js agar data baru langsung tampil di layar
-  revalidatePath("/dashboard/courses");
-  revalidatePath("/dashboard/ebooks"); 
+  // Refresh seluruh rute secara agresif
+  revalidatePath("/", "layout"); 
+  
   return { success: true };
 }
