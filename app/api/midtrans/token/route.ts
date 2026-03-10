@@ -1,9 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from "next/server";
-
-// Menggunakan REST API langsung (tanpa midtrans-client) untuk mengurangi bundle size di Cloudflare Edge
-const MIDTRANS_SNAP_URL = "https://app.midtrans.com/snap/v1/transactions";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
   try {
@@ -13,11 +11,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { courseId, price, title, userEmail, userName } = body;
+    // Menangkap userId yang dikirim dari frontend
+    const { courseId, price, title, userEmail, userName, userId } = body;
+
+    // Buat Order ID Unik
+    const order_id = `KLAS-${Date.now()}-${(courseId || "TRX").toString().substring(0, 4)}`;
 
     const parameter = {
       transaction_details: {
-        order_id: `KLAS-${Date.now()}-${(courseId || "TRX").toString().substring(0, 4)}`,
+        order_id: order_id,
         gross_amount: price,
       },
       item_details: [{
@@ -32,8 +34,13 @@ export async function POST(request: Request) {
       },
     };
 
+    // Deteksi otomatis URL API (Sandbox atau Production)
+    const midtransUrl = serverKey.startsWith("SB-") 
+      ? "https://app.sandbox.midtrans.com/snap/v1/transactions"
+      : "https://app.midtrans.com/snap/v1/transactions";
+
     const auth = btoa(serverKey + ":");
-    const res = await fetch(MIDTRANS_SNAP_URL, {
+    const res = await fetch(midtransUrl, {
       method: "POST",
       headers: {
         "Accept": "application/json",
@@ -50,7 +57,31 @@ export async function POST(request: Request) {
         { status: res.status }
       );
     }
-    return NextResponse.json({ token: data.token });
+
+    // WAJIB: SIMPAN TRANSAKSI "PENDING" KE DATABASE AGAR WEBHOOK BISA BEKERJA
+    if (userId) {
+      // Gunakan Service Role Key untuk menembus RLS
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      
+      const { error: dbError } = await supabaseAdmin.from("transactions").insert({
+        order_id: order_id,
+        user_id: userId,
+        item_id: courseId,
+        item_type: "course",
+        amount: price,
+        status: "PENDING"
+      });
+
+      if (dbError) {
+        console.error("Gagal insert transaksi PENDING:", dbError.message);
+        // Kita tidak gagalkan transaksi midtrans jika DB gagal tercatat, tapi dicatat di log
+      }
+    }
+
+    return NextResponse.json({ token: data.token, order_id: order_id });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });

@@ -54,16 +54,15 @@ export async function POST(req: Request) {
         // A. Update status transaksi menjadi PAID
         await supabaseAdmin.from("transactions").update({ status: "PAID" }).eq("order_id", order_id);
 
-        // B. BERIKAN AKSES KELAS / EBOOK KE SISWA
-        if (trxData.item_type === "course") {
-          // Masukkan ke tabel enrollments
-          await supabaseAdmin.from("enrollments").insert({
-            user_id: trxData.user_id,
-            course_id: trxData.item_id,
-            amount_paid: trxData.amount, // atau ambil gross_amount dari midtrans
-            status: "active"
-          });
-          console.log(`✅ Akses KELAS diberikan untuk User: ${trxData.user_id}`);
+// B. BERIKAN AKSES KELAS / EBOOK KE SISWA
+if (trxData.item_type === "course") {
+  // Masukkan ke tabel enrollments
+  await supabaseAdmin.from("enrollments").insert({
+    user_id: trxData.user_id,
+    course_id: trxData.item_id,
+    amount_paid: trxData.amount // HAPUS STATUS: ACTIVE DISINI
+  });
+  console.log(`✅ Akses KELAS diberikan untuk User: ${trxData.user_id}`);
           
         } else if (trxData.item_type === "ebook") {
           // Masukkan ke tabel ebook_purchases (pastikan tabel ini sudah kamu buat)

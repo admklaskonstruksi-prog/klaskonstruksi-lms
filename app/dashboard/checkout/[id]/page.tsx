@@ -6,7 +6,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { enrollUser } from "../actions";
 import { 
   Star, PlayCircle, Trophy, ArrowLeft, Target, ArrowRight, ChevronDown, 
   Loader2, FileCheck, Infinity, FileText, CheckCircle, Layers, Zap, Users
@@ -41,7 +40,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     const clientKey = (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "").trim();
-    const midtransScriptUrl = "https://app.midtrans.com/snap/snap.js";
+    
+    // PERBAIKAN: Deteksi otomatis Script URL Midtrans (Sandbox atau Production)
+    const isSandbox = clientKey.startsWith("SB-");
+    const midtransScriptUrl = isSandbox 
+      ? "https://app.sandbox.midtrans.com/snap/snap.js" 
+      : "https://app.midtrans.com/snap/snap.js";
 
     let scriptTag = document.querySelector(`script[src="${midtransScriptUrl}"]`);
 
@@ -112,6 +116,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           title: course.title,
           userEmail: user.email,
           userName: user.user_metadata?.full_name || "Siswa Klas",
+          userId: user.id // PERBAIKAN: Kirim ID agar API bisa membuat transaksi PENDING
         }),
       });
 
@@ -124,19 +129,27 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       }
 
       (window as any).snap.pay(token, {
-        onSuccess: async function(result: any) {
-          toast.success("Pembayaran Berhasil!");
-          const res = await enrollUser(course.id, course.price);
-          if (res?.error) {
-            toast.error("Gagal mendaftarkan kelas: " + res.error);
-            setIsProcessing(false);
-            return;
-          }
-          window.location.href = "/dashboard";
+        onSuccess: function(result: any) {
+          // PERBAIKAN: Tidak perlu panggil aksi Enroll dari frontend lagi.
+          // Cukup redirect, biarkan Webhook yang mengurus status di latar belakang.
+          toast.success("Pembayaran Berhasil! Memproses kelas...");
+          setTimeout(() => {
+             window.location.replace("/dashboard/my-courses");
+          }, 1500);
         },
-        onPending: function() { toast("Menunggu Pembayaran..."); },
-        onError: function() { toast.error("Pembayaran Gagal"); setIsProcessing(false); },
-        onClose: function() { setIsProcessing(false); }
+        onPending: function() { 
+          toast("Menunggu Pembayaran..."); 
+          setTimeout(() => {
+             window.location.replace("/dashboard");
+          }, 1500);
+        },
+        onError: function() { 
+          toast.error("Pembayaran Gagal"); 
+          setIsProcessing(false); 
+        },
+        onClose: function() { 
+          setIsProcessing(false); 
+        }
       });
     } catch (err) {
       toast.error("Gagal memproses transaksi");
@@ -156,7 +169,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     ? Math.round(((safeStrikePrice - safePrice) / safeStrikePrice) * 100) 
     : 0;
 
-  // LOGIKA RATING & SALES ASLI/DUMMY UNTUK CHECKOUT DARI DATABASE
   const isDummy = course?.use_dummy_rating ?? true;
   const displayRating = isDummy ? Number(course?.dummy_rating || 5.0) : Number(course?.rating || 0);
   const displayReviews = isDummy ? Number(course?.dummy_rating_count || 5) : Number(course?.review_count || 0);
