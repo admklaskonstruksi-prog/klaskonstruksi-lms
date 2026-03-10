@@ -8,20 +8,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { enrollUser } from "../actions";
 import { 
-  Star, 
-  PlayCircle, 
-  Trophy, 
-  ArrowLeft, 
-  Target, 
-  ArrowRight, 
-  ChevronDown, 
-  Loader2,
-  FileCheck,
-  Infinity,
-  FileText,
-  CheckCircle,
-  Layers,
-  Zap
+  Star, PlayCircle, Trophy, ArrowLeft, Target, ArrowRight, ChevronDown, 
+  Loader2, FileCheck, Infinity, FileText, CheckCircle, Layers, Zap, Users
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -72,7 +60,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       const { data: courseData } = await supabase.from("courses").select("*").eq("id", courseId).single();
       
       if (courseData) {
-        // Ambil relasi kategori agar label di header gelap bisa muncul
         let subCat = null;
         let levelCat = null;
         if (courseData.sub_category_id) {
@@ -165,15 +152,17 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
   const safePrice = Number(course?.price || 0);
   const safeStrikePrice = Number(course?.strike_price || 0);
-  const safeRating = Number(course?.rating || 5);
   const discountPercent = (safeStrikePrice > safePrice) 
     ? Math.round(((safeStrikePrice - safePrice) / safeStrikePrice) * 100) 
     : 0;
 
+  // LOGIKA RATING ASLI/DUMMY UNTUK CHECKOUT
+  const isDummy = course?.use_dummy_rating ?? true;
+  const displayRating = isDummy ? 5.0 : Number(course?.rating || 0);
+  const displayReviews = isDummy ? 5 : Number(course?.review_count || 0);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] selection:bg-[#F97316] selection:text-white flex flex-col">
-      
-      {/* HEADER BANNER (Dark Theme) */}
       <div className="bg-gray-950 text-white pt-8 pb-24 px-4 md:px-8 relative overflow-hidden">
          <div className="absolute inset-0 opacity-10 pointer-events-none">
             <Image src="/logo.png" alt="pattern" fill className="object-cover scale-150 grayscale" />
@@ -198,23 +187,18 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                <p className="text-gray-300 text-lg md:text-xl mb-10 max-w-3xl leading-relaxed font-medium">{course?.description}</p>
                
                <div className="flex flex-wrap items-center gap-y-3 gap-x-8 text-base text-gray-300 border-t border-gray-800 pt-8 mt-8">
-                  <span className="flex items-center gap-2 font-semibold"><Star size={20} className="text-yellow-400 fill-yellow-400"/> {safeRating.toFixed(1)} Rating Kelas</span>
+                  <span className="flex items-center gap-2 font-semibold"><Star size={20} className="text-yellow-400 fill-yellow-400"/> {displayRating.toFixed(1)} Rating Kelas ({displayReviews} Ulasan)</span>
                   <span className="flex items-center gap-2 font-semibold"><Layers size={20} className="text-[#00C9A7]"/> {course?.course_levels?.name || course?.difficulty || "All Level"}</span>
-                  <span className="flex items-center gap-2 font-semibold"><CheckCircle size={20} className="text-[#00C9A7]"/> {course?.sales_count || 0} Siswa Terdaftar</span>
+                  <span className="flex items-center gap-2 font-semibold"><Users size={20} className="text-[#00C9A7]"/> {course?.sales_count || 0} Siswa Terdaftar</span>
                </div>
             </div>
          </div>
       </div>
 
-      {/* MAIN CONTENT AREA */}
       <main className="flex-1 max-w-7xl mx-auto px-4 md:px-8 w-full pb-24">
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start relative">
-            
-            {/* KOLOM KIRI: KONTEN MATERI */}
             <div className="lg:col-span-2 space-y-12 -mt-10 lg:-mt-16 relative z-20">
                <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl shadow-gray-100/50 border border-gray-100 space-y-10">
-                  
-                  {/* YOUR GOAL (Tujuan Utama) */}
                   {course?.goals && (
                      <div>
                         <h2 className="text-2xl font-black text-gray-950 mb-5 flex items-center gap-3">
@@ -226,7 +210,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                      </div>
                   )}
 
-                  {/* KEY POINTS (Poin Kunci) */}
                   <div>
                      <h2 className="text-2xl font-black text-gray-950 mb-6 flex items-center gap-3">
                         <Zap className="text-[#00C9A7]" size={28}/> Key Points
@@ -251,7 +234,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                      </div>
                   </div>
 
-                  {/* KURIKULUM & SILABUS */}
                   <div className="space-y-8">
                      <div className="flex items-center justify-between gap-4">
                         <h2 className="text-2xl md:text-3xl font-black text-gray-950">Kurikulum & Silabus</h2>
@@ -289,11 +271,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         ))}
                      </div>
                   </div>
-
                </div>
             </div>
 
-            {/* KOLOM KANAN: KOTAK HARGA STICKY */}
             <div className="lg:col-span-1 lg:sticky lg:top-28 lg:self-start -mt-20 lg:-mt-64 relative z-30">
                <div className="bg-white text-gray-950 rounded-3xl p-7 shadow-2xl shadow-gray-200/70 border border-gray-100">
                   <div className="aspect-video bg-gray-100 rounded-2xl mb-7 relative overflow-hidden border border-gray-100 group shadow-inner">
@@ -348,10 +328,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   </div>
                </div>
             </div>
-
          </div>
       </main>
-
     </div>
   );
 }

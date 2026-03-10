@@ -4,7 +4,6 @@ export const runtime = 'nodejs';
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-// Tambahkan ikon Users di sini
 import { Menu, X, ArrowRight, Search, BookOpen, Layers, Star, CheckSquare, Square, Tag, ChevronDown, ChevronUp, ShoppingCart, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import CartIndicator from "@/app/components/CartIndicator"; 
@@ -27,7 +26,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
   const [minRating, setMinRating] = useState<number>(0);
   const [visibleCount, setVisibleCount] = useState(12);
 
-  // --- LOGIKA HARGA (Mendeteksi otomatis harga termahal dari database) ---
   const maxCoursePrice = Math.max(0, ...courses.map(c => Number(c.price || 0)));
   const [maxPriceFilter, setMaxPriceFilter] = useState<number | null>(null);
   const currentMaxPrice = maxPriceFilter !== null ? maxPriceFilter : maxCoursePrice;
@@ -37,15 +35,18 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
   const toggleAccordion = (id: string) => { setOpenAccordion(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]); };
   const activeSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
-  // FILTERING
+  // FILTERING DENGAN LOGIKA RATING ASLI/DUMMY
   const filteredCourses = courses.filter((course) => {
+    const isDummy = course.use_dummy_rating ?? true;
+    const courseRating = isDummy ? 5.0 : Number(course.rating || 0);
+
     const matchTitle = course.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchMain = selectedMainCat === "All" || course.main_category_id === selectedMainCat;
     const matchSub = selectedSubCat === "All" || course.sub_category_id === selectedSubCat;
     const matchLevel = selectedLevels.length === 0 || selectedLevels.includes(course.level_id);
     const safePrice = Number(course.price || 0);
-    const matchPrice = safePrice <= currentMaxPrice; // Cek range harga
-    const matchRating = Number(course.rating || 5) >= minRating;
+    const matchPrice = safePrice <= currentMaxPrice;
+    const matchRating = courseRating >= minRating;
     
     return matchTitle && matchMain && matchSub && matchLevel && matchPrice && matchRating;
   });
@@ -99,7 +100,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans selection:bg-[#00C9A7] selection:text-white flex flex-col">
-      {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -145,9 +145,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
         )}
       </nav>
 
-      {/* KONTEN KATALOG */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex flex-col lg:flex-row gap-8">
-        
         <aside className="w-full lg:w-72 shrink-0 space-y-6">
            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-28">
               <div className="relative w-full mb-6 border border-gray-100 rounded-xl overflow-hidden bg-gray-50 flex items-center focus-within:ring-2 focus-within:ring-[#00C9A7] transition-all group shadow-inner">
@@ -155,7 +153,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                 <input type="text" placeholder="Cari materi teknik..." className="w-full pl-12 pr-4 py-3.5 bg-transparent outline-none text-sm font-semibold text-gray-700 placeholder:text-gray-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
               <div className="divide-y divide-gray-100">
-                 {/* Kategori */}
                  <div>
                     {renderAccordionHeader('category', 'Kategori Program')}
                     {openAccordion.includes('category') && (
@@ -175,7 +172,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                        </div>
                     )}
                  </div>
-                 {/* Tingkat Kesulitan */}
                  <div>
                     {renderAccordionHeader('level', 'Tingkat Kesulitan')}
                     {openAccordion.includes('level') && (
@@ -187,8 +183,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                        </div>
                     )}
                  </div>
-                 
-                 {/* Slider Range Harga */}
                  <div>
                     {renderAccordionHeader('price', 'Rentang Harga')}
                     {openAccordion.includes('price') && (
@@ -212,8 +206,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                        </div>
                     )}
                  </div>
-
-                 {/* Rating Minimal */}
                  <div>
                     {renderAccordionHeader('rating', 'Rating Minimal')}
                     {openAccordion.includes('rating') && (
@@ -250,6 +242,11 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                  {displayedCourses.map((course) => {
                    const isOwned = ownedCourseIds.includes(course.id);
                    const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`;
+                   
+                   // LOGIKA RATING ASLI/DUMMY UNTUK CARD
+                   const isDummy = course.use_dummy_rating ?? true;
+                   const displayRating = isDummy ? 5.0 : Number(course.rating || 0);
+                   const displayReviews = isDummy ? 5 : Number(course.review_count || 0);
 
                    return (
                      <Link href={targetHref} key={course.id} className={`group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative ${isOwned ? 'opacity-80 grayscale-[40%]' : ''}`}>
@@ -261,7 +258,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                        <div className="p-5 flex flex-col flex-1">
                          <h3 className="font-bold text-gray-800 line-clamp-2 text-[15px] group-hover:text-[#00C9A7] transition-colors mb-3">{course.title}</h3>
                          
-                         {/* ----- BAGIAN RATING DAN TERJUAL DI SINI ----- */}
                          <div className="flex items-center text-[10px] sm:text-[11px] text-gray-500 mb-4 mt-auto">
                             <span className="flex items-center gap-1 bg-gray-50 px-2 py-1.5 rounded-md border border-gray-100 mr-2 max-w-[100px] shrink-0">
                                <Layers size={12} className="text-[#00C9A7] shrink-0"/> 
@@ -271,7 +267,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                             <div className="flex items-center gap-1.5 ml-auto shrink-0">
                                <span className="flex items-center gap-1 bg-yellow-50 text-[#b4690e] px-2 py-1.5 rounded-md border border-yellow-100 font-bold" title="Rating & Ulasan">
                                   <Star size={12} className="fill-yellow-400 text-yellow-400"/>
-                                  {Number(course.rating || 5).toFixed(1)} <span className="opacity-70 font-medium">({course.review_count || 0})</span>
+                                  {displayRating.toFixed(1)} <span className="opacity-70 font-medium">({displayReviews})</span>
                                </span>
                                <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1.5 rounded-md border border-blue-100 font-bold" title="Total Siswa Terdaftar">
                                   <Users size={12} /> {course.sales_count || 0}
@@ -285,7 +281,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                                <p className={`text-lg font-black ${isOwned ? 'text-gray-900' : 'text-[#F97316]'}`}>{formatRupiah(course.price)}</p>
                             </div>
                             
-                            {/* TOMBOL KERANJANG SEDERHANA */}
                             {isOwned ? (
                                <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors bg-[#00C9A7] text-white"><BookOpen size={16} /></div>
                             ) : (
@@ -310,11 +305,8 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
         </section>
       </main>
 
-     {/* --- FOOTER (DISAMAKAN DENGAN BERANDA) --- */}
      <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#00C9A7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
-          
-          {/* Kolom Kiri Utama */}
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-6">
                <Image src="/logo.png" alt="Logo" width={80} height={80} className="rounded object-contain opacity-90 bg-white" />
@@ -323,8 +315,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer handal yang siap menghadapi tantangan proyek nyata.
             </p>
           </div>
-          
-          {/* Kolom Tengah Navigasi */}
           <div>
             <h4 className="font-bold text-lg mb-6 text-white">Menu Navigasi</h4>
             <ul className="space-y-3 text-sm text-gray-400">
@@ -334,8 +324,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
               <li><Link href="/#mentor" className="hover:text-[#00C9A7] transition-colors">Daftar Mentor</Link></li>
             </ul>
           </div>
-          
-          {/* Kolom Kanan Info Lain */}
           <div>
             <h4 className="font-bold text-lg mb-6 text-white">Informasi Lain</h4>
             <ul className="space-y-3 text-sm text-gray-400">
@@ -343,10 +331,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
               <li><Link href="/contact" className="hover:text-[#00C9A7] transition-colors">Hubungi Kami</Link></li>
             </ul>
           </div>
-
         </div>
-
-        {/* Baris Hak Cipta Bawah */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 gap-4">
           <p>© {new Date().getFullYear()} Klas Konstruksi. Hak Cipta Dilindungi.</p>
         </div>
