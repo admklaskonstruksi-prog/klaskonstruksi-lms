@@ -115,20 +115,22 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
             </div>
 
             <div className="hidden md:flex items-center gap-4">
-              <CartIndicator />
+              <div className="mr-2"><CartIndicator /></div>
               <Link href="/login" className="px-5 py-2.5 text-gray-600 font-bold hover:text-[#00C9A7] transition-colors">Masuk</Link>
               <Link href="/login?mode=register" className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#F97316]/30 flex items-center gap-2 hover:-translate-y-0.5">Daftar Sekarang <ArrowRight size={16} /></Link>
             </div>
 
-            <div className="md:hidden flex items-center gap-4">
-              <CartIndicator />
-              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-500 hover:text-[#00C9A7] focus:outline-none">
-                {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+            {/* TOMBOL KANAN MOBILE (Jarak dan Ikon Menu Diperbaiki) */}
+            <div className="md:hidden flex items-center gap-6">
+              <div className="mr-1"><CartIndicator /></div>
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-500 hover:text-[#00C9A7] focus:outline-none bg-gray-50 p-1.5 rounded-lg active:bg-gray-100 transition-colors">
+                {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
               </button>
             </div>
           </div>
         </div>
 
+        {/* LACI MENU MOBILE (Padding & Fungsi Tutup Diperbaiki) */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-2xl">
             <div className="px-4 pt-2 pb-6 space-y-2">
