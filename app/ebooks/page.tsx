@@ -76,16 +76,25 @@ export default function PublicEbooksCatalog() {
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-2xl">
             <div className="px-4 pt-2 pb-6 space-y-2">
-              <Link href="/" className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg">Beranda</Link>
-              <Link href="/program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">
+                Beranda
+              </Link>
+              <Link href="/program" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-bold text-[#00C9A7] bg-teal-50 rounded-lg transition-colors">
                 Program Klas
               </Link>
-              <Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+              <Link href="/ebooks" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">
                 Katalog E-Book
               </Link>
+              <Link href="/#mentor" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">
+                Daftar Mentor
+              </Link>
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
-                <Link href="/login" className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50">Masuk</Link>
-                <Link href="/login?mode=register" className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C]">Daftar Sekarang</Link>
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  Masuk
+                </Link>
+                <Link href="/login?mode=register" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C] transition-colors">
+                  Daftar Sekarang
+                </Link>
               </div>
             </div>
           </div>
