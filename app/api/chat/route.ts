@@ -3,6 +3,8 @@ import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createClient } from '@/utils/supabase/server';
 
+export const runtime = 'edge';
+
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
 });
