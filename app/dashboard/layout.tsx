@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardSidebar from "./components/DashboardSidebar";
 import AutoLogout from "./components/AutoLogout"; 
+import KlasAIWidget from "./components/KlasAIWidget"; // <-- IMPORT KLAS AI WIDGET
 import { ReactNode } from "react";
 import { revalidatePath } from "next/cache";
 
@@ -69,6 +70,9 @@ export default async function DashboardLayout({
         <main className="flex-1 min-w-0 transition-all duration-300 min-h-screen">
           {children}
         </main>
+        
+        {/* FITUR CHAT AI DITAMBAHKAN DI SINI */}
+        <KlasAIWidget />
         
         {/* MODAL PENCEGAT (Sekarang mengunci seluruh aplikasi dashboard) */}
         {isProfileIncomplete && (
