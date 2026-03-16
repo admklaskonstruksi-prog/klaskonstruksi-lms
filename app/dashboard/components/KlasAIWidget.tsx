@@ -1,24 +1,26 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai"; // <-- Tambahan import baru
+import { DefaultChatTransport } from "ai";
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Bot, User } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, GripHorizontal } from "lucide-react";
 
 export default function KlasAIWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  
-  // 1. KELOLA STATE INPUT SECARA MANUAL
-  const [input, setInput] = useState(""); 
+  const [input, setInput] = useState("");
 
-  // 2. KONFIGURASI USECHAT VERSI 6.0
+  // STATE UNTUK FITUR DRAG & DROP
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isMoved, setIsMoved] = useState(false); // Untuk membedakan klik dan drag
+  const dragRef = useRef({ startX: 0, startY: 0 });
+
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
   });
 
-  // 3. STATUS LOADING SEKARANG BERASAL DARI 'status'
   const isLoading = status === "submitted" || status === "streaming";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -26,7 +28,6 @@ export default function KlasAIWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 4. BUAT FUNGSI SUBMIT MANUAL
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -34,12 +35,48 @@ export default function KlasAIWidget() {
     setInput("");
   };
 
+  // --- LOGIKA DRAG & DROP ---
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    setIsDragging(true);
+    setIsMoved(false);
+    dragRef.current.startX = e.clientX - position.x;
+    dragRef.current.startY = e.clientY - position.y;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDragging) return;
+    setIsMoved(true); // Jika kursor bergerak saat ditekan, tandai sebagai "Moved"
+    const newX = e.clientX - dragRef.current.startX;
+    const newY = e.clientY - dragRef.current.startY;
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    setIsDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    
+    // Jika hanya di-klik (tidak digeser), maka buka/tutup chat
+    if (!isMoved) {
+      setIsOpen(!isOpen);
+    }
+  };
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    // Menggunakan z-[9999] agar dipastikan tampil paling atas dan tidak tertimpa elemen lain
+    <div 
+      className="fixed z-[9999] flex flex-col items-end pointer-events-none"
+      style={{ 
+        bottom: '24px', 
+        right: '24px',
+        transform: `translate(${position.x}px, ${position.y}px)`,
+      }}
+    >
+      {/* Jendela Chat */}
       {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl shadow-[#00C9A7]/20 border border-gray-100 w-[350px] sm:w-[400px] h-[500px] flex flex-col mb-4 overflow-hidden animate-in slide-in-from-bottom-5">
+        <div className="bg-white rounded-2xl shadow-2xl shadow-[#00C9A7]/20 border border-gray-100 w-[350px] sm:w-[400px] h-[500px] flex flex-col mb-4 overflow-hidden animate-in slide-in-from-bottom-5 pointer-events-auto">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#00C9A7] to-teal-600 p-4 text-white flex justify-between items-center shadow-md z-10">
+          <div className="bg-gradient-to-r from-[#00C9A7] to-teal-600 p-4 text-white flex justify-between items-center shadow-md z-10 cursor-default">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-2 rounded-full"><Bot size={20} /></div>
               <div>
@@ -67,12 +104,7 @@ export default function KlasAIWidget() {
                       {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
                     <div className={`p-3 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-[#F97316] text-white rounded-tr-none' : 'bg-white border border-gray-100 text-gray-700 shadow-sm rounded-tl-none'}`}>
-                      
-                      {/* 5. CARA BARU MERENDER TEKS DI VERSI 6.0 (menggunakan 'parts' array) */}
-                      {m.parts 
-                        ? m.parts.map((part: any, i: number) => part.type === 'text' ? <span key={i}>{part.text}</span> : null) 
-                        : m.content}
-
+                      {m.parts ? m.parts.map((part: any, i: number) => part.type === 'text' ? <span key={i}>{part.text}</span> : null) : m.content}
                     </div>
                   </div>
                 </div>
@@ -91,28 +123,34 @@ export default function KlasAIWidget() {
           </div>
 
           {/* Input Area */}
-          {/* 6. GUNAKAN FUNGSI ONSUBMIT MANUAL */}
           <form onSubmit={onSubmit} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
             <input
-              className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] bg-gray-50"
+              className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] bg-gray-50 text-gray-900"
               value={input}
               placeholder="Tanya seputar kelas..."
               onChange={(e) => setInput(e.target.value)}
             />
-            <button 
-              type="submit" 
-              disabled={isLoading || !input.trim()}
-              className="bg-[#00C9A7] text-white p-2.5 rounded-full hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
+            <button type="submit" disabled={isLoading || !input.trim()} className="bg-[#00C9A7] text-white p-2.5 rounded-full hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               <Send size={18} className="ml-0.5" />
             </button>
           </form>
         </div>
       )}
 
-      {/* Floating Button Toggle */}
-      <button onClick={() => setIsOpen(!isOpen)} className={`${isOpen ? 'scale-0' : 'scale-100'} transition-transform duration-300 bg-[#00C9A7] hover:bg-teal-600 text-white p-4 rounded-full shadow-xl shadow-teal-500/30 flex items-center justify-center`}>
-        <MessageCircle size={28} />
+      {/* Floating Button Toggle (Bisa Di-Drag) */}
+      <button 
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className={`${isOpen ? 'hidden' : 'flex'} pointer-events-auto bg-[#00C9A7] hover:bg-teal-600 text-white p-4 rounded-full shadow-xl shadow-teal-500/30 items-center justify-center cursor-move touch-none relative group`}
+        title="Geser untuk memindahkan, klik untuk membuka"
+      >
+        {/* Indikator Grip agar user tahu ini bisa digeser */}
+        <div className="absolute -top-1 -right-1 bg-white text-[#00C9A7] rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+            <GripHorizontal size={12} />
+        </div>
+        <MessageCircle size={28} className="pointer-events-none" />
       </button>
     </div>
   );
