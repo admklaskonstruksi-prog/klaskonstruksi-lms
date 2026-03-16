@@ -9,12 +9,13 @@ export default function KlasAIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
 
-  // STATE UNTUK FITUR DRAG & DROP
+  // --- 1. STATE UNTUK DRAG & DROP ---
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [isMoved, setIsMoved] = useState(false); // Untuk membedakan klik dan drag
-  const dragRef = useRef({ startX: 0, startY: 0 });
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const isMovedRef = useRef(false);
 
+  // --- 2. KONFIGURASI AI SDK VERSI 6.0 ---
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -28,44 +29,50 @@ export default function KlasAIWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // --- 3. FUNGSI KIRIM PESAN ---
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    sendMessage({ text: input });
-    setInput("");
+    if (!input.trim() || isLoading) return;
+    
+    const userMessage = input;
+    setInput(""); // Kosongkan form segera agar terasa responsif
+    
+    // Kirim pesan menggunakan standar baru (sendMessage)
+    sendMessage({ text: userMessage });
   };
 
-  // --- LOGIKA DRAG & DROP ---
+  // --- 4. LOGIKA DRAG & DROP ---
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsDragging(true);
-    setIsMoved(false);
-    dragRef.current.startX = e.clientX - position.x;
-    dragRef.current.startY = e.clientY - position.y;
+    isMovedRef.current = false;
+    dragStartRef.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!isDragging) return;
-    setIsMoved(true); // Jika kursor bergerak saat ditekan, tandai sebagai "Moved"
-    const newX = e.clientX - dragRef.current.startX;
-    const newY = e.clientY - dragRef.current.startY;
-    setPosition({ x: newX, y: newY });
+    isMovedRef.current = true;
+    setPosition({
+      x: e.clientX - dragStartRef.current.x,
+      y: e.clientY - dragStartRef.current.y,
+    });
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
     
-    // Jika hanya di-klik (tidak digeser), maka buka/tutup chat
-    if (!isMoved) {
-      setIsOpen(!isOpen);
+    if (!isMovedRef.current) {
+      setIsOpen((prev) => !prev);
     }
   };
 
   return (
-    // Menggunakan z-[9999] agar dipastikan tampil paling atas dan tidak tertimpa elemen lain
     <div 
-      className="fixed z-[9999] flex flex-col items-end pointer-events-none"
+      className="fixed z-[9999] pointer-events-none flex flex-col items-end"
       style={{ 
         bottom: '24px', 
         right: '24px',
@@ -89,7 +96,7 @@ export default function KlasAIWidget() {
             </button>
           </div>
 
-          {/* Messages Area */}
+          {/* Area Pesan */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 space-y-3 px-4">
@@ -122,7 +129,7 @@ export default function KlasAIWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
+          {/* Area Input */}
           <form onSubmit={onSubmit} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
             <input
               className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] bg-gray-50 text-gray-900"
@@ -137,16 +144,15 @@ export default function KlasAIWidget() {
         </div>
       )}
 
-      {/* Floating Button Toggle (Bisa Di-Drag) */}
+      {/* Tombol Floating */}
       <button 
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className={`${isOpen ? 'hidden' : 'flex'} pointer-events-auto bg-[#00C9A7] hover:bg-teal-600 text-white p-4 rounded-full shadow-xl shadow-teal-500/30 items-center justify-center cursor-move touch-none relative group`}
-        title="Geser untuk memindahkan, klik untuk membuka"
+        style={{ touchAction: 'none' }}
+        className={`${isOpen ? 'hidden' : 'flex'} pointer-events-auto bg-[#00C9A7] hover:bg-teal-600 text-white p-4 rounded-full shadow-xl shadow-teal-500/30 items-center justify-center cursor-grab active:cursor-grabbing relative group transition-transform hover:scale-105 active:scale-95`}
       >
-        {/* Indikator Grip agar user tahu ini bisa digeser */}
         <div className="absolute -top-1 -right-1 bg-white text-[#00C9A7] rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
             <GripHorizontal size={12} />
         </div>
