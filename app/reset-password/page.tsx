@@ -3,7 +3,12 @@ export const runtime = "nodejs";
 import Link from "next/link";
 import { updatePasswordAction } from "./actions";
 
-export default async function ResetPasswordPage() {
+export default async function ResetPasswordPage(props: {
+  searchParams: Promise<{ message?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  const message = searchParams?.message;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -13,6 +18,12 @@ export default async function ResetPasswordPage() {
             Jika kamu membuka halaman ini tanpa lewat link email reset, prosesnya akan gagal.
           </p>
         </div>
+
+        {message && (
+          <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">
+            {message}
+          </div>
+        )}
 
         <form className="space-y-4" action={updatePasswordAction}>
           <div>
