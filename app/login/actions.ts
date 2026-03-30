@@ -2,6 +2,14 @@
 
 import { createClient } from "@/utils/supabase/server";
 
+function normalizeSiteUrl(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const trimmed = input.trim().replace(/\/+$/, "");
+  if (!trimmed) return null;
+  if (!/^https?:\/\//i.test(trimmed)) return null;
+  return trimmed;
+}
+
 export async function signInAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -32,7 +40,10 @@ export async function signUpAction(formData: FormData) {
   if (!phone || phone.trim().length < 6) return { error: "No. WhatsApp tidak valid." };
   if (!address || address.trim().length < 2) return { error: "Kota/Domisili wajib diisi." };
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.klaskonstruksi.com";
+  const siteUrl =
+    normalizeSiteUrl(formData.get("siteUrl")) ||
+    normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
+    "https://www.klaskonstruksi.com";
 
   // 1. Daftarkan user ke sistem Auth Supabase.
   // Simpan data penting di user_metadata agar tidak tergantung insert ke tabel profiles (yang sering kena RLS saat email confirmation aktif).
@@ -79,8 +90,10 @@ export async function signUpAction(formData: FormData) {
 export async function signInWithGoogle(callbackUrl: string = "/dashboard") {
   const supabase = await createClient();
   
-  // Mengambil URL dari env, jika tidak ada baru pakai fallback
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.klaskonstruksi.com';
+  // Prioritaskan origin yang sedang dipakai user (biar tidak nyasar ke www.klaskonstruksi.com kalau domainnya beda).
+  // Fallback ke env, lalu fallback terakhir.
+  const siteUrl =
+    normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) || "https://www.klaskonstruksi.com";
   
   // Pastikan URL callback lengkap dan membawa parameter 'next' yang dinamis
   const redirectUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(callbackUrl)}`;
@@ -102,12 +115,43 @@ export async function signInWithGoogle(callbackUrl: string = "/dashboard") {
   if (data.url) return { success: true, url: data.url };
 }
 
+export async function signInWithGoogleFromSite(
+  callbackUrl: string = "/dashboard",
+  siteUrlFromClient?: string
+) {
+  const supabase = await createClient();
+
+  const siteUrl =
+    normalizeSiteUrl(siteUrlFromClient) ||
+    normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
+    "https://www.klaskonstruksi.com";
+
+  const redirectUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(callbackUrl)}`;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: redirectUrl,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+  });
+
+  if (error) return { error: error.message };
+  if (data.url) return { success: true, url: data.url };
+}
+
 export async function requestPasswordResetAction(formData: FormData) {
   const email = (formData.get("email") as string) || "";
   if (!email) return { error: "Email wajib diisi." };
 
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.klaskonstruksi.com";
+  const siteUrl =
+    normalizeSiteUrl(formData.get("siteUrl")) ||
+    normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
+    "https://www.klaskonstruksi.com";
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/reset-password")}`,

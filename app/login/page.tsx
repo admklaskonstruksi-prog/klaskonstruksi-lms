@@ -4,7 +4,12 @@ export const runtime = 'nodejs';
 
 import { useState, useTransition, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation"; // 1. Tambahkan useRouter
-import { signInAction, signUpAction, signInWithGoogle, requestPasswordResetAction } from "./actions";
+import {
+  signInAction,
+  signUpAction,
+  signInWithGoogleFromSite,
+  requestPasswordResetAction,
+} from "./actions";
 import { Loader2, Chrome, Eye, EyeOff } from "lucide-react";
 // 1. IMPORT DYNAMIC DARI NEXT.JS
 import dynamic from "next/dynamic";
@@ -106,6 +111,7 @@ function LoginPageShell() {
     setSuccessMsg("");
     const formData = new FormData(e.currentTarget);
     formData.append("callbackUrl", callbackUrl);
+    formData.append("siteUrl", window.location.origin);
 
     startTransition(async () => {
       if (isRegister) {
@@ -128,7 +134,7 @@ function LoginPageShell() {
 
   const handleGoogleLogin = async () => {
     setErrorMsg("");
-    const res = await signInWithGoogle(callbackUrl);
+    const res = await signInWithGoogleFromSite(callbackUrl, window.location.origin);
     if (res?.error) setErrorMsg(res.error);
     if (res?.success && res?.url) window.location.href = res.url;
   };
@@ -139,6 +145,7 @@ function LoginPageShell() {
     startResetTransition(async () => {
       const fd = new FormData();
       fd.append("email", resetEmail);
+      fd.append("siteUrl", window.location.origin);
       const res = await requestPasswordResetAction(fd);
       if (res?.error) setErrorMsg(res.error);
       if (res?.success) {
