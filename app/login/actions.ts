@@ -27,23 +27,52 @@ export async function signUpAction(formData: FormData) {
 
   const supabase = await createClient();
 
-  // 1. Daftarkan user ke sistem Auth Supabase
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (!email || !password) return { error: "Email dan password wajib diisi." };
+  if (!full_name || full_name.trim().length < 2) return { error: "Nama lengkap minimal 2 karakter." };
+  if (!phone || phone.trim().length < 6) return { error: "No. WhatsApp tidak valid." };
+  if (!address || address.trim().length < 2) return { error: "Kota/Domisili wajib diisi." };
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.klaskonstruksi.com";
+
+  // 1. Daftarkan user ke sistem Auth Supabase.
+  // Simpan data penting di user_metadata agar tidak tergantung insert ke tabel profiles (yang sering kena RLS saat email confirmation aktif).
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
+      data: {
+        full_name,
+        phone,
+        address,
+        role: "siswa",
+      },
+    },
+  });
 
   if (error) return { error: error.message };
 
-  // 2. Simpan data lengkap ke tabel profiles
+  // 2. Simpan data ke tabel profiles jika memungkinkan.
+  // Catatan: pada konfigurasi Supabase yang mewajibkan verifikasi email, session bisa null → RLS bisa menolak insert/update.
   if (data.user) {
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      full_name,
-      phone,
-      address,
-      role: 'siswa' // Otomatis jadi siswa
-    });
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session) {
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: data.user.id,
+        full_name,
+        phone,
+        address,
+        role: "siswa",
+      });
+      if (profileError) {
+        // Jangan gagalkan signup kalau hanya gagal tulis profile.
+        console.error("Profile upsert gagal:", profileError.message);
+      }
+    }
   }
 
-  return { success: "Pendaftaran berhasil! Silakan masuk dengan akun Anda." };
+  // Jika email confirmation aktif, Supabase biasanya minta user klik link di email dulu.
+  return { success: "Pendaftaran berhasil! Silakan cek email untuk verifikasi, lalu login." };
 }
 
 // Tambahkan parameter callbackUrl
@@ -71,4 +100,19 @@ export async function signInWithGoogle(callbackUrl: string = "/dashboard") {
   
   // Kembalikan URL OAuth Google ke client
   if (data.url) return { success: true, url: data.url };
+}
+
+export async function requestPasswordResetAction(formData: FormData) {
+  const email = (formData.get("email") as string) || "";
+  if (!email) return { error: "Email wajib diisi." };
+
+  const supabase = await createClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.klaskonstruksi.com";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/reset-password")}`,
+  });
+
+  if (error) return { error: error.message };
+  return { success: "Link reset password sudah dikirim. Cek inbox/spam email kamu." };
 }
