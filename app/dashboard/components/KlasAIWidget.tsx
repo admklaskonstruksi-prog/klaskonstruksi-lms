@@ -7,19 +7,19 @@ import { MessageCircle, X, Send, Bot, User, GripHorizontal } from "lucide-react"
 export default function KlasAIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   
+  // STATE LOKAL UNTUK MEMASTIKAN INPUT SELALU BISA DIKETIK
+  const [localInput, setLocalInput] = useState("");
+  
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
-  const isMovedRef = useRef(false);
+  
+  // REFERENSI UNTUK MEMBEDAKAN KLIK vs GESER (KHUSUS MOBILE/HP)
+  const startPosRef = useRef({ x: 0, y: 0 });
 
-  // MENGGUNAKAN 'as any' UNTUK MENGHILANGKAN ERROR TYPESCRIPT (BENTROK PACKAGE)
-  const chatState = useChat() as any;
-  // Ekstrak properti secara manual agar aman dari garis merah VS Code
-  const messages = chatState.messages || [];
-  const input = chatState.input || "";
-  const handleInputChange = chatState.handleInputChange;
-  const handleSubmit = chatState.handleSubmit;
-  const isLoading = chatState.isLoading || false;
+  const chat = useChat() as any;
+  const messages = chat.messages || [];
+  const isLoading = chat.isLoading || false;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -27,35 +27,55 @@ export default function KlasAIWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!localInput.trim() || isLoading) return;
+    
+    // FUNGSI PENGIRIMAN ANTI-CRASH (Menyesuaikan dengan versi AI SDK manapun)
+    if (typeof chat.append === 'function') {
+        chat.append({ role: 'user', content: localInput });
+    } else if (typeof chat.sendMessage === 'function') {
+        chat.sendMessage({ text: localInput });
+    } else if (typeof chat.handleSubmit === 'function') {
+        chat.handleInputChange({ target: { value: localInput } } as any);
+        setTimeout(() => chat.handleSubmit(e), 50);
+    }
+    
+    setLocalInput(""); 
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsDragging(true);
-    isMovedRef.current = false;
-    dragStartRef.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    };
+    dragStartRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };
+    startPosRef.current = { x: e.clientX, y: e.clientY }; // Catat posisi awal sentuhan
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!isDragging) return;
-    isMovedRef.current = true;
-    setPosition({
-      x: e.clientX - dragStartRef.current.x,
-      y: e.clientY - dragStartRef.current.y,
-    });
+    setPosition({ x: e.clientX - dragStartRef.current.x, y: e.clientY - dragStartRef.current.y });
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
-    if (!isMovedRef.current) setIsOpen((prev) => !prev);
+    
+    // HITUNG JARAK GESERAN (Toleransi Getaran Jari di HP)
+    const dx = e.clientX - startPosRef.current.x;
+    const dy = e.clientY - startPosRef.current.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Jika jari bergeser kurang dari 10 pixel, anggap sebagai KLIK
+    if (distance < 10) {
+      setIsOpen((prev) => !prev);
+    }
   };
 
   return (
-    <div className="fixed z-[9999] pointer-events-none flex flex-col items-end" style={{ bottom: '24px', right: '24px', transform: `translate(${position.x}px, ${position.y}px)` }}>
+    // Pembungkusnya tidak lagi pakai pointer-events-none yang memblokir ketikan
+    <div className="fixed z-[9999] flex flex-col items-end" style={{ bottom: '24px', right: '24px', transform: `translate(${position.x}px, ${position.y}px)` }}>
       {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl shadow-[#00C9A7]/20 border border-gray-100 w-[350px] sm:w-[400px] h-[500px] flex flex-col mb-4 overflow-hidden animate-in slide-in-from-bottom-5 pointer-events-auto">
+        <div className="bg-white rounded-2xl shadow-2xl shadow-[#00C9A7]/20 border border-gray-100 w-[350px] sm:w-[400px] h-[500px] flex flex-col mb-4 overflow-hidden animate-in slide-in-from-bottom-5">
           
           <div className="bg-gradient-to-r from-[#00C9A7] to-teal-600 p-4 text-white flex justify-between items-center shadow-md z-10 cursor-default">
             <div className="flex items-center gap-3">
@@ -100,14 +120,14 @@ export default function KlasAIWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
+          <form onSubmit={onSubmit} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
             <input
               className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] bg-gray-50 text-gray-900"
-              value={input}
+              value={localInput}
               placeholder="Tanya seputar kelas..."
-              onChange={handleInputChange}
+              onChange={(e) => setLocalInput(e.target.value)}
             />
-            <button type="submit" disabled={isLoading || !input.trim()} className="bg-[#00C9A7] text-white p-2.5 rounded-full hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <button type="submit" disabled={isLoading || !localInput.trim()} className="bg-[#00C9A7] text-white p-2.5 rounded-full hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               <Send size={18} className="ml-0.5" />
             </button>
           </form>
