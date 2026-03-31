@@ -48,6 +48,6 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("🔴 KLAS AI ERROR:", error);
-    return new Response("ERROR SISTEM AI: " + message, { status: 500 });
+    return new Response("ERROR SISTEM AI : " + message, { status: 500 });
   }
 }

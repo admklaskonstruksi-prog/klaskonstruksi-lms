@@ -206,5 +206,5 @@ export default function SmartOnboardingModal({ categories, isCompleted }: Props)
         </div>
       </div>
     </div>
-  );
+  ); 
 }
