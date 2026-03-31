@@ -7,6 +7,8 @@ import { MessageCircle, X, Send, Bot, User, GripHorizontal } from "lucide-react"
 
 export default function KlasAIWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Karena AI SDK v6 tidak mengurus input, kita kelola sendiri pakai useState
   const [input, setInput] = useState("");
   
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -14,11 +16,11 @@ export default function KlasAIWidget() {
   const dragStartRef = useRef({ x: 0, y: 0 });
   const isMovedRef = useRef(false);
 
-  // KEMBALI KE STANDAR V4 (SESUAI VERSI AI SDK YANG TERINSTALL DI PROJECT KAMU)
+  // KEMBALI MENGGUNAKAN STANDAR TRANSPORT VERCEL AI SDK TERBARU
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
-    } as any),
+    }),
   });
 
   const isLoading = status === "submitted" || status === "streaming";
@@ -32,6 +34,7 @@ export default function KlasAIWidget() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
     
+    // Kirim pesan menggunakan objek { text } sesuai standar transport
     sendMessage({ text: input });
     setInput(""); 
   };
@@ -58,17 +61,14 @@ export default function KlasAIWidget() {
   const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
-    
-    if (!isMovedRef.current) {
-      setIsOpen((prev) => !prev);
-    }
+    if (!isMovedRef.current) setIsOpen((prev) => !prev);
   };
 
   return (
     <div className="fixed z-[9999] pointer-events-none flex flex-col items-end" style={{ bottom: '24px', right: '24px', transform: `translate(${position.x}px, ${position.y}px)` }}>
       {isOpen && (
         <div className="bg-white rounded-2xl shadow-2xl shadow-[#00C9A7]/20 border border-gray-100 w-[350px] sm:w-[400px] h-[500px] flex flex-col mb-4 overflow-hidden animate-in slide-in-from-bottom-5 pointer-events-auto">
-          {/* Header */}
+          
           <div className="bg-gradient-to-r from-[#00C9A7] to-teal-600 p-4 text-white flex justify-between items-center shadow-md z-10 cursor-default">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-2 rounded-full"><Bot size={20} /></div>
@@ -80,12 +80,11 @@ export default function KlasAIWidget() {
             <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={20} /></button>
           </div>
 
-          {/* Area Pesan */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 space-y-3 px-4">
                 <Bot size={40} className="text-[#00C9A7] opacity-50" />
-                <p className="text-sm">Halo! Saya Klas AI. Ada yang bisa saya bantu terkait kelas atau e-book hari ini?</p>
+                <p className="text-sm">Halo! Saya Klas AI. Ada yang bisa saya bantu terkait materi hari ini?</p>
               </div>
             ) : (
               messages.map((m: any) => (
@@ -96,8 +95,10 @@ export default function KlasAIWidget() {
                     </div>
                     <div className={`p-3 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-[#F97316] text-white rounded-tr-none' : 'bg-white border border-gray-100 text-gray-700 shadow-sm rounded-tl-none'}`}>
                       
-                      {/* RENDER AMAN: Menggunakan m.text atau m.content mencegah munculnya object */}
-                      {m.parts ? m.parts.map((part: any, i: number) => part.type === 'text' ? <span key={i}>{part.text}</span> : null) : (m.text || m.content || "")}
+                      {/* RENDER AMAN: Mengolah array 'parts' atau 'text' agar bebas dari [object Object] */}
+                      {m.parts 
+                        ? m.parts.map((part: any, i: number) => part.type === 'text' ? <span key={i}>{part.text}</span> : null) 
+                        : (m.text || m.content || "")}
                       
                     </div>
                   </div>
@@ -116,7 +117,6 @@ export default function KlasAIWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Area Input */}
           <form onSubmit={onSubmit} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
             <input
               className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] bg-gray-50 text-gray-900"
@@ -131,7 +131,6 @@ export default function KlasAIWidget() {
         </div>
       )}
 
-      {/* Tombol Floating */}
       <button 
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

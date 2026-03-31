@@ -2,7 +2,7 @@ import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createClient } from '@/utils/supabase/server';
 
-export const maxDuration = 30; // Limit eksekusi khusus untuk AI
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
@@ -12,13 +12,17 @@ export async function POST(req: Request) {
     }
 
     const google = createGoogleGenerativeAI({ apiKey });
-    const body = await req.json();
     
-    // Ekstrak pesan secara aman, karena Vercel AI SDK v4 kadang mengirim 'text' alih-alih 'content'
-    const coreMessages = (body.messages || []).map((m: any) => ({
-        role: m.role,
-        content: m.content || m.text || "",
-    }));
+    // Parsing format pesan terbaru dari Vercel AI SDK v6
+    const body = await req.json();
+    const coreMessages = (body.messages || []).map((m: any) => {
+        // AI SDK v6 bisa mengirim teks di dalam 'content', 'text', atau array 'parts'
+        let textContent = m.content || m.text || "";
+        if (m.parts && m.parts.length > 0) {
+            textContent = m.parts.map((p: any) => p.text).join(' ');
+        }
+        return { role: m.role, content: textContent };
+    });
 
     let catalogInfo = "Katalog kosong.";
     try {
@@ -33,7 +37,7 @@ export async function POST(req: Request) {
     const systemPrompt = `Kamu adalah "Klas AI", asisten virtual yang ramah untuk "Klas Konstruksi".
     Tugas utamamu membantu pengguna menemukan kelas online atau e-book yang cocok.
     Katalog: ${catalogInfo}
-    Aturan: Jawab dengan bahasa Indonesia santai tapi sopan. Buat jawaban singkat, jelas, dan hindari format tebal/markdown yang berlebihan.`;
+    Aturan: Jawab dengan bahasa Indonesia santai tapi sopan. Buat jawaban singkat, jelas, dan hindari format markdown yang berlebihan.`;
 
     const result = streamText({
       model: google('gemini-1.5-flash'),
@@ -41,7 +45,7 @@ export async function POST(req: Request) {
       messages: coreMessages,
     });
 
-    // MENGGUNAKAN toTextStreamResponse() SESUAI PESAN ERROR TYPESCRIPT KAMU
+    // MENGGUNAKAN FUNGSI YANG BENAR SESUAI VERSI ai@6.x
     return result.toTextStreamResponse();
     
   } catch (error: any) {
