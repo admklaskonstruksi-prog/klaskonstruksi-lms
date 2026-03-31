@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     
     // Gunakan Environment Variable, JANGAN di-hardcode!
     const apiKey = process.env.BUNNY_API_KEY || "";
-    const libraryId = process.env.BUNNY_LIBRARY_ID || "606426"; 
+    const libraryId = process.env.BUNNY_LIBRARY_ID || "628454"; 
 
     // 1. Minta Slot Video Baru ke Bunny
     const response = await fetch(

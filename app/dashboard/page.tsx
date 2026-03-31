@@ -1,5 +1,3 @@
-export const runtime = 'nodejs';
-
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
@@ -128,7 +126,7 @@ export default async function DashboardPage() {
   const { data: courses } = await supabase
     .from("courses")
     .select(`*, main_categories!main_category_id(id, name), sub_categories!sub_category_id(id, name), course_levels!level_id(id, name)`)
-    .eq("is_published", true)
+    // FILTER IS_PUBLISHED DIHAPUS DISINI AGAR DRAFT MUNCUL SEBAGAI COMING SOON
     .order("created_at", { ascending: false });
 
   return (

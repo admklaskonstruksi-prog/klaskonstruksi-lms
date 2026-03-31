@@ -8,18 +8,17 @@ import { MessageCircle, X, Send, Bot, User, GripHorizontal } from "lucide-react"
 export default function KlasAIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
-
-  // --- 1. STATE UNTUK DRAG & DROP ---
+  
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const isMovedRef = useRef(false);
 
-  // --- 2. KONFIGURASI AI SDK VERSI 6.0 ---
+  // KEMBALI KE STANDAR V4 (SESUAI VERSI AI SDK YANG TERINSTALL DI PROJECT KAMU)
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
-    }),
+    } as any),
   });
 
   const isLoading = status === "submitted" || status === "streaming";
@@ -29,19 +28,14 @@ export default function KlasAIWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- 3. FUNGSI KIRIM PESAN ---
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
     
-    const userMessage = input;
-    setInput(""); // Kosongkan form segera agar terasa responsif
-    
-    // Kirim pesan menggunakan standar baru (sendMessage)
-    sendMessage({ text: userMessage });
+    sendMessage({ text: input });
+    setInput(""); 
   };
 
-  // --- 4. LOGIKA DRAG & DROP ---
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsDragging(true);
     isMovedRef.current = false;
@@ -71,15 +65,7 @@ export default function KlasAIWidget() {
   };
 
   return (
-    <div 
-      className="fixed z-[9999] pointer-events-none flex flex-col items-end"
-      style={{ 
-        bottom: '24px', 
-        right: '24px',
-        transform: `translate(${position.x}px, ${position.y}px)`,
-      }}
-    >
-      {/* Jendela Chat */}
+    <div className="fixed z-[9999] pointer-events-none flex flex-col items-end" style={{ bottom: '24px', right: '24px', transform: `translate(${position.x}px, ${position.y}px)` }}>
       {isOpen && (
         <div className="bg-white rounded-2xl shadow-2xl shadow-[#00C9A7]/20 border border-gray-100 w-[350px] sm:w-[400px] h-[500px] flex flex-col mb-4 overflow-hidden animate-in slide-in-from-bottom-5 pointer-events-auto">
           {/* Header */}
@@ -91,9 +77,7 @@ export default function KlasAIWidget() {
                 <p className="text-xs text-teal-100">Asisten Belajar Anda</p>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition-colors">
-              <X size={20} />
-            </button>
+            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={20} /></button>
           </div>
 
           {/* Area Pesan */}
@@ -111,7 +95,10 @@ export default function KlasAIWidget() {
                       {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
                     <div className={`p-3 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-[#F97316] text-white rounded-tr-none' : 'bg-white border border-gray-100 text-gray-700 shadow-sm rounded-tl-none'}`}>
-                      {m.parts ? m.parts.map((part: any, i: number) => part.type === 'text' ? <span key={i}>{part.text}</span> : null) : m.content}
+                      
+                      {/* RENDER AMAN: Menggunakan m.text atau m.content mencegah munculnya object */}
+                      {m.parts ? m.parts.map((part: any, i: number) => part.type === 'text' ? <span key={i}>{part.text}</span> : null) : (m.text || m.content || "")}
+                      
                     </div>
                   </div>
                 </div>

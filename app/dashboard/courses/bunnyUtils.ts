@@ -1,6 +1,6 @@
 // Gunakan process.env agar rahasia tidak bocor ke build output
 const ACCESS_KEY = process.env.BUNNY_API_KEY || "";
-const LIBRARY_ID = process.env.BUNNY_LIBRARY_ID || "606426";
+const LIBRARY_ID = process.env.BUNNY_LIBRARY_ID || "628454";
 const BASE_URL = `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos`;
 
 export async function uploadVideoToBunny(file: File, title: string): Promise<string | null> {
