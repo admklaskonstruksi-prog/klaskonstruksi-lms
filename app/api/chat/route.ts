@@ -30,8 +30,12 @@ export async function POST(req: Request) {
 
     const modelMessages = await convertToModelMessages(uiMessages);
 
+    // gemini-1.5-flash sudah tidak tersedia di v1beta; pakai 2.x / alias resmi SDK
+    const modelId =
+      process.env.GOOGLE_GENERATIVE_AI_MODEL?.trim() || "gemini-2.0-flash";
+
     const result = streamText({
-      model: google('gemini-1.5-flash'),
+      model: google(modelId),
       system: systemPrompt,
       messages: modelMessages,
     });
