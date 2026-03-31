@@ -12,11 +12,10 @@ export async function POST(req: Request) {
     }
 
     const google = createGoogleGenerativeAI({ apiKey });
-    
-    // Parsing format pesan terbaru dari Vercel AI SDK v6
     const body = await req.json();
+    
+    // Format pesan aman
     const coreMessages = (body.messages || []).map((m: any) => {
-        // AI SDK v6 bisa mengirim teks di dalam 'content', 'text', atau array 'parts'
         let textContent = m.content || m.text || "";
         if (m.parts && m.parts.length > 0) {
             textContent = m.parts.map((p: any) => p.text).join(' ');
@@ -37,16 +36,26 @@ export async function POST(req: Request) {
     const systemPrompt = `Kamu adalah "Klas AI", asisten virtual yang ramah untuk "Klas Konstruksi".
     Tugas utamamu membantu pengguna menemukan kelas online atau e-book yang cocok.
     Katalog: ${catalogInfo}
-    Aturan: Jawab dengan bahasa Indonesia santai tapi sopan. Buat jawaban singkat, jelas, dan hindari format markdown yang berlebihan.`;
+    Aturan: Jawab dengan bahasa Indonesia santai tapi sopan. Buat jawaban singkat dan jelas.`;
 
-    const result = streamText({
+    // AWAIT ditambahkan agar tidak bentrok dengan versi SDK lama
+    const result = await streamText({
       model: google('gemini-1.5-flash'),
       system: systemPrompt,
       messages: coreMessages,
     });
 
-    // MENGGUNAKAN FUNGSI YANG BENAR SESUAI VERSI ai@6.x
-    return result.toTextStreamResponse();
+    // Deteksi metode otomatis (Anti-Crash)
+    const res = result as any;
+    if (typeof res.toDataStreamResponse === 'function') {
+        return res.toDataStreamResponse();
+    } else if (typeof res.toTextStreamResponse === 'function') {
+        return res.toTextStreamResponse();
+    } else if (typeof res.toAIStreamResponse === 'function') {
+        return res.toAIStreamResponse();
+    } else {
+        throw new Error("Metode Stream Response tidak ditemukan.");
+    }
     
   } catch (error: any) {
     console.error("🔴 KLAS AI ERROR:", error);

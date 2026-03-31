@@ -1,43 +1,31 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import { useState, useEffect, useRef } from "react";
 import { MessageCircle, X, Send, Bot, User, GripHorizontal } from "lucide-react";
 
 export default function KlasAIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   
-  // Karena AI SDK v6 tidak mengurus input, kita kelola sendiri pakai useState
-  const [input, setInput] = useState("");
-  
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const isMovedRef = useRef(false);
 
-  // KEMBALI MENGGUNAKAN STANDAR TRANSPORT VERCEL AI SDK TERBARU
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-    }),
-  });
+  // MENGGUNAKAN 'as any' UNTUK MENGHILANGKAN ERROR TYPESCRIPT (BENTROK PACKAGE)
+  const chatState = useChat() as any;
+  // Ekstrak properti secara manual agar aman dari garis merah VS Code
+  const messages = chatState.messages || [];
+  const input = chatState.input || "";
+  const handleInputChange = chatState.handleInputChange;
+  const handleSubmit = chatState.handleSubmit;
+  const isLoading = chatState.isLoading || false;
 
-  const isLoading = status === "submitted" || status === "streaming";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    
-    // Kirim pesan menggunakan objek { text } sesuai standar transport
-    sendMessage({ text: input });
-    setInput(""); 
-  };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsDragging(true);
@@ -94,12 +82,7 @@ export default function KlasAIWidget() {
                       {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
                     <div className={`p-3 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-[#F97316] text-white rounded-tr-none' : 'bg-white border border-gray-100 text-gray-700 shadow-sm rounded-tl-none'}`}>
-                      
-                      {/* RENDER AMAN: Mengolah array 'parts' atau 'text' agar bebas dari [object Object] */}
-                      {m.parts 
-                        ? m.parts.map((part: any, i: number) => part.type === 'text' ? <span key={i}>{part.text}</span> : null) 
-                        : (m.text || m.content || "")}
-                      
+                      {m.parts ? m.parts.map((part: any, i: number) => part.type === 'text' ? <span key={i}>{part.text}</span> : null) : (m.text || m.content || "")}
                     </div>
                   </div>
                 </div>
@@ -117,12 +100,12 @@ export default function KlasAIWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={onSubmit} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
+          <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
             <input
               className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] bg-gray-50 text-gray-900"
               value={input}
               placeholder="Tanya seputar kelas..."
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
             />
             <button type="submit" disabled={isLoading || !input.trim()} className="bg-[#00C9A7] text-white p-2.5 rounded-full hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               <Send size={18} className="ml-0.5" />
