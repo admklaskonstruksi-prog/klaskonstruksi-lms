@@ -7,19 +7,39 @@ import { MessageCircle, X, Send, Bot, User, GripHorizontal } from "lucide-react"
 export default function KlasAIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   
+  // KITA GUNAKAN STATE MANUAL AGAR INPUT SELALU BISA DIKETIK DAN DI-ENTER
+  const [localInput, setLocalInput] = useState("");
+  
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const startPosRef = useRef({ x: 0, y: 0 });
 
-  // MENGGUNAKAN FUNGSI MURNI BAWAAN AI SDK (Tanpa error TypeScript berkat 'as any')
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat() as any;
+  // Panggil useChat murni
+  const chat = useChat() as any;
+  const messages = chat.messages || [];
+  const isLoading = chat.isLoading || false;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // FUNGSI PENGIRIMAN BYPASS
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!localInput.trim() || isLoading) return;
+    
+    // Bypass handleSubmit bawaan: Gunakan append untuk langsung menyuntikkan pesan ke API
+    if (chat.append) {
+        chat.append({ role: 'user', content: localInput });
+    } else if (chat.sendMessage) {
+        chat.sendMessage({ text: localInput });
+    }
+    
+    setLocalInput(""); 
+  };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     setIsDragging(true);
@@ -95,14 +115,14 @@ export default function KlasAIWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
+          <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
             <input
               className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#00C9A7] focus:ring-1 focus:ring-[#00C9A7] bg-gray-50 text-gray-900"
-              value={input}
+              value={localInput}
               placeholder="Tanya seputar kelas..."
-              onChange={handleInputChange}
+              onChange={(e) => setLocalInput(e.target.value)}
             />
-            <button type="submit" disabled={isLoading || !input?.trim()} className="bg-[#00C9A7] text-white p-2.5 rounded-full hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <button type="submit" disabled={isLoading || !localInput.trim()} className="bg-[#00C9A7] text-white p-2.5 rounded-full hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               <Send size={18} className="ml-0.5" />
             </button>
           </form>
