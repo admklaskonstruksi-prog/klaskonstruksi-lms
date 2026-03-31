@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   // Menggunakan kredensial dari Environment Variables
   const apiKey = process.env.BUNNY_API_KEY || "";
-  const libraryId = process.env.BUNNY_LIBRARY_ID || "628454";
+  const libraryId = process.env.BUNNY_LIBRARY_ID || "628695";
 
   try {
     const response = await fetch(

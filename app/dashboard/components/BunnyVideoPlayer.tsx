@@ -8,7 +8,7 @@ interface BunnyPlayerProps {
 
 export default function BunnyVideoPlayer({ videoId, title }: BunnyPlayerProps) {
   // LIBRARY ID SUDAH DIPERBARUI KE 614254
-  const LIBRARY_ID = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID || "628454"; 
+  const LIBRARY_ID = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID || "628695"; 
 
   // Mencegah player merender iframe jika video ID tidak ada / bernilai "null" string
   if (!videoId || videoId === "null" || videoId === "undefined") {
