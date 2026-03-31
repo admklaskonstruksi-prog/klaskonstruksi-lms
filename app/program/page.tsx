@@ -1,5 +1,3 @@
-export const runtime = 'nodejs';
-
 import { createClient } from "@/utils/supabase/server";
 import ProgramCatalogClient from "./ProgramCatalogClient";
 
@@ -13,25 +11,29 @@ export default async function ProgramPage() {
   let ownedCourseIds: string[] = [];
   
   if (user) {
-    const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
+    const { data: myEnrollments } = await supabase
+      .from("enrollments")
+      .select("course_id")
+      .eq("user_id", user.id);
     ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];
   }
 
-  // 2. Ambil Master Data Kategori
-  const { data: categories } = await supabase.from("main_categories").select("id, name").order("name");
-  const { data: subCategories } = await supabase.from("sub_categories").select("id, name, main_category_id").order("name");
-  const { data: levels } = await supabase.from("course_levels").select("id, name").order("id");
-
-  // 3. QUERY AMAN: Tarik data kelas tanpa relasi tabel (Menghindari Error Foreign Key)
-  const { data: rawCourses, error } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("is_published", true)
-    .order("created_at", { ascending: false });
+  // 2. QUERY AMAN & PARALEL: Tarik semua master data bersamaan untuk mempercepat loading
+  const [
+    { data: categories },
+    { data: subCategories },
+    { data: levels },
+    { data: rawCourses, error }
+  ] = await Promise.all([
+    supabase.from("main_categories").select("id, name").order("name"),
+    supabase.from("sub_categories").select("id, name, main_category_id").order("name"),
+    supabase.from("course_levels").select("id, name").order("id"),
+    supabase.from("courses").select("*").eq("is_published", true).order("created_at", { ascending: false })
+  ]);
 
   if (error) console.error("Error fetching courses:", error.message);
 
-  // 4. Mapping Manual (Menyambungkan nama kategori secara manual tanpa membebani Supabase)
+  // 3. Mapping Manual (Menyambungkan nama kategori secara manual tanpa membebani Supabase)
   const courses = (rawCourses || []).map((course) => ({
     ...course,
     main_categories: categories?.find((c) => c.id === course.main_category_id) || null,
