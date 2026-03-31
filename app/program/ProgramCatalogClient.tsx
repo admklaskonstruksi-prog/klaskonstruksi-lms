@@ -34,7 +34,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
   const toggleAccordion = (id: string) => { setOpenAccordion(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]); };
   const activeSubCats = subCategories.filter(sub => sub.main_category_id === selectedMainCat);
 
-  // FILTERING DENGAN LOGIKA RATING & SALES ASLI/DUMMY
   const filteredCourses = courses.filter((course) => {
     const isDummy = course.use_dummy_rating ?? true;
     const courseRating = isDummy ? Number(course.dummy_rating || 5.0) : Number(course.rating || 0);
@@ -119,7 +118,6 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
               <Link href="/login?mode=register" className="px-6 py-2.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold rounded-full transition-all shadow-lg shadow-[#F97316]/30 flex items-center gap-2 hover:-translate-y-0.5">Daftar Sekarang <ArrowRight size={16} /></Link>
             </div>
 
-            {/* TOMBOL KANAN MOBILE (Jarak dan Ikon Menu Diperbaiki) */}
             <div className="md:hidden flex items-center gap-6">
               <div className="mr-1"><CartIndicator /></div>
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-500 hover:text-[#00C9A7] focus:outline-none bg-gray-50 p-1.5 rounded-lg active:bg-gray-100 transition-colors">
@@ -129,29 +127,16 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
           </div>
         </div>
 
-        {/* LACI MENU MOBILE (Padding & Fungsi Tutup Diperbaiki) */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-2xl">
             <div className="px-4 pt-2 pb-6 space-y-2">
-              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">
-                Beranda
-              </Link>
-              <Link href="/program" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-bold text-[#00C9A7] bg-teal-50 rounded-lg transition-colors">
-                Program Klas
-              </Link>
-              <Link href="/ebooks" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">
-                Katalog E-Book
-              </Link>
-              <Link href="/#mentor" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">
-                Daftar Mentor
-              </Link>
+              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">Beranda</Link>
+              <Link href="/program" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-bold text-[#00C9A7] bg-teal-50 rounded-lg transition-colors">Program Klas</Link>
+              <Link href="/ebooks" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">Katalog E-Book</Link>
+              <Link href="/#mentor" onClick={() => setIsMobileMenuOpen(false)} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-[#00C9A7] hover:bg-gray-50 rounded-lg transition-colors">Daftar Mentor</Link>
               <div className="border-t border-gray-100 my-2 pt-4 flex flex-col gap-3">
-                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  Masuk
-                </Link>
-                <Link href="/login?mode=register" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C] transition-colors">
-                  Daftar Sekarang
-                </Link>
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-center py-3 text-gray-600 font-bold border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Masuk</Link>
+                <Link href="/login?mode=register" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-center py-3 bg-[#F97316] text-white font-bold rounded-lg hover:bg-[#EA580C] transition-colors">Daftar Sekarang</Link>
               </div>
             </div>
           </div>
@@ -204,18 +189,8 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                              <span>Rp 0</span>
                              <span className="text-[#00C9A7] bg-teal-50 px-2 py-1 rounded-md">{formatSliderPrice(currentMaxPrice)}</span>
                           </div>
-                          <input 
-                             type="range" 
-                             min="0" 
-                             max={maxCoursePrice > 0 ? maxCoursePrice : 100} 
-                             step="1000"
-                             value={currentMaxPrice} 
-                             onChange={(e) => setMaxPriceFilter(Number(e.target.value))} 
-                             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#00C9A7]"
-                          />
-                          <div className="text-[11px] text-gray-400 text-center font-medium mt-2">
-                             Sembunyikan kelas di atas {formatSliderPrice(currentMaxPrice)}
-                          </div>
+                          <input type="range" min="0" max={maxCoursePrice > 0 ? maxCoursePrice : 100} step="1000" value={currentMaxPrice} onChange={(e) => setMaxPriceFilter(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#00C9A7]" />
+                          <div className="text-[11px] text-gray-400 text-center font-medium mt-2">Sembunyikan kelas di atas {formatSliderPrice(currentMaxPrice)}</div>
                        </div>
                     )}
                  </div>
@@ -256,14 +231,15 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                    const isOwned = ownedCourseIds.includes(course.id);
                    const targetHref = isOwned ? `/dashboard/learning-path/${course.id}` : `/program/${course.id}`;
                    
-                   // LOGIKA RATING & SALES ASLI/DUMMY UNTUK CARD
                    const isDummy = course.use_dummy_rating ?? true;
                    const displayRating = isDummy ? Number(course.dummy_rating || 5.0) : Number(course.rating || 0);
                    const displayReviews = isDummy ? Number(course.dummy_rating_count || 5) : Number(course.review_count || 0);
                    const displaySales = isDummy ? Number(course.dummy_sales_count || 120) : Number(course.sales_count || 0);
+                   const isPublished = course.is_published; // CEK STATUS PUBLIKASI
 
-                   return (
-                     <Link href={targetHref} key={course.id} className={`group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative ${isOwned ? 'opacity-80 grayscale-[40%]' : ''}`}>
+                   // Konten Card dibuat sebagai variabel agar bisa digunakan ulang untuk Published dan Draft (Coming Soon)
+                   const CardContent = (
+                     <>
                        <div className="relative w-full aspect-video bg-gray-100 border-b border-gray-100 overflow-hidden shrink-0">
                          {course.thumbnail_url ? (<Image src={course.thumbnail_url} alt={course.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />) : (<div className="w-full h-full flex flex-col items-center justify-center text-gray-300"><BookOpen size={40} className="mb-2 opacity-50" /></div>)}
                          {isOwned && (<div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10"><span className="bg-white text-[#00C9A7] font-black px-4 py-2 rounded-lg text-sm flex items-center gap-1.5"><Tag size={14}/> DIMILIKI</span></div>)}
@@ -298,11 +274,26 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
                             {isOwned ? (
                                <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors bg-[#00C9A7] text-white"><BookOpen size={16} /></div>
                             ) : (
-                               <button onClick={(e) => handleAddToCart(e, course)} className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-orange-50 text-[#F97316] hover:bg-[#F97316] hover:text-white border border-orange-100 group/cart z-10"><ShoppingCart size={18} className="group-hover/cart:scale-110 transition-transform" /></button>
+                               <button disabled={!isPublished} onClick={(e) => handleAddToCart(e, course)} className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-orange-50 text-[#F97316] hover:bg-[#F97316] hover:text-white border border-orange-100 group/cart z-10 disabled:opacity-50 disabled:cursor-not-allowed"><ShoppingCart size={18} className="group-hover/cart:scale-110 transition-transform" /></button>
                             )}
                          </div>
                        </div>
+                     </>
+                   );
+
+                   // JIKA PUBLISHED = BISA DIKLIK, JIKA DRAFT = COMING SOON
+                   return isPublished ? (
+                     <Link href={targetHref} key={course.id} className={`group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative ${isOwned ? 'opacity-80 grayscale-[40%]' : ''}`}>
+                       {CardContent}
                      </Link>
+                   ) : (
+                     <div key={course.id} className="group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden relative opacity-90 select-none">
+                       {/* OVERLAY COMING SOON */}
+                       <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-30 flex items-center justify-center">
+                          <span className="bg-gray-900 text-white font-black px-6 py-2.5 rounded-xl tracking-widest shadow-2xl transform -rotate-3 border-2 border-white/20">COMING SOON</span>
+                       </div>
+                       {CardContent}
+                     </div>
                    );
                  })}
                </div>
@@ -325,9 +316,7 @@ export default function ProgramCatalogClient({ courses, mainCategories, subCateg
             <Link href="/" className="flex items-center gap-3 mb-6">
                <Image src="/logo.png" alt="Logo" width={80} height={80} className="rounded object-contain opacity-90 bg-white" />
             </Link>
-            <p className="text-gray-400 text-sm max-w-md leading-relaxed mt-4">
-               Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer handal yang siap menghadapi tantangan proyek nyata.
-            </p>
+            <p className="text-gray-400 text-sm max-w-md leading-relaxed mt-4">Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer handal yang siap menghadapi tantangan proyek nyata.</p>
           </div>
           <div>
             <h4 className="font-bold text-lg mb-6 text-white">Menu Navigasi</h4>

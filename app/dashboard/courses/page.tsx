@@ -1,13 +1,10 @@
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { Plus, Search, Edit3, LayoutList, ChevronUp, ChevronDown, BookOpen, Star } from "lucide-react";
-import PublishToggle from "./components/PublishToggle";
-import RatingToggle from "../components/RatingToggle"; 
+import { Plus, Search, BookOpen } from "lucide-react";
+import CourseTableClient from "./CourseTableClient";
+
+export const dynamic = 'force-dynamic';
 
 export default async function AdminCoursesPage({ searchParams }: { searchParams?: Promise<any> | any }) {
   const supabase = await createClient();
@@ -53,22 +50,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
       if (sortFilter === "status_desc") courses.sort((a, b) => (a.is_published === b.is_published ? 0 : a.is_published ? 1 : -1));
   }
 
-  const SortableHeader = ({ label, sortKey }: { label: string, sortKey: string }) => {
-      const isAsc = sortFilter === `${sortKey}_asc`;
-      const isDesc = sortFilter === `${sortKey}_desc`;
-      const nextSort = isAsc ? `${sortKey}_desc` : `${sortKey}_asc`;
-
-      return (
-          <Link href={`?sort=${nextSort}&q=${searchQ}`} className="flex items-center gap-1.5 hover:text-gray-800 transition-colors group select-none">
-              {label}
-              <div className="flex flex-col opacity-50 group-hover:opacity-100 transition-opacity">
-                  <ChevronUp size={12} className={`-mb-1 ${isAsc ? 'text-[#00C9A7] font-black' : 'text-gray-300'}`} />
-                  <ChevronDown size={12} className={`${isDesc ? 'text-[#00C9A7] font-black' : 'text-gray-300'}`} />
-              </div>
-          </Link>
-      );
-  };
-
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -107,96 +88,8 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams?
         </form>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
-      <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
-            <tr>
-              <th className="px-6 py-4">Informasi Kelas</th>
-              <th className="px-6 py-4"><SortableHeader label="Kategori" sortKey="cat" /></th>
-              <th className="px-6 py-4">Statistik</th>
-              <th className="px-6 py-4"><SortableHeader label="Status" sortKey="status" /></th>
-              <th className="px-6 py-4">Mode Rating</th>
-              <th className="px-6 py-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {!courses || courses.length === 0 ? (
-                <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">Belum ada kelas yang ditemukan.</td>
-                </tr>
-            ) : courses.map((course: any) => {
-              
-              const ratings = allReviews?.filter((r: any) => r.item_id === course.id).map((r: any) => r.rating) || [];
-              const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";
-
-              return (
-              <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-16 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0 border border-gray-200">
-                      {course.thumbnail_url ? (
-                        <Image src={course.thumbnail_url} alt="cover" fill className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400 font-bold">No Img</div>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 max-w-[220px] truncate">{course.title}</h3>
-                      <p className="text-xs text-[#00C9A7] font-bold mt-1">
-                        {course.price > 0 ? `Rp ${course.price.toLocaleString("id-ID")}` : "Gratis"}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                <td className="px-6 py-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-gray-900 font-bold text-xs bg-gray-100 px-2 py-1 rounded w-max">
-                        {course.main_categories?.name || "Belum diatur"}
-                    </span>
-                    <span className="text-gray-500 font-medium text-[10px]">
-                        {course.sub_categories?.name || "-"}
-                    </span>
-                  </div>
-                </td>
-
-                <td className="px-6 py-4">
-                  <div className="flex flex-col gap-1.5">
-                     <span className="text-xs font-bold text-gray-600 flex items-center gap-1.5">
-                        <LayoutList size={14} className="text-gray-400"/> {course.chapters?.length || 0} Bab/Modul
-                     </span>
-                     <span className="text-[10px] font-black bg-orange-50 text-[#F97316] px-2 py-0.5 rounded w-max uppercase tracking-wider border border-orange-100">
-                        {course.course_levels?.name || "BELUM DIATUR"}
-                     </span>
-                  </div>
-                </td>
-
-                <td className="px-6 py-4">
-                    <PublishToggle courseId={course.id} isPublished={course.is_published} />
-                </td>
-
-                <td className="px-6 py-4">
-                  <div className="flex flex-col gap-2">
-                    <RatingToggle id={course.id} initialUseDummy={course.use_dummy_rating} tableName="courses" />
-                    <div className="text-[10px] text-gray-500">
-                      Asli: <span className="font-bold text-gray-800">{realAvg} <Star size={10} className="inline text-yellow-400 fill-current -mt-0.5" /></span> | Dummy: {course.dummy_rating}
-                    </div>
-                  </div>
-                </td>
-
-                <td className="px-6 py-4 text-right">
-                  <Link 
-                    href={`/dashboard/courses/${course.id}`} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-[#00C9A7] bg-teal-50 hover:bg-[#00C9A7] hover:text-white rounded-lg transition-colors border border-teal-100"
-                  >
-                    <Edit3 size={16} /> Edit
-                  </Link>
-                </td>
-              </tr>
-            )})}
-          </tbody>
-        </table>
-      </div>
+      <CourseTableClient courses={courses} allReviews={allReviews} sortFilter={sortFilter} searchQ={searchQ} />
+      
     </div>
   );
 }

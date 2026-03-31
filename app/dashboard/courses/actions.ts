@@ -187,3 +187,24 @@ export async function toggleDummyRating(id: string, tableName: string, newStatus
   
   return { success: true };
 }
+
+export async function bulkUpdateCourseStatus(courseIds: string[], newStatus: boolean) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("courses").update({ is_published: newStatus }).in("id", courseIds);
+  
+  if (error) return { error: error.message };
+  
+  revalidatePath("/dashboard/courses");
+  revalidatePath("/program");
+  return { success: true };
+}
+
+export async function bulkUpdateDummyRating(courseIds: string[], newStatus: boolean) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("courses").update({ use_dummy_rating: newStatus }).in("id", courseIds);
+  
+  if (error) return { error: error.message };
+  
+  revalidatePath("/", "layout"); 
+  return { success: true };
+}

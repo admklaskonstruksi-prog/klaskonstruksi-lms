@@ -6,34 +6,30 @@ export const dynamic = "force-dynamic";
 export default async function ProgramPage() {
   const supabase = await createClient();
 
-  // 1. Cek Kepemilikan (Jika Login)
+  // 1. Cek Kepemilikan
   const { data: { user } } = await supabase.auth.getUser();
   let ownedCourseIds: string[] = [];
   
   if (user) {
-    const { data: myEnrollments } = await supabase
-      .from("enrollments")
-      .select("course_id")
-      .eq("user_id", user.id);
+    const { data: myEnrollments } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
     ownedCourseIds = myEnrollments?.map((e) => e.course_id) || [];
   }
 
-  // 2. QUERY AMAN & PARALEL: Tarik semua master data bersamaan untuk mempercepat loading
+  // 2. QUERY AMAN: Tarik semua master data bersamaan
   const [
     { data: categories },
     { data: subCategories },
     { data: levels },
-    { data: rawCourses, error }
+    { data: rawCourses, error } // FILTER IS_PUBLISHED DIHAPUS DISINI
   ] = await Promise.all([
     supabase.from("main_categories").select("id, name").order("name"),
     supabase.from("sub_categories").select("id, name, main_category_id").order("name"),
     supabase.from("course_levels").select("id, name").order("id"),
-    supabase.from("courses").select("*").eq("is_published", true).order("created_at", { ascending: false })
+    supabase.from("courses").select("*").order("created_at", { ascending: false }) 
   ]);
 
   if (error) console.error("Error fetching courses:", error.message);
 
-  // 3. Mapping Manual (Menyambungkan nama kategori secara manual tanpa membebani Supabase)
   const courses = (rawCourses || []).map((course) => ({
     ...course,
     main_categories: categories?.find((c) => c.id === course.main_category_id) || null,
