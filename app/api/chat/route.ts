@@ -1,17 +1,18 @@
 import { streamText, convertToModelMessages } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGroq } from '@ai-sdk/groq'; // Berubah ke Groq
 import { createClient } from '@/utils/supabase/server';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    // 1. Menggunakan API Key dari Groq
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      return new Response("ERROR CLOUDFLARE: Variabel GOOGLE_GENERATIVE_AI_API_KEY belum diset.", { status: 500 });
+      return new Response("ERROR CLOUDFLARE: Variabel GROQ_API_KEY belum diset di .env", { status: 500 });
     }
 
-    const google = createGoogleGenerativeAI({ apiKey });
+    const groq = createGroq({ apiKey });
     const body = await req.json();
     const uiMessages = body.messages ?? [];
 
@@ -30,20 +31,20 @@ export async function POST(req: Request) {
 
     const modelMessages = await convertToModelMessages(uiMessages);
 
-    // gemini-1.5-flash sudah tidak tersedia di v1beta; pakai 2.x / alias resmi SDK
-    const modelId =
-      process.env.GOOGLE_GENERATIVE_AI_MODEL?.trim() || "gemini-2.0-flash";
+    // 2. Menggunakan Model LLaMA 3 dari Groq (Super Cepat & Gratis)
+    const modelId = process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile";
 
     const result = streamText({
-      model: google(modelId),
+      model: groq(modelId),
       system: systemPrompt,
       messages: modelMessages,
     });
 
-    // Wajib untuk @ai-sdk/react v3 + DefaultChatTransport (bukan toDataStreamResponse legacy)
+    // 3. Mengembalikan Stream (Frontend KlasAIWidget tidak perlu diubah!)
     return result.toUIMessageStreamResponse({
       originalMessages: uiMessages,
     });
+    
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("🔴 KLAS AI ERROR:", error);
