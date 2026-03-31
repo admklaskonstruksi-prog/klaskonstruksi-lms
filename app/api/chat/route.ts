@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createClient } from '@/utils/supabase/server';
 
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
 
     const google = createGoogleGenerativeAI({ apiKey });
     const body = await req.json();
-    const messages = body.messages || [];
+    const uiMessages = body.messages ?? [];
 
     let catalogInfo = "Katalog kosong.";
     try {
@@ -21,31 +21,28 @@ export async function POST(req: Request) {
       const { data: courses } = await supabase.from('courses').select('title, description, price').eq('is_published', true).limit(10);
       const { data: ebooks } = await supabase.from('ebooks').select('title, description, price').eq('is_published', true).limit(10);
       catalogInfo = `Katalog Kelas: ${JSON.stringify(courses || [])} \n Katalog E-Book: ${JSON.stringify(ebooks || [])}`;
-    } catch (dbError: any) {
-       console.error("DB Error:", dbError.message);
+    } catch (dbError: unknown) {
+      const msg = dbError instanceof Error ? dbError.message : String(dbError);
+      console.error("DB Error:", msg);
     }
 
     const systemPrompt = `Kamu adalah "Klas AI", asisten virtual yang ramah untuk "Klas Konstruksi". Tugas utamamu membantu pengguna menemukan kelas online atau e-book yang cocok. Katalog: ${catalogInfo}. Aturan: Jawab dengan bahasa Indonesia santai tapi sopan. Buat jawaban singkat dan jelas.`;
 
-    // PENTING: streamText TIDAK MEMAKAI await, ini langsung mengembalikan objek stream
+    const modelMessages = await convertToModelMessages(uiMessages);
+
     const result = streamText({
       model: google('gemini-1.5-flash'),
       system: systemPrompt,
-      messages: messages, // Langsung gunakan messages bawaan useChat
+      messages: modelMessages,
     });
 
-    // Logika anti-error: mendeteksi metode respons apa yang tersedia di versi AI SDK kamu
-    const res = result as any;
-    if (typeof res.toDataStreamResponse === 'function') {
-        return res.toDataStreamResponse();
-    } else if (typeof res.toTextStreamResponse === 'function') {
-        return res.toTextStreamResponse();
-    } else {
-        throw new Error("Metode Stream Response tidak ditemukan.");
-    }
-    
-  } catch (error: any) {
+    // Wajib untuk @ai-sdk/react v3 + DefaultChatTransport (bukan toDataStreamResponse legacy)
+    return result.toUIMessageStreamResponse({
+      originalMessages: uiMessages,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("🔴 KLAS AI ERROR:", error);
-    return new Response("ERROR SISTEM AI: " + (error.message || String(error)), { status: 500 });
+    return new Response("ERROR SISTEM AI: " + message, { status: 500 });
   }
 }
