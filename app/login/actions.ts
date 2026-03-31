@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { headers } from "next/headers";
 
 function normalizeSiteUrl(input: unknown): string | null {
   if (typeof input !== "string") return null;
@@ -8,6 +9,26 @@ function normalizeSiteUrl(input: unknown): string | null {
   if (!trimmed) return null;
   if (!/^https?:\/\//i.test(trimmed)) return null;
   return trimmed;
+}
+
+async function getRequestOrigin(): Promise<string | null> {
+  // Saat dipanggil dari client, `origin` kadang ada. Kalau tidak, pakai `referer`.
+  const hdrs = await headers();
+  const originHeader = hdrs.get("origin");
+  const referer = hdrs.get("referer");
+
+  const normalizedOrigin = normalizeSiteUrl(originHeader);
+  if (normalizedOrigin) return normalizedOrigin;
+
+  if (referer) {
+    try {
+      return new URL(referer).origin;
+    } catch {
+      // ignore
+    }
+  }
+
+  return null;
 }
 
 export async function signInAction(formData: FormData) {
@@ -41,6 +62,7 @@ export async function signUpAction(formData: FormData) {
   if (!address || address.trim().length < 2) return { error: "Kota/Domisili wajib diisi." };
 
   const siteUrl =
+    (await getRequestOrigin()) ||
     normalizeSiteUrl(formData.get("siteUrl")) ||
     normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
     "https://www.klaskonstruksi.com";
@@ -122,6 +144,7 @@ export async function signInWithGoogleFromSite(
   const supabase = await createClient();
 
   const siteUrl =
+    (await getRequestOrigin()) ||
     normalizeSiteUrl(siteUrlFromClient) ||
     normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
     "https://www.klaskonstruksi.com";
@@ -149,6 +172,7 @@ export async function requestPasswordResetAction(formData: FormData) {
 
   const supabase = await createClient();
   const siteUrl =
+    (await getRequestOrigin()) ||
     normalizeSiteUrl(formData.get("siteUrl")) ||
     normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
     "https://www.klaskonstruksi.com";
