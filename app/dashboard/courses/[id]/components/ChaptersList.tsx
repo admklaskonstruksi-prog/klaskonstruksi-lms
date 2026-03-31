@@ -1,13 +1,14 @@
 "use client";
-export const runtime = 'nodejs';
 
 import { useState, useTransition, useEffect } from "react";
-// IMPORT ROUTER DARI NEXT NAVIGATION
 import { useRouter } from "next/navigation"; 
 import { createChapter, deleteChapter } from "../actions";
 import { createLesson, deleteLesson, updateLesson } from "../../lessons-actions";
 import { Trash2, Plus, PlayCircle, ChevronDown, ChevronUp, Loader2, Video, Edit3, X, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
+
+// IMPORT BUNNY VIDEO PLAYER
+import BunnyVideoPlayer from "../../../components/BunnyVideoPlayer";
 
 interface Props {
   initialData: any[];
@@ -15,13 +16,16 @@ interface Props {
 }
 
 export default function ChaptersList({ initialData, courseId }: Props) {
-  const router = useRouter(); // INISIALISASI ROUTER
+  const router = useRouter();
   const [expandedChapters, setExpandedChapters] = useState<string[]>(initialData.map(ch => ch.id));
   const [isPending, startTransition] = useTransition();
 
   const [newChapterTitle, setNewChapterTitle] = useState("");
   const [addingLessonTo, setAddingLessonTo] = useState<string | null>(null);
   const [editingLesson, setEditingLesson] = useState<any | null>(null);
+
+  // --- STATE UNTUK PREVIEW VIDEO ---
+  const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
 
   // --- STATE KHUSUS UNTUK VIDEO UPLOAD & LIBRARY ---
   const [videoSource, setVideoSource] = useState<'upload' | 'library' | 'manual'>('upload');
@@ -35,6 +39,10 @@ export default function ChaptersList({ initialData, courseId }: Props) {
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters(prev => prev.includes(chapterId) ? prev.filter(id => id !== chapterId) : [...prev, chapterId]);
+  };
+
+  const toggleVideoPreview = (lessonId: string) => {
+    setPreviewLessonId(prev => prev === lessonId ? null : lessonId);
   };
 
   // --- FETCH VIDEO LIBRARY BUNNY ---
@@ -105,7 +113,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
         setIsUploading(false);
       }
     }
-    return selectedVideoId; // Kembalikan ID dari Library atau Manual
+    return selectedVideoId; 
   };
 
   // --- ACTIONS ---
@@ -121,7 +129,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
       else {
         toast.success("Bab berhasil ditambahkan!");
         setNewChapterTitle("");
-        router.refresh(); // REFRESH DATA UI
+        router.refresh(); 
       }
     });
   };
@@ -131,7 +139,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     startTransition(async () => {
       await deleteChapter(chapterId, courseId);
       toast.success("Bab berhasil dihapus!");
-      router.refresh(); // REFRESH DATA UI
+      router.refresh(); 
     });
   };
 
@@ -154,7 +162,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
         else {
           toast.success("Materi berhasil ditambahkan!");
           setAddingLessonTo(null);
-          router.refresh(); // REFRESH DATA UI
+          router.refresh(); 
         }
       });
     } catch (e) {
@@ -180,7 +188,8 @@ export default function ChaptersList({ initialData, courseId }: Props) {
         else {
           toast.success("Materi berhasil diperbarui!");
           setEditingLesson(null);
-          router.refresh(); // REFRESH DATA UI AGAR ID VIDEO MUNCUL
+          setPreviewLessonId(null); // Tutup preview jika sedang terbuka
+          router.refresh(); 
         }
       });
     } catch (e) {
@@ -193,7 +202,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     startTransition(async () => {
       await deleteLesson(lessonId, courseId);
       toast.success("Materi berhasil dihapus!");
-      router.refresh(); // REFRESH DATA UI
+      router.refresh(); 
     });
   };
 
@@ -277,31 +286,53 @@ export default function ChaptersList({ initialData, courseId }: Props) {
               {chapter.lessons?.length === 0 ? (
                 <p className="text-sm text-gray-400 italic px-4 py-2">Belum ada materi di bab ini.</p>
               ) : (
-                chapter.lessons.map((lesson: any, lIndex: number) => (
-                  <div key={lesson.id} className="flex items-start justify-between p-4 bg-white border border-gray-100 rounded-xl hover:border-[#00C9A7]/30 transition group">
-                    <div className="flex items-start gap-3">
-                      <PlayCircle size={18} className="text-[#00C9A7] mt-0.5 shrink-0" />
-                      <div>
-                        <h4 className="font-bold text-gray-800 text-sm">{lIndex + 1}. {lesson.title}</h4>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">{lesson.description}</p>
-                        {lesson.video_id && (
-                          <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            <Video size={10} /> Video Terlampir
-                          </span>
-                        )}
+                chapter.lessons.map((lesson: any, lIndex: number) => {
+                  const isPreviewOpen = previewLessonId === lesson.id;
+
+                  return (
+                    <div key={lesson.id} className="flex flex-col p-4 bg-white border border-gray-100 rounded-xl hover:border-[#00C9A7]/30 transition group">
+                      <div className="flex items-start justify-between w-full">
+                        <div className="flex items-start gap-3 flex-1">
+                          <PlayCircle size={18} className="text-[#00C9A7] mt-0.5 shrink-0" />
+                          <div className="flex-1 w-full">
+                            <h4 className="font-bold text-gray-800 text-sm">{lIndex + 1}. {lesson.title}</h4>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{lesson.description}</p>
+                            
+                            {/* TOMBOL PREVIEW VIDEO */}
+                            {lesson.video_id && (
+                              <div className="mt-3">
+                                <button 
+                                  onClick={() => toggleVideoPreview(lesson.id)}
+                                  className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors border ${isPreviewOpen ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'}`}
+                                >
+                                  {isPreviewOpen ? <ChevronUp size={12} /> : <PlayCircle size={12} />}
+                                  {isPreviewOpen ? "Tutup Preview" : "Lihat Video"}
+                                </button>
+                              </div>
+                            )}
+
+                            {/* AREA PREVIEW VIDEO PLAYER */}
+                            {isPreviewOpen && lesson.video_id && (
+                              <div className="mt-4 w-full md:w-3/4 aspect-video bg-black rounded-xl overflow-hidden border-2 border-gray-100 relative animate-in fade-in slide-in-from-top-2">
+                                <BunnyVideoPlayer videoId={lesson.video_id} />
+                              </div>
+                            )}
+
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
+                          <button onClick={() => openEditLesson(lesson)} disabled={isPending} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit Materi">
+                            <Edit3 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteLesson(lesson.id)} disabled={isPending} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition" title="Hapus Materi">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditLesson(lesson)} disabled={isPending} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit Materi">
-                        <Edit3 size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteLesson(lesson.id)} disabled={isPending} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition" title="Hapus Materi">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
 
               <button onClick={() => openAddLesson(chapter.id)} className="flex items-center gap-2 text-sm font-bold text-[#00C9A7] hover:text-[#00b596] p-2 transition w-max mt-2">
@@ -353,7 +384,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
       {editingLesson && (
         <div className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
-            <button onClick={() => setEditingLesson(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20}/></button>
+            <button onClick={() => {setEditingLesson(null); setPreviewLessonId(null);}} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20}/></button>
             <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><Edit3 className="text-blue-500"/> Edit Materi</h3>
             <form onSubmit={handleEditLesson} className="space-y-4">
               <div>
@@ -368,7 +399,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
                 <textarea name="description" defaultValue={editingLesson.description || ""} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm"></textarea>
               </div>
               <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setEditingLesson(null)} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition">Batal</button>
+                <button type="button" onClick={() => {setEditingLesson(null); setPreviewLessonId(null);}} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition">Batal</button>
                 <button type="submit" disabled={isPending || isUploading} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition disabled:opacity-50 flex items-center gap-2">
                   {(isPending || isUploading) ? <><Loader2 className="animate-spin w-4 h-4" /> Menyimpan...</> : "Simpan Perubahan"}
                 </button>
