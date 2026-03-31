@@ -11,7 +11,7 @@ export default function AutoLogout({ children }: { children: React.ReactNode }) 
   const TIMEOUT_DURATION = 30 * 60 * 1000;
 
   const handleLogout = useCallback(async () => {
-    try {
+    try { 
       // Pastikan endpoint ini sesuai dengan yang ada di kodemu (biasanya POST ke /auth/signout)
       await fetch('/auth/signout', { method: 'POST' }); 
       router.push('/login');
