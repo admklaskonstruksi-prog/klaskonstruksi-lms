@@ -13,15 +13,7 @@ export async function POST(req: Request) {
 
     const google = createGoogleGenerativeAI({ apiKey });
     const body = await req.json();
-    
-    // Format pesan aman
-    const coreMessages = (body.messages || []).map((m: any) => {
-        let textContent = m.content || m.text || "";
-        if (m.parts && m.parts.length > 0) {
-            textContent = m.parts.map((p: any) => p.text).join(' ');
-        }
-        return { role: m.role, content: textContent };
-    });
+    const messages = body.messages || [];
 
     let catalogInfo = "Katalog kosong.";
     try {
@@ -33,26 +25,21 @@ export async function POST(req: Request) {
        console.error("DB Error:", dbError.message);
     }
 
-    const systemPrompt = `Kamu adalah "Klas AI", asisten virtual yang ramah untuk "Klas Konstruksi".
-    Tugas utamamu membantu pengguna menemukan kelas online atau e-book yang cocok.
-    Katalog: ${catalogInfo}
-    Aturan: Jawab dengan bahasa Indonesia santai tapi sopan. Buat jawaban singkat dan jelas.`;
+    const systemPrompt = `Kamu adalah "Klas AI", asisten virtual yang ramah untuk "Klas Konstruksi". Tugas utamamu membantu pengguna menemukan kelas online atau e-book yang cocok. Katalog: ${catalogInfo}. Aturan: Jawab dengan bahasa Indonesia santai tapi sopan. Buat jawaban singkat dan jelas.`;
 
-    // AWAIT ditambahkan agar tidak bentrok dengan versi SDK lama
-    const result = await streamText({
+    // PENTING: streamText TIDAK MEMAKAI await, ini langsung mengembalikan objek stream
+    const result = streamText({
       model: google('gemini-1.5-flash'),
       system: systemPrompt,
-      messages: coreMessages,
+      messages: messages, // Langsung gunakan messages bawaan useChat
     });
 
-    // Deteksi metode otomatis (Anti-Crash)
+    // Logika anti-error: mendeteksi metode respons apa yang tersedia di versi AI SDK kamu
     const res = result as any;
     if (typeof res.toDataStreamResponse === 'function') {
         return res.toDataStreamResponse();
     } else if (typeof res.toTextStreamResponse === 'function') {
         return res.toTextStreamResponse();
-    } else if (typeof res.toAIStreamResponse === 'function') {
-        return res.toAIStreamResponse();
     } else {
         throw new Error("Metode Stream Response tidak ditemukan.");
     }
