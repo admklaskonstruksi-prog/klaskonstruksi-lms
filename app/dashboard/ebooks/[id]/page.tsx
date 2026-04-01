@@ -48,14 +48,20 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
     const description = formData.get("description") as string;
     const price = parseInt(formData.get("price") as string) || 0;
 
+    // TANGKAP NILAI DUMMY BARU
+    const sold_count = parseInt(formData.get("terjual") as string) || 0;
+    const dummy_rating = parseFloat(formData.get("dummy_rating") as string) || 5.0;
+    const dummy_rating_count = parseInt(formData.get("dummy_rating_count") as string) || 0;
+
     // Ambil file dari form
     const pdfFile = formData.get("pdf_file") as File | null;
     const coverFile = formData.get("cover_image") as File | null;
 
-    const { data: currentEbook } = await supabaseClient.from("ebooks").select("file_url, thumbnail_url").eq("id", ebookId).single();
+    // Ambil URL lama untuk referensi
+    const { data: currentEbook } = await supabaseClient.from("ebooks").select("file_url, thumbnail_url, pdf_url, cover_url").eq("id", ebookId).single();
 
-    let finalPdfUrl = currentEbook?.file_url;
-    let finalCoverUrl = currentEbook?.thumbnail_url;
+    let finalPdfUrl = currentEbook?.pdf_url || currentEbook?.file_url;
+    let finalCoverUrl = currentEbook?.cover_url || currentEbook?.thumbnail_url;
 
     // Upload PDF Baru
     if (pdfFile && pdfFile.size > 0) {
@@ -84,8 +90,21 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
       title,
       description,
       price,
+      
+      // UPDATE DATA DUMMY
+      sold_count,
+      rating: dummy_rating,
+      reviews_count: dummy_rating_count,
+      dummy_rating,
+      dummy_rating_count,
+
+      // MEMASTIKAN KOLOM SKEMA LAMA & BARU SAMA-SAMA TERISI
       file_url: finalPdfUrl,
+      pdf_url: finalPdfUrl,
+      pdf_file_url: finalPdfUrl,
+      
       thumbnail_url: finalCoverUrl,
+      cover_url: finalCoverUrl,
     }).eq("id", ebookId);
 
     if (!updateError) {
@@ -134,6 +153,39 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
             />
           </div>
 
+          {/* AREA INPUT DUMMY DATA */}
+          <div className="bg-orange-50/50 p-5 rounded-2xl border border-orange-100 grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-2">Angka Terjual</label>
+              <input 
+                type="number" 
+                name="terjual" 
+                defaultValue={ebook.sold_count || 0}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-white text-gray-900 font-medium text-sm" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-2">Rating (Maks 5.0)</label>
+              <input 
+                type="number" 
+                step="0.1"
+                max="5"
+                name="dummy_rating" 
+                defaultValue={ebook.dummy_rating || ebook.rating || 5.0}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-white text-gray-900 font-medium text-sm" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-2">Jumlah Review</label>
+              <input 
+                type="number" 
+                name="dummy_rating_count" 
+                defaultValue={ebook.dummy_rating_count || ebook.reviews_count || 0}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-white text-gray-900 font-medium text-sm" 
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-bold text-gray-900 mb-2">Deskripsi Singkat / Tujuan Utama</label>
             <textarea 
@@ -154,18 +206,17 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
               </label>
               
               {/* Preview Cover Lama */}
-              {ebook.thumbnail_url && (
+              {(ebook.thumbnail_url || ebook.cover_url) && (
                 <div className="mb-4 bg-orange-50/50 p-4 rounded-2xl border border-orange-100 flex items-start gap-4">
                    <div className="w-20 h-28 bg-gray-200 rounded-lg overflow-hidden shrink-0 shadow-sm border border-gray-200">
-                      {/* Menggunakan tag img standar agar tidak terblokir next.config domains */}
-                      <img src={ebook.thumbnail_url} alt="Cover saat ini" className="w-full h-full object-cover" />
+                      <img src={ebook.thumbnail_url || ebook.cover_url} alt="Cover saat ini" className="w-full h-full object-cover" />
                    </div>
                    <div>
                      <p className="text-xs font-black text-orange-600 uppercase tracking-wider mb-1 flex items-center gap-1">
                        <CheckCircle2 size={12} /> Cover Aktif
                      </p>
                      <p className="text-xs text-gray-600 leading-relaxed mb-2">Ini adalah cover yang sedang tampil di katalog pembeli.</p>
-                     <a href={ebook.thumbnail_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#F97316] hover:underline">
+                     <a href={ebook.thumbnail_url || ebook.cover_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#F97316] hover:underline">
                        Buka Gambar Penuh ↗
                      </a>
                    </div>
@@ -192,7 +243,7 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
               </label>
               
               {/* Preview PDF Lama */}
-              {ebook.file_url && (
+              {(ebook.file_url || ebook.pdf_url) && (
                 <div className="mb-4 bg-teal-50/50 p-4 rounded-2xl border border-teal-100 flex items-start gap-4">
                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-teal-100 text-[#00C9A7]">
                       <FileText size={24} />
@@ -202,7 +253,7 @@ export default async function EditEbookPage({ params }: { params: Promise<{ id: 
                        <CheckCircle2 size={12} /> PDF Aktif
                      </p>
                      <p className="text-xs text-gray-600 leading-relaxed mb-2">Dokumen ini yang akan diunduh oleh pembeli saat ini.</p>
-                     <a href={ebook.file_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#00C9A7] hover:underline">
+                     <a href={ebook.file_url || ebook.pdf_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#00C9A7] hover:underline">
                        Baca Dokumen Saat Ini ↗
                      </a>
                    </div>
