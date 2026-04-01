@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardSidebar from "./components/DashboardSidebar";
 import AutoLogout from "./components/AutoLogout"; 
-import KlasAIWidget from "./components/KlasAIWidget"; // <-- IMPORT KLAS AI WIDGET
+import KlasAIWidget from "./components/KlasAIWidget";
 import { ReactNode } from "react";
 import { revalidatePath } from "next/cache";
 
@@ -22,7 +22,6 @@ export default async function DashboardLayout({
     return redirect("/login");
   }
 
-  // Mengambil SEMUA field profile untuk pengecekan kelengkapan
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
@@ -40,7 +39,6 @@ export default async function DashboardLayout({
 
   const isAdmin = profile?.role?.toLowerCase() === 'admin';
   
-  // Logika pemblokiran dipindah ke Layout
   const isProfileIncomplete = !isAdmin && (!profile?.phone || !profile?.address || !profile?.country || !profile?.province || !profile?.city);
 
   async function saveMissingProfile(formData: FormData) {
@@ -58,23 +56,21 @@ export default async function DashboardLayout({
       address: formData.get("address") as string,
     }).eq("id", user.id);
 
-    // Revalidate tipe layout agar modal langsung tertutup di semua halaman
     revalidatePath("/dashboard", "layout"); 
   }
 
   return (
     <AutoLogout>
-      <div className="flex min-h-screen bg-gray-50 relative">
+      {/* UBAH: flex-col untuk HP, md:flex-row untuk Desktop */}
+      <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 relative">
         <DashboardSidebar user={userData} />
 
-        <main className="flex-1 min-w-0 transition-all duration-300 min-h-screen">
+        <main className="flex-1 min-w-0 transition-all duration-300 flex flex-col">
           {children}
         </main>
         
-        {/* FITUR CHAT AI DITAMBAHKAN DI SINI */}
         <KlasAIWidget />
         
-        {/* MODAL PENCEGAT (Sekarang mengunci seluruh aplikasi dashboard) */}
         {isProfileIncomplete && (
           <div className="fixed inset-0 z-[100] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-6 overflow-y-auto">
               <div className="bg-white max-w-lg w-full p-8 rounded-3xl shadow-2xl border border-gray-100 my-auto">
