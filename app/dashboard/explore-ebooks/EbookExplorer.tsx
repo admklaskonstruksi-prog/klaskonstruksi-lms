@@ -146,7 +146,7 @@ export default function EbookExplorer({ ebooks, userName }: { ebooks: any[], use
 
                   {/* Body Info */}
                   <div className="p-5 flex flex-col flex-1">
-                    <p className="text-[10px] font-bold text-[#00C9A7] uppercase tracking-wider mb-1.5">LITERASI KONSTRUKSI</p>
+                    <p className="text-[10px] font-bold text-[#00C9A7] uppercase tracking-wider mb-1.5">E-Book</p>
                     <Link href={`/ebooks/${ebook.id}`} className="block mb-3">
                       <h3 className="font-bold text-gray-900 text-base leading-snug line-clamp-2 group-hover:text-[#00C9A7] transition-colors">
                         {ebook.title}
