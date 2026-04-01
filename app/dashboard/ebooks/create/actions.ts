@@ -15,7 +15,7 @@ export async function createEbookAction(formData: FormData) {
       return { error: "Akses ditolak. Anda belum login." };
     }
 
-    // Cek role user di tabel profiles (Gunakan .toLowerCase() agar lebih aman)
+    // Cek role user di tabel profiles
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -27,17 +27,18 @@ export async function createEbookAction(formData: FormData) {
     }
     // =========================================================================
 
-    // 2. Ambil data dari form (SINKRONISASI DENGAN NAMA DI UI)
+    // 2. Ambil data dari form
     const title = formData.get("title") as string;
     const price = parseFloat(formData.get("price") as string) || 0;
-    const description = formData.get("goals") as string; // Di UI namanya 'goals', tapi di DB/Edit pakai 'description'
+    const description = formData.get("goals") as string; 
     const keypoints = formData.getAll("keypoints") as string[]; 
     const sold_count = parseInt(formData.get("terjual") as string) || 0;
     
     const file = formData.get("pdf_file") as File | null;
     const coverFile = formData.get("cover_image") as File | null;
 
-    let file_url = "";
+    // UBAH NAMA VARIABEL AGAR COCOK DENGAN SKEMA DATABASE
+    let pdf_url = ""; 
     let thumbnail_url = "";
 
     // 3A. Upload PDF ke Supabase Storage (Bucket bernama: 'ebooks')
@@ -50,7 +51,7 @@ export async function createEbookAction(formData: FormData) {
       if (uploadError) return { error: `Gagal upload PDF: ${uploadError.message}` };
 
       const { data: { publicUrl } } = supabase.storage.from("ebooks").getPublicUrl(filePath);
-      file_url = publicUrl; // Menggunakan nama 'file_url' sesuai dengan halaman Edit
+      pdf_url = publicUrl; 
     }
 
     // 3B. Upload Cover Image ke Storage yang sama
@@ -63,7 +64,7 @@ export async function createEbookAction(formData: FormData) {
       if (uploadError) return { error: `Gagal upload Cover: ${uploadError.message}` };
 
       const { data: { publicUrl } } = supabase.storage.from("ebooks").getPublicUrl(coverPath);
-      thumbnail_url = publicUrl; // Menggunakan nama 'thumbnail_url' sesuai dengan halaman Edit
+      thumbnail_url = publicUrl; 
     }
 
     // 4. Simpan data ke tabel 'ebooks' di database Supabase
@@ -76,12 +77,19 @@ export async function createEbookAction(formData: FormData) {
           description: description, 
           keypoints: keypoints,
           sold_count: sold_count,
-          file_url: file_url,             // Diperbaiki
-          thumbnail_url: thumbnail_url,   // Diperbaiki
-          dummy_rating: 5.0,              // Default rating sesuai SQL yang kita buat
+          
+          // ---- BAGIAN YANG DIPERBAIKI (DISAMAKAN DENGAN SKEMA) ----
+          pdf_url: pdf_url,               
+          pdf_file_url: pdf_url,          // Diisi ganda karena di skema ada 2 kolom PDF
+          thumbnail_url: thumbnail_url,   
+          cover_url: thumbnail_url,       // Diisi ganda karena di skema ada 2 kolom cover
+          created_by: user.id,            // Mengikat e-book ke admin pembuatnya
+          // ---------------------------------------------------------
+          
+          dummy_rating: 5.0,              
           dummy_rating_count: 0,
-          use_dummy_rating: true,         // Default menggunakan dummy
-          is_published: true              // Otomatis Live setelah diunggah
+          use_dummy_rating: true,         
+          is_published: true              
         }
       ])
       .select()
@@ -91,7 +99,6 @@ export async function createEbookAction(formData: FormData) {
       return { error: `Gagal simpan ke database: ${error.message}` };
     }
 
-    // Wajib dibuka komentarnya agar tabel admin langsung ter-refresh
     revalidatePath("/dashboard/ebooks"); 
     return { success: true, data };
 

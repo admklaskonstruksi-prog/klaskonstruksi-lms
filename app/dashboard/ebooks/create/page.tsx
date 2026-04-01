@@ -155,7 +155,7 @@ export default function CreateEbookPage() {
         </div>
 
         {/* UPLOAD FILES */}
-        <div className="space-y-6 pt-6 border-t border-gray-100 bg-teal-50/50 p-6 rounded-2xl border border-teal-100">
+        <div className="space-y-6 pt-6 border-t bg-teal-50/50 p-6 rounded-2xl border border-teal-100">
           <h2 className="text-xl font-bold text-gray-900 border-b border-teal-100 pb-2">Unggah File</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
