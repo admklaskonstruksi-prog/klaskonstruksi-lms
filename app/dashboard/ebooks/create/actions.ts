@@ -32,12 +32,15 @@ export async function createEbookAction(formData: FormData) {
     const price = parseFloat(formData.get("price") as string) || 0;
     const description = formData.get("goals") as string; 
     const keypoints = formData.getAll("keypoints") as string[]; 
+    
+    // MENANGKAP NILAI DUMMY RATING
     const sold_count = parseInt(formData.get("terjual") as string) || 0;
+    const dummy_rating = parseFloat(formData.get("dummy_rating") as string) || 5.0;
+    const dummy_rating_count = parseInt(formData.get("dummy_rating_count") as string) || 0;
     
     const file = formData.get("pdf_file") as File | null;
     const coverFile = formData.get("cover_image") as File | null;
 
-    // UBAH NAMA VARIABEL AGAR COCOK DENGAN SKEMA DATABASE
     let pdf_url = ""; 
     let thumbnail_url = "";
 
@@ -78,17 +81,20 @@ export async function createEbookAction(formData: FormData) {
           keypoints: keypoints,
           sold_count: sold_count,
           
-          // ---- BAGIAN YANG DIPERBAIKI (DISAMAKAN DENGAN SKEMA) ----
           pdf_url: pdf_url,               
-          pdf_file_url: pdf_url,          // Diisi ganda karena di skema ada 2 kolom PDF
+          pdf_file_url: pdf_url,          
           thumbnail_url: thumbnail_url,   
-          cover_url: thumbnail_url,       // Diisi ganda karena di skema ada 2 kolom cover
-          created_by: user.id,            // Mengikat e-book ke admin pembuatnya
-          // ---------------------------------------------------------
+          cover_url: thumbnail_url,       
+          created_by: user.id,            
           
-          dummy_rating: 5.0,              
-          dummy_rating_count: 0,
+          // ---- FITUR DUMMY RATING DISUNTIKKAN KE SINI ----
+          rating: dummy_rating,           // Mengisi rating utama agar langsung tampil di depan
+          reviews_count: dummy_rating_count, // Mengisi review count utama
+          dummy_rating: dummy_rating,     // Mengisi kolom dummy
+          dummy_rating_count: dummy_rating_count,
           use_dummy_rating: true,         
+          // ------------------------------------------------
+          
           is_published: true              
         }
       ])

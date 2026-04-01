@@ -88,24 +88,46 @@ export default function CreateEbookPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Harga Jual (Rp)</label>
+            <input 
+              type="number" 
+              name="price" 
+              required 
+              placeholder="Contoh: 99000 (Isi 0 jika gratis)"
+              className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-gray-50 focus:bg-white text-gray-900 font-medium" 
+            />
+          </div>
+
+          {/* SECTION DUMMY DATA */}
+          <div className="bg-orange-50/50 p-5 rounded-2xl border border-orange-100 grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Harga Jual (Rp)</label>
-              <input 
-                type="number" 
-                name="price" 
-                required 
-                placeholder="Contoh: 99000 (Isi 0 jika gratis)"
-                className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-gray-50 focus:bg-white text-gray-900 font-medium" 
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Angka Dummy Terjual (Opsional)</label>
+              <label className="block text-xs font-bold text-gray-700 mb-2">Angka Dummy Terjual</label>
               <input 
                 type="number" 
                 name="terjual" 
                 defaultValue={0}
-                className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#00C9A7] outline-none transition bg-gray-50 focus:bg-white text-gray-900 font-medium" 
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-white text-gray-900 font-medium text-sm" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-2">Rating Dummy (Maks 5.0)</label>
+              <input 
+                type="number" 
+                step="0.1"
+                max="5"
+                name="dummy_rating" 
+                defaultValue={5.0}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-white text-gray-900 font-medium text-sm" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-2">Jumlah Review Dummy</label>
+              <input 
+                type="number" 
+                name="dummy_rating_count" 
+                defaultValue={0}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-white text-gray-900 font-medium text-sm" 
               />
             </div>
           </div>
@@ -155,7 +177,7 @@ export default function CreateEbookPage() {
         </div>
 
         {/* UPLOAD FILES */}
-        <div className="space-y-6 pt-6 border-t bg-teal-50/50 p-6 rounded-2xl border border-teal-100">
+        <div className="space-y-6 mt-6 bg-teal-50/50 p-6 rounded-2xl border border-teal-100">
           <h2 className="text-xl font-bold text-gray-900 border-b border-teal-100 pb-2">Unggah File</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
