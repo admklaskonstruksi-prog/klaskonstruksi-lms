@@ -6,8 +6,6 @@ import { createChapter, deleteChapter } from "../actions";
 import { createLesson, deleteLesson, updateLesson } from "../../lessons-actions";
 import { Trash2, Plus, PlayCircle, ChevronDown, ChevronUp, Loader2, Video, Edit3, X, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
-
-// IMPORT BUNNY VIDEO PLAYER
 import BunnyVideoPlayer from "../../../components/BunnyVideoPlayer";
 
 interface Props {
@@ -31,7 +29,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   
-  // --- STATE BARU UNTUK PREVIEW VIDEO LOKAL ---
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
 
   const [libraryVideos, setLibraryVideos] = useState<any[]>([]);
@@ -51,7 +48,11 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     try {
       const res = await fetch('/api/bunny/library');
       const data = await res.json();
-      if (data.items) setLibraryVideos(data.items);
+      if (data.items) {
+        setLibraryVideos(data.items);
+      } else if (data.error) {
+        toast.error(`Library: ${data.error}`);
+      }
     } catch (e) {
       toast.error("Gagal memuat library video");
     }
@@ -62,71 +63,17 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     if (videoSource === 'library' && libraryVideos.length === 0) fetchLibrary();
   }, [videoSource]);
 
-  // --- EFFECT UNTUK GENERATE PREVIEW URL SECARA AMAN ---
   useEffect(() => {
     if (selectedFile && videoSource === 'upload') {
       const url = URL.createObjectURL(selectedFile);
       setVideoPreviewUrl(url);
-      
-      // Cleanup function agar memory tidak bocor
       return () => URL.revokeObjectURL(url);
     } else {
       setVideoPreviewUrl(null);
     }
   }, [selectedFile, videoSource]);
 
-  const openAddLesson = (chapterId: string) => {
-    setAddingLessonTo(chapterId);
-    setVideoSource('upload');
-    setSelectedFile(null);
-    setUploadProgress(0);
-    setSelectedVideoId("");
-  };
-
-  const openEditLesson = (lesson: any) => {
-    setEditingLesson(lesson);
-    setVideoSource(lesson.video_id ? 'library' : 'upload');
-    setSelectedVideoId(lesson.video_id || "");
-    setSelectedFile(null);
-    setUploadProgress(0);
-  };
-
-  const processVideoUpload = async (title: string): Promise<string> => {
-    if (videoSource === 'upload' && selectedFile) {
-      setIsUploading(true);
-      try {
-        const res = await fetch('/api/bunny/create', {
-          method: 'POST',
-          body: JSON.stringify({ title })
-        });
-        const { videoId: newId, libraryId, apiKey } = await res.json();
-        
-        await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.upload.addEventListener("progress", (event) => {
-            if (event.lengthComputable) {
-              setUploadProgress(Math.round((event.loaded / event.total) * 100));
-            }
-          });
-          xhr.addEventListener("load", () => resolve(newId));
-          xhr.addEventListener("error", () => reject("Upload gagal"));
-          
-          xhr.open("PUT", `https://video.bunnycdn.com/library/${libraryId}/videos/${newId}`, true);
-          xhr.setRequestHeader("AccessKey", apiKey);
-          xhr.setRequestHeader("Content-Type", "application/octet-stream");
-          xhr.send(selectedFile);
-        });
-        
-        return newId;
-      } catch (err) {
-        throw err;
-      } finally {
-        setIsUploading(false);
-      }
-    }
-    return selectedVideoId; 
-  };
-
+  // --- FUNGSI MANAJEMEN BAB (CHAPTER) ---
   const handleAddChapter = async () => {
     if (!newChapterTitle.trim()) return toast.error("Judul bab tidak boleh kosong");
     const formData = new FormData();
@@ -153,6 +100,68 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     });
   };
 
+  // --- FUNGSI MANAJEMEN MATERI (LESSON) ---
+  const openAddLesson = (chapterId: string) => {
+    setAddingLessonTo(chapterId);
+    setVideoSource('upload');
+    setSelectedFile(null);
+    setUploadProgress(0);
+    setSelectedVideoId("");
+  };
+
+  const openEditLesson = (lesson: any) => {
+    setEditingLesson(lesson);
+    setVideoSource(lesson.video_id ? 'library' : 'upload');
+    setSelectedVideoId(lesson.video_id || "");
+    setSelectedFile(null);
+    setUploadProgress(0);
+  };
+
+  const processVideoUpload = async (title: string): Promise<string> => {
+    if (videoSource === 'upload' && selectedFile) {
+      setIsUploading(true);
+      try {
+        const res = await fetch('/api/bunny/create', {
+          method: 'POST',
+          body: JSON.stringify({ title })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Gagal inisiasi video di BunnyCDN");
+        }
+
+        const { videoId: newId, libraryId, apiKey } = await res.json();
+
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.upload.addEventListener("progress", (event) => {
+            if (event.lengthComputable) {
+              setUploadProgress(Math.round((event.loaded / event.total) * 100));
+            }
+          });
+          xhr.addEventListener("load", () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve(newId);
+            else reject(new Error(`Upload ditolak server BunnyCDN (Status: ${xhr.status})`));
+          });
+          xhr.addEventListener("error", () => reject(new Error("Koneksi internet terputus saat upload")));
+
+          xhr.open("PUT", `https://video.bunnycdn.com/library/${libraryId}/videos/${newId}`, true);
+          xhr.setRequestHeader("AccessKey", apiKey);
+          xhr.setRequestHeader("Content-Type", "application/octet-stream");
+          xhr.send(selectedFile);
+        });
+
+        return newId;
+      } catch (err: any) {
+        throw err;
+      } finally {
+        setIsUploading(false);
+      }
+    }
+    return selectedVideoId; 
+  };
+
   const handleAddLesson = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!addingLessonTo) return;
@@ -161,7 +170,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     
     try {
       const finalVideoId = await processVideoUpload(title);
-      
       formData.append("video_id", finalVideoId);
       formData.append("chapter_id", addingLessonTo);
       formData.append("course_id", courseId);
@@ -175,8 +183,8 @@ export default function ChaptersList({ initialData, courseId }: Props) {
           router.refresh(); 
         }
       });
-    } catch (e) {
-      toast.error("Terjadi kesalahan saat mengupload video.");
+    } catch (e: any) {
+      toast.error(e.message || "Terjadi kesalahan saat mengupload video.");
     }
   };
 
@@ -188,7 +196,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     
     try {
       const finalVideoId = await processVideoUpload(title);
-      
       formData.append("video_id", finalVideoId);
       formData.append("course_id", courseId);
 
@@ -202,8 +209,8 @@ export default function ChaptersList({ initialData, courseId }: Props) {
           router.refresh(); 
         }
       });
-    } catch (e) {
-      toast.error("Terjadi kesalahan saat mengupload video.");
+    } catch (e: any) {
+      toast.error(e.message || "Terjadi kesalahan saat mengupload video.");
     }
   };
 
@@ -216,6 +223,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     });
   };
 
+  // --- UI RENDER HELPERS ---
   const renderVideoSelector = () => (
     <div className="mb-4 space-y-3">
       <label className="block text-sm font-bold text-gray-700">Video Materi (Opsional)</label>
@@ -227,7 +235,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
 
       {videoSource === 'upload' && (
         <div className="space-y-3">
-          {/* Kotak Upload (Dropzone) */}
           <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition relative overflow-hidden group">
              <input type="file" accept="video/*" disabled={isUploading} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
              {selectedFile ? (
@@ -247,21 +254,10 @@ export default function ChaptersList({ initialData, courseId }: Props) {
                </div>
              )}
           </div>
-
-          {/* PLAYER PREVIEW VIDEO LOKAL */}
           {videoPreviewUrl && (
             <div className="rounded-xl overflow-hidden border border-gray-200 shadow-inner bg-black relative animate-in fade-in zoom-in-95 duration-300">
-              <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-md z-10 font-bold tracking-wider">
-                PREVIEW LOKAL
-              </div>
-              <video 
-                src={videoPreviewUrl} 
-                controls 
-                controlsList="nodownload"
-                className="w-full max-h-[220px] object-contain"
-              >
-                Browser Anda tidak mendukung tag video.
-              </video>
+              <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-md z-10 font-bold tracking-wider">PREVIEW LOKAL</div>
+              <video src={videoPreviewUrl} controls className="w-full max-h-[220px] object-contain">Browser Anda tidak mendukung tag video.</video>
             </div>
           )}
         </div>
@@ -290,9 +286,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
       )}
 
       {videoSource === 'manual' && (
-        <div>
-          <input type="text" value={selectedVideoId} onChange={e => setSelectedVideoId(e.target.value)} placeholder="Contoh: d1bff247-cd78-..." className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm font-mono" />
-        </div>
+        <input type="text" value={selectedVideoId} onChange={e => setSelectedVideoId(e.target.value)} placeholder="Contoh: d1bff247-cd78-..." className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm font-mono" />
       )}
     </div>
   );
@@ -318,7 +312,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
               ) : (
                 chapter.lessons.map((lesson: any, lIndex: number) => {
                   const isPreviewOpen = previewLessonId === lesson.id;
-
                   return (
                     <div key={lesson.id} className="flex flex-col p-4 bg-white border border-gray-100 rounded-xl hover:border-[#00C9A7]/30 transition group">
                       <div className="flex items-start justify-between w-full">
@@ -327,53 +320,36 @@ export default function ChaptersList({ initialData, courseId }: Props) {
                           <div className="flex-1 w-full">
                             <h4 className="font-bold text-gray-800 text-sm">{lIndex + 1}. {lesson.title}</h4>
                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{lesson.description}</p>
-                            
-                            {/* TOMBOL PREVIEW VIDEO */}
                             {lesson.video_id && (
                               <div className="mt-3">
-                                <button 
-                                  onClick={() => toggleVideoPreview(lesson.id)}
-                                  className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors border ${isPreviewOpen ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'}`}
-                                >
+                                <button onClick={() => toggleVideoPreview(lesson.id)} className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors border ${isPreviewOpen ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700' : 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100'}`}>
                                   {isPreviewOpen ? <ChevronUp size={12} /> : <PlayCircle size={12} />}
                                   {isPreviewOpen ? "Tutup Preview" : "Lihat Video"}
                                 </button>
                               </div>
                             )}
-
-                            {/* AREA PREVIEW VIDEO PLAYER */}
                             {isPreviewOpen && lesson.video_id && (
                               <div className="mt-4 w-full md:w-3/4 aspect-video bg-black rounded-xl overflow-hidden border-2 border-gray-100 relative animate-in fade-in slide-in-from-top-2">
                                 <BunnyVideoPlayer videoId={lesson.video_id} />
                               </div>
                             )}
-
                           </div>
                         </div>
-                        
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-4">
-                          <button onClick={() => openEditLesson(lesson)} disabled={isPending} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit Materi">
-                            <Edit3 size={16} />
-                          </button>
-                          <button onClick={() => handleDeleteLesson(lesson.id)} disabled={isPending} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition" title="Hapus Materi">
-                            <Trash2 size={16} />
-                          </button>
+                          <button onClick={() => openEditLesson(lesson)} disabled={isPending} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit Materi"><Edit3 size={16} /></button>
+                          <button onClick={() => handleDeleteLesson(lesson.id)} disabled={isPending} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition" title="Hapus Materi"><Trash2 size={16} /></button>
                         </div>
                       </div>
                     </div>
                   );
                 })
               )}
-
-              <button onClick={() => openAddLesson(chapter.id)} className="flex items-center gap-2 text-sm font-bold text-[#00C9A7] hover:text-[#00b596] p-2 transition w-max mt-2">
-                <Plus size={16} /> Tambah Materi Video
-              </button>
+              <button onClick={() => openAddLesson(chapter.id)} className="flex items-center gap-2 text-sm font-bold text-[#00C9A7] hover:text-[#00b596] p-2 transition w-max mt-2"><Plus size={16} /> Tambah Materi Video</button>
             </div>
           )}
         </div>
       ))}
 
-      {/* Tambah Bab */}
       <div className="flex items-center gap-2 mt-6 bg-white p-4 rounded-xl border border-gray-200 border-dashed">
         <input type="text" value={newChapterTitle} onChange={(e) => setNewChapterTitle(e.target.value)} placeholder="Nama Bab Baru (misal: Pengantar)" className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm"/>
         <button onClick={handleAddChapter} disabled={isPending || !newChapterTitle.trim()} className="bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition">
@@ -381,7 +357,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
         </button>
       </div>
 
-      {/* MODAL TAMBAH MATERI */}
       {addingLessonTo && (
         <div className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-hide">
@@ -392,9 +367,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Judul Materi</label>
                 <input name="title" required type="text" placeholder="Contoh: Konsep Dasar" className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm" />
               </div>
-              
               {renderVideoSelector()}
-
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Deskripsi Singkat</label>
                 <textarea name="description" rows={3} placeholder="Materi ini membahas tentang..." className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm"></textarea>
@@ -410,7 +383,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
         </div>
       )}
 
-      {/* MODAL EDIT MATERI */}
       {editingLesson && (
         <div className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-hide">
@@ -421,9 +393,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Judul Materi</label>
                 <input name="title" defaultValue={editingLesson.title} required type="text" className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm" />
               </div>
-              
               {renderVideoSelector()}
-
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Deskripsi Singkat</label>
                 <textarea name="description" defaultValue={editingLesson.description || ""} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm"></textarea>
