@@ -1,35 +1,89 @@
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+"use client";
 
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Edit3, BookOpen, Star, Plus } from "lucide-react";
+import { Search, Edit3, BookOpen, Star, Plus, ChevronUp, ChevronDown } from "lucide-react";
 import RatingToggle from "../components/RatingToggle";
 import EbookPublishToggle from "./components/EbookPublishToggle";
+import { useState, useEffect, useMemo } from "react";
 
-export default async function AdminEbooksPage({ searchParams }: { searchParams?: Promise<any> | any }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return redirect("/login");
+// Karena kita butuh fitur klik/sorting di Client Side, file ini diubah jadi "use client"
+export default function AdminEbooksPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [ebooks, setEbooks] = useState<any[]>([]);
+  const [allReviews, setAllReviews] = useState<any[]>([]);
+  const [searchQ, setSearchQ] = useState("");
+  
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' | null }>({ key: '', direction: null });
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role?.toLowerCase() !== "admin") return redirect("/dashboard");
+  useEffect(() => {
+    fetchEbooks();
+    fetchReviews();
+  }, [searchQ]);
 
-  const sp = await searchParams;
-  const searchQ = sp?.q || "";
+  const fetchEbooks = async () => {
+    let query = supabase.from("ebooks").select('*').order('created_at', { ascending: false });
+    if (searchQ) query = query.ilike("title", `%${searchQ}%`);
+    const { data } = await query;
+    if (data) setEbooks(data);
+  };
 
-  let query = supabase.from("ebooks").select('*').order('created_at', { ascending: false });
+  const fetchReviews = async () => {
+    const { data } = await supabase.from("reviews").select("item_id, rating").eq("item_type", "ebook");
+    if (data) setAllReviews(data);
+  };
 
-  if (searchQ) query = query.ilike("title", `%${searchQ}%`);
+  // LOGIKA PENGURUTAN (SORTING)
+  const sortedEbooks = useMemo(() => {
+    let sortableItems = [...(ebooks || [])];
+    if (sortConfig.direction !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
 
-  let { data: ebooks, error } = await query;
-  if (error) console.error("Error mengambil data ebook:", error);
+        if (sortConfig.key === 'status') {
+          aValue = a.is_published ? 1 : 0;
+          bValue = b.is_published ? 1 : 0;
+        }
 
-  const { data: allReviews } = await supabase
-    .from("reviews")
-    .select("item_id, rating")
-    .eq("item_type", "ebook");
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [ebooks, sortConfig]);
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' | null = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    else if (sortConfig.key === key && sortConfig.direction === 'desc') direction = null;
+    
+    setSortConfig({ key, direction });
+  };
+
+  const SortableHeader = ({ label, sortKey }: { label: string, sortKey: string }) => {
+    const isAsc = sortConfig.key === sortKey && sortConfig.direction === 'asc';
+    const isDesc = sortConfig.key === sortKey && sortConfig.direction === 'desc';
+
+    return (
+      <button onClick={() => requestSort(sortKey)} className="flex items-center gap-1.5 hover:text-gray-800 transition-colors group select-none font-bold uppercase tracking-wider text-[11px]">
+        {label}
+        <div className="flex flex-col opacity-50 group-hover:opacity-100 transition-opacity">
+          <ChevronUp size={12} className={`-mb-1 ${isAsc ? 'text-[#00C9A7] font-black' : 'text-gray-300'}`} />
+          <ChevronDown size={12} className={`${isDesc ? 'text-[#00C9A7] font-black' : 'text-gray-300'}`} />
+        </div>
+      </button>
+    );
+  };
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    setSearchQ(formData.get('q') as string);
+  };
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto font-sans">
@@ -47,13 +101,13 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
-        <form method="GET" className="flex flex-col md:flex-row gap-4">
+        <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
            <div className="relative flex-1 flex items-center">
              <Search size={18} className="absolute left-4 text-gray-400" />
              <input type="text" name="q" defaultValue={searchQ} placeholder="Cari judul e-book..." className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#00C9A7] outline-none" />
            </div>
            <button type="submit" className="bg-[#00C9A7] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#00b596] transition-colors whitespace-nowrap">
-              Cari E-Book
+             Cari E-Book
            </button>
         </form>
       </div>
@@ -62,19 +116,19 @@ export default async function AdminEbooksPage({ searchParams }: { searchParams?:
         <table className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-100">
             <tr>
-              <th className="px-6 py-4">Informasi E-Book</th>
-              <th className="px-6 py-4">Terjual</th>
-              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4"><SortableHeader label="Informasi E-Book" sortKey="title" /></th>
+              <th className="px-6 py-4"><SortableHeader label="Terjual" sortKey="sold_count" /></th>
+              <th className="px-6 py-4"><SortableHeader label="Status" sortKey="status" /></th>
               <th className="px-6 py-4">Mode Rating</th>
-              <th className="px-6 py-4 text-right">Aksi</th>
+              <th className="px-6 py-4 text-right uppercase tracking-wider text-[11px]">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {!ebooks || ebooks.length === 0 ? (
+            {!sortedEbooks || sortedEbooks.length === 0 ? (
                 <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-400 font-medium">Belum ada e-book yang ditemukan.</td>
                 </tr>
-            ) : ebooks.map((ebook: any) => {
+            ) : sortedEbooks.map((ebook: any) => {
               
               const ratings = allReviews?.filter((r: any) => r.item_id === ebook.id).map((r: any) => r.rating) || [];
               const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";

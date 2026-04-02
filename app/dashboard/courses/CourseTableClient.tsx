@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { Edit3, LayoutList, ChevronUp, ChevronDown, Star, CheckSquare, Square } from "lucide-react";
 import PublishToggle from "./components/PublishToggle";
 import RatingToggle from "../components/RatingToggle";
@@ -12,6 +12,9 @@ import toast from "react-hot-toast";
 export default function CourseTableClient({ courses, allReviews, sortFilter, searchQ }: any) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
+
+  // STATE UNTUK SORTING LOKAL
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' | null }>({ key: '', direction: null });
 
   const handleSelectAll = () => {
     if (selectedIds.length === courses.length) setSelectedIds([]);
@@ -39,25 +42,58 @@ export default function CourseTableClient({ courses, allReviews, sortFilter, sea
     });
   };
 
+  // LOGIKA PENGURUTAN (SORTING)
+  const sortedCourses = useMemo(() => {
+    let sortableItems = [...(courses || [])];
+    if (sortConfig.direction !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // Penanganan Khusus untuk Relasi/Kategori
+        if (sortConfig.key === 'category') {
+          aValue = a.main_categories?.name || '';
+          bValue = b.main_categories?.name || '';
+        }
+        // Penanganan Khusus untuk Status
+        if (sortConfig.key === 'status') {
+          aValue = a.is_published ? 1 : 0;
+          bValue = b.is_published ? 1 : 0;
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [courses, sortConfig]);
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' | null = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    else if (sortConfig.key === key && sortConfig.direction === 'desc') direction = null;
+    
+    setSortConfig({ key, direction });
+  };
+
   const SortableHeader = ({ label, sortKey }: { label: string, sortKey: string }) => {
-    const isAsc = sortFilter === `${sortKey}_asc`;
-    const isDesc = sortFilter === `${sortKey}_desc`;
-    const nextSort = isAsc ? `${sortKey}_desc` : `${sortKey}_asc`;
+    const isAsc = sortConfig.key === sortKey && sortConfig.direction === 'asc';
+    const isDesc = sortConfig.key === sortKey && sortConfig.direction === 'desc';
 
     return (
-      <Link href={`?sort=${nextSort}&q=${searchQ}`} className="flex items-center gap-1.5 hover:text-gray-800 transition-colors group select-none">
+      <button onClick={() => requestSort(sortKey)} className="flex items-center gap-1.5 hover:text-gray-800 transition-colors group select-none font-bold uppercase tracking-wider text-[11px]">
         {label}
         <div className="flex flex-col opacity-50 group-hover:opacity-100 transition-opacity">
           <ChevronUp size={12} className={`-mb-1 ${isAsc ? 'text-[#00C9A7] font-black' : 'text-gray-300'}`} />
           <ChevronDown size={12} className={`${isDesc ? 'text-[#00C9A7] font-black' : 'text-gray-300'}`} />
         </div>
-      </Link>
+      </button>
     );
   };
 
   return (
     <div className="space-y-4">
-      {/* BULK ACTION PANEL - Muncul jika ada yang diceklis */}
       {selectedIds.length > 0 && (
         <div className="bg-teal-50 border border-teal-200 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2">
            <div className="font-bold text-teal-800 flex items-center gap-2">
@@ -79,20 +115,20 @@ export default function CourseTableClient({ courses, allReviews, sortFilter, sea
               <th className="px-6 py-4 w-12 text-center cursor-pointer" onClick={handleSelectAll}>
                 {selectedIds.length === courses.length && courses.length > 0 ? <CheckSquare size={18} className="text-[#00C9A7]" /> : <Square size={18} className="text-gray-400 hover:text-gray-600" />}
               </th>
-              <th className="px-4 py-4">Informasi Kelas</th>
-              <th className="px-6 py-4"><SortableHeader label="Kategori" sortKey="cat" /></th>
+              <th className="px-4 py-4"><SortableHeader label="Informasi Kelas" sortKey="title" /></th>
+              <th className="px-6 py-4"><SortableHeader label="Kategori" sortKey="category" /></th>
               <th className="px-6 py-4">Statistik</th>
               <th className="px-6 py-4"><SortableHeader label="Status" sortKey="status" /></th>
               <th className="px-6 py-4">Mode Rating</th>
-              <th className="px-6 py-4 text-right">Aksi</th>
+              <th className="px-6 py-4 text-right uppercase tracking-wider text-[11px]">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {!courses || courses.length === 0 ? (
+            {sortedCourses.length === 0 ? (
                 <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium">Belum ada kelas yang ditemukan.</td>
                 </tr>
-            ) : courses.map((course: any) => {
+            ) : sortedCourses.map((course: any) => {
               const isSelected = selectedIds.includes(course.id);
               const ratings = allReviews?.filter((r: any) => r.item_id === course.id).map((r: any) => r.rating) || [];
               const realAvg = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "0";
