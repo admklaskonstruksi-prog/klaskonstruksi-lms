@@ -1,46 +1,44 @@
-export const runtime = 'nodejs';
+import { NextResponse } from "next/server";
 
-import { NextResponse } from 'next/server';
-
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { title } = await request.json();
-    
-    // Gunakan Environment Variable, JANGAN di-hardcode!
-    const apiKey = process.env.BUNNY_API_KEY || "";
-    const libraryId = process.env.BUNNY_LIBRARY_ID || "628695"; 
+    const { title } = await req.json();
 
-    // 1. Minta Slot Video Baru ke Bunny
+    // Kita beritahu sistem untuk membaca NEXT_PUBLIC_BUNNY_LIBRARY_ID
+    const LIBRARY_ID = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID || process.env.BUNNY_LIBRARY_ID;
+    const API_KEY = process.env.BUNNY_API_KEY;
+
+    if (!LIBRARY_ID || !API_KEY) {
+      return NextResponse.json({ error: "Kredensial BunnyCDN belum lengkap di .env" }, { status: 500 });
+    }
+
+    const options = {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        AccessKey: API_KEY,
+      },
+      body: JSON.stringify({ title: title || "Video Baru" }),
+    };
+
     const response = await fetch(
-      `https://video.bunnycdn.com/library/${libraryId}/videos`,
-      {
-        method: 'POST',
-        headers: {
-          AccessKey: apiKey,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ title: title || 'New Lesson' }),
-      }
+      `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos`,
+      options
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json({ 
-        error: `Bunny Refused (${response.status}): ${errorText}` 
-      }, { status: response.status });
+      throw new Error("Gagal membuat video di BunnyCDN");
     }
 
     const data = await response.json();
 
-    // 2. BERIKAN DATA KE FRONTEND
     return NextResponse.json({
       videoId: data.guid,
-      libraryId: libraryId,
-      apiKey: apiKey
+      libraryId: LIBRARY_ID,
+      apiKey: API_KEY, // Mengirim token ke klien untuk proses upload
     });
-
   } catch (error: any) {
-    return NextResponse.json({ error: `Server Error: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
