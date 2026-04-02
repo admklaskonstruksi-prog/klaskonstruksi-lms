@@ -24,15 +24,16 @@ export default function ChaptersList({ initialData, courseId }: Props) {
   const [addingLessonTo, setAddingLessonTo] = useState<string | null>(null);
   const [editingLesson, setEditingLesson] = useState<any | null>(null);
 
-  // --- STATE UNTUK PREVIEW VIDEO ---
   const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
 
-  // --- STATE KHUSUS UNTUK VIDEO UPLOAD & LIBRARY ---
   const [videoSource, setVideoSource] = useState<'upload' | 'library' | 'manual'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   
+  // --- STATE BARU UNTUK PREVIEW VIDEO LOKAL ---
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+
   const [libraryVideos, setLibraryVideos] = useState<any[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState("");
@@ -45,7 +46,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     setPreviewLessonId(prev => prev === lessonId ? null : lessonId);
   };
 
-  // --- FETCH VIDEO LIBRARY BUNNY ---
   const fetchLibrary = async () => {
     setIsLoadingLibrary(true);
     try {
@@ -62,7 +62,19 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     if (videoSource === 'library' && libraryVideos.length === 0) fetchLibrary();
   }, [videoSource]);
 
-  // --- RESET STATE SAAT BUKA MODAL ---
+  // --- EFFECT UNTUK GENERATE PREVIEW URL SECARA AMAN ---
+  useEffect(() => {
+    if (selectedFile && videoSource === 'upload') {
+      const url = URL.createObjectURL(selectedFile);
+      setVideoPreviewUrl(url);
+      
+      // Cleanup function agar memory tidak bocor
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setVideoPreviewUrl(null);
+    }
+  }, [selectedFile, videoSource]);
+
   const openAddLesson = (chapterId: string) => {
     setAddingLessonTo(chapterId);
     setVideoSource('upload');
@@ -79,7 +91,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     setUploadProgress(0);
   };
 
-  // --- FUNGSI DIRECT UPLOAD KE BUNNY ---
   const processVideoUpload = async (title: string): Promise<string> => {
     if (videoSource === 'upload' && selectedFile) {
       setIsUploading(true);
@@ -116,7 +127,6 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     return selectedVideoId; 
   };
 
-  // --- ACTIONS ---
   const handleAddChapter = async () => {
     if (!newChapterTitle.trim()) return toast.error("Judul bab tidak boleh kosong");
     const formData = new FormData();
@@ -188,7 +198,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
         else {
           toast.success("Materi berhasil diperbarui!");
           setEditingLesson(null);
-          setPreviewLessonId(null); // Tutup preview jika sedang terbuka
+          setPreviewLessonId(null); 
           router.refresh(); 
         }
       });
@@ -207,7 +217,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
   };
 
   const renderVideoSelector = () => (
-    <div className="mb-4 space-y-2">
+    <div className="mb-4 space-y-3">
       <label className="block text-sm font-bold text-gray-700">Video Materi (Opsional)</label>
       <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
         <button type="button" onClick={() => setVideoSource('upload')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition ${videoSource === 'upload' ? 'bg-white shadow text-[#00C9A7]' : 'text-gray-500 hover:text-gray-700'}`}>Upload Lokal</button>
@@ -216,24 +226,44 @@ export default function ChaptersList({ initialData, courseId }: Props) {
       </div>
 
       {videoSource === 'upload' && (
-        <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition relative overflow-hidden group">
-           <input type="file" accept="video/*" disabled={isUploading} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
-           {selectedFile ? (
-             <div className="text-sm font-bold text-[#00C9A7] truncate px-4 flex flex-col items-center">
-               <CheckCircle2 size={24} className="mb-1" />
-               {selectedFile.name}
-             </div>
-           ) : (
-             <div className="text-sm text-gray-500 flex flex-col items-center gap-1">
-               <Video size={24} className="text-gray-300 mb-1 group-hover:text-[#00C9A7] transition"/> 
-               Klik atau Drag video ke sini
-             </div>
-           )}
-           {isUploading && (
-             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-100">
-               <div className="bg-[#00C9A7] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-             </div>
-           )}
+        <div className="space-y-3">
+          {/* Kotak Upload (Dropzone) */}
+          <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition relative overflow-hidden group">
+             <input type="file" accept="video/*" disabled={isUploading} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+             {selectedFile ? (
+               <div className="text-sm font-bold text-[#00C9A7] truncate px-4 flex flex-col items-center">
+                 <CheckCircle2 size={24} className="mb-1" />
+                 File Terpilih: {selectedFile.name}
+               </div>
+             ) : (
+               <div className="text-sm text-gray-500 flex flex-col items-center gap-1">
+                 <Video size={24} className="text-gray-300 mb-1 group-hover:text-[#00C9A7] transition"/> 
+                 Klik atau Drag video ke sini
+               </div>
+             )}
+             {isUploading && (
+               <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-100">
+                 <div className="bg-[#00C9A7] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+               </div>
+             )}
+          </div>
+
+          {/* PLAYER PREVIEW VIDEO LOKAL */}
+          {videoPreviewUrl && (
+            <div className="rounded-xl overflow-hidden border border-gray-200 shadow-inner bg-black relative animate-in fade-in zoom-in-95 duration-300">
+              <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-md z-10 font-bold tracking-wider">
+                PREVIEW LOKAL
+              </div>
+              <video 
+                src={videoPreviewUrl} 
+                controls 
+                controlsList="nodownload"
+                className="w-full max-h-[220px] object-contain"
+              >
+                Browser Anda tidak mendukung tag video.
+              </video>
+            </div>
+          )}
         </div>
       )}
 
@@ -354,7 +384,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
       {/* MODAL TAMBAH MATERI */}
       {addingLessonTo && (
         <div className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-hide">
             <button onClick={() => setAddingLessonTo(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20}/></button>
             <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><Plus className="text-[#00C9A7]"/> Tambah Materi Baru</h3>
             <form onSubmit={handleAddLesson} className="space-y-4">
@@ -369,7 +399,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Deskripsi Singkat</label>
                 <textarea name="description" rows={3} placeholder="Materi ini membahas tentang..." className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm"></textarea>
               </div>
-              <div className="pt-4 flex justify-end gap-3">
+              <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white/90 backdrop-blur py-2">
                 <button type="button" onClick={() => setAddingLessonTo(null)} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition">Batal</button>
                 <button type="submit" disabled={isPending || isUploading} className="bg-[#00C9A7] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#00b596] shadow-lg shadow-[#00C9A7]/20 transition disabled:opacity-50 flex items-center gap-2">
                   {(isPending || isUploading) ? <><Loader2 className="animate-spin w-4 h-4" /> Menyimpan...</> : "Simpan Materi"}
@@ -383,7 +413,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
       {/* MODAL EDIT MATERI */}
       {editingLesson && (
         <div className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto scrollbar-hide">
             <button onClick={() => {setEditingLesson(null); setPreviewLessonId(null);}} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20}/></button>
             <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><Edit3 className="text-blue-500"/> Edit Materi</h3>
             <form onSubmit={handleEditLesson} className="space-y-4">
@@ -398,7 +428,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Deskripsi Singkat</label>
                 <textarea name="description" defaultValue={editingLesson.description || ""} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00C9A7] outline-none text-sm"></textarea>
               </div>
-              <div className="pt-4 flex justify-end gap-3">
+              <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white/90 backdrop-blur py-2">
                 <button type="button" onClick={() => {setEditingLesson(null); setPreviewLessonId(null);}} className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition">Batal</button>
                 <button type="submit" disabled={isPending || isUploading} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition disabled:opacity-50 flex items-center gap-2">
                   {(isPending || isUploading) ? <><Loader2 className="animate-spin w-4 h-4" /> Menyimpan...</> : "Simpan Perubahan"}

@@ -1,13 +1,13 @@
 import type { NextConfig } from "next";
 
-// 1. Aturan Ketat namun Aman untuk Supabase & Groq AI
+// 1. Aturan Keamanan dengan Izin Baru untuk Unsplash & BunnyCDN
 const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com;
   style-src 'self' 'unsafe-inline';
-  img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in;
-  media-src 'self' https://*.supabase.co;
-  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.groq.com;
+  img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in https://images.unsplash.com;
+  media-src 'self' blob: https://*.supabase.co https://*.bunnycdn.com https://*.b-cdn.net;
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.groq.com https://*.bunnycdn.com;
   font-src 'self' data:;
   object-src 'none';
   base-uri 'self';
@@ -16,7 +16,6 @@ const ContentSecurityPolicy = `
   upgrade-insecure-requests;
 `;
 
-// 2. Kumpulan Security Headers Standar Industri (Untuk Nilai A+)
 const securityHeaders = [
   {
     key: 'Strict-Transport-Security',
@@ -45,7 +44,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Pengaturan bawaan kamu (TIDAK ADA YANG DIHAPUS)
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -65,7 +63,6 @@ const nextConfig: NextConfig = {
     },
   },
   
-  // 3. Injeksi Header Keamanan ke Seluruh Halaman
   async headers() {
     return [
       {
