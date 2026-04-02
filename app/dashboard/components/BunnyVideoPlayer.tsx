@@ -2,7 +2,13 @@
 
 import { AlertCircle } from "lucide-react";
 
-export default function BunnyVideoPlayer({ videoId }: { videoId: string }) {
+// KITA TAMBAHKAN INTERFACE AGAR TYPESCRIPT TIDAK PROTES
+interface BunnyVideoPlayerProps {
+  videoId: string;
+  title?: string; // Tanda tanya (?) artinya opsional
+}
+
+export default function BunnyVideoPlayer({ videoId, title }: BunnyVideoPlayerProps) {
   // Wajib menggunakan NEXT_PUBLIC_ agar terbaca oleh browser
   const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
 
@@ -27,6 +33,7 @@ export default function BunnyVideoPlayer({ videoId }: { videoId: string }) {
   return (
     <div className="relative w-full aspect-video bg-black">
       <iframe
+        title={title || "Video Pembelajaran"} // Sekalian kita gunakan title-nya di sini
         src={`https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`}
         loading="lazy"
         className="absolute top-0 left-0 w-full h-full border-0"
