@@ -1,41 +1,38 @@
 "use client";
-export const runtime = 'nodejs';
 
-interface BunnyPlayerProps {
-  videoId: string;
-  title?: string;
-}
+import { AlertCircle } from "lucide-react";
 
-export default function BunnyVideoPlayer({ videoId, title }: BunnyPlayerProps) {
-  // LIBRARY ID SUDAH DIPERBARUI KE 614254
-  const LIBRARY_ID = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID || "628695"; 
+export default function BunnyVideoPlayer({ videoId }: { videoId: string }) {
+  // Wajib menggunakan NEXT_PUBLIC_ agar terbaca oleh browser
+  const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
 
-  // Mencegah player merender iframe jika video ID tidak ada / bernilai "null" string
-  if (!videoId || videoId === "null" || videoId === "undefined") {
+  if (!videoId) {
     return (
-      <div className="w-full flex flex-col h-full bg-black min-h-[300px] md:min-h-[450px] items-center justify-center border border-gray-800 rounded-xl">
-         <div className="text-gray-400 font-medium bg-gray-900 px-6 py-3 rounded-lg border border-gray-700">
-            Video belum diunggah untuk materi ini.
-         </div>
+      <div className="w-full h-full min-h-[250px] flex flex-col items-center justify-center bg-gray-900 text-gray-400 p-4 text-center">
+        <p className="text-sm font-medium">Video belum diunggah untuk materi ini.</p>
       </div>
     );
   }
 
-  // URL Embed Bunny
-  const embedUrl = `https://iframe.mediadelivery.net/embed/${LIBRARY_ID}/${videoId}?autoplay=false&loop=false&muted=false&preload=true`;
+  if (!libraryId) {
+    return (
+      <div className="w-full h-full min-h-[250px] flex flex-col items-center justify-center bg-red-950 text-red-400 p-4 text-center">
+        <AlertCircle size={32} className="mb-2 text-red-500" />
+        <p className="text-sm font-bold">Error Sistem</p>
+        <p className="text-xs mt-1 text-red-300">NEXT_PUBLIC_BUNNY_LIBRARY_ID belum diatur.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full flex flex-col h-full bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-800">
-      <div className="relative w-full flex-1 min-h-[300px] md:min-h-[450px]">
-        <iframe
-          src={embedUrl}
-          loading="lazy"
-          className="absolute inset-0 w-full h-full border-0"
-          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-          allowFullScreen={true}
-          title={title || "Video Player"}
-        ></iframe>
-      </div>
+    <div className="relative w-full aspect-video bg-black">
+      <iframe
+        src={`https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`}
+        loading="lazy"
+        className="absolute top-0 left-0 w-full h-full border-0"
+        allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
+        allowFullScreen
+      ></iframe>
     </div>
   );
 }
