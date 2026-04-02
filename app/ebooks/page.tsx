@@ -21,6 +21,7 @@ export default function PublicEbooksCatalog() {
         const { data } = await supabase
           .from("ebooks")
           .select("*")
+          .eq("is_published", true) // <-- TAMBAHAN FILTER: HANYA TAMPILKAN YANG PUBLISHED (LIVE)
           .order("created_at", { ascending: false });
         if (data) setEbooks(data);
       } catch (error) {
