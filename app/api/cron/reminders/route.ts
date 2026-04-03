@@ -2,30 +2,37 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 
-// Matikan cache agar selalu mengecek data terbaru
 export const dynamic = 'force-dynamic';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET(req: Request) {
   try {
-    // 1. VERIFIKASI KEAMANAN (Agar tidak bisa di-klik oleh orang iseng)
+    // 1. PINDAHKAN INISIALISASI RESEND KE DALAM SINI!
+    // Ini mencegah error "Missing API Key" saat proses build di Cloudflare
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY belum diatur di Environment Variables.");
+    }
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    // 2. VERIFIKASI KEAMANAN
     const authHeader = req.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return new Response('Akses Ditolak. Kunci Salah.', { status: 401 });
     }
 
-    // 2. KONEKSI SUPABASE DENGAN MASTER KEY
+    // 3. KONEKSI SUPABASE DENGAN MASTER KEY
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Kredensial Supabase (URL atau Service Key) belum diatur.");
+    }
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // 3. HITUNG MUNDUR 3 HARI
+    // 4. HITUNG MUNDUR 3 HARI
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    // 4. CARI SISWA YANG BOLOS > 3 HARI DAN MENGIZINKAN NOTIFIKASI
+    // 5. CARI SISWA YANG BOLOS > 3 HARI DAN MENGIZINKAN NOTIFIKASI
     const { data: inactiveProfiles, error } = await supabase
       .from('profiles')
       .select('id, full_name, role')
@@ -38,17 +45,17 @@ export async function GET(req: Request) {
         return NextResponse.json({ message: "Aman! Semua siswa aktif belajar hari ini." });
     }
 
-    // 5. AMBIL DATA EMAIL ASLI DARI AUTH SUPABASE
+    // 6. AMBIL DATA EMAIL ASLI DARI AUTH SUPABASE
     const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
     if (authError) throw authError;
 
-    // 6. EKSEKUSI PENGIRIMAN EMAIL MASSAL
+    // 7. EKSEKUSI PENGIRIMAN EMAIL MASSAL
     const emailPromises = inactiveProfiles.map(async (profile) => {
          const userAuth = authUsers.find(u => u.id === profile.id);
          if (!userAuth || !userAuth.email) return null;
 
          return resend.emails.send({
-             from: 'Klas Konstruksi <onboarding@resend.dev>', // BACA CATATAN DI BAWAH!
+             from: 'Klas Konstruksi <onboarding@resend.dev>', // Ganti jika domain sudah verified
              to: userAuth.email,
              subject: 'Sobat Klas, Yuk Lanjutkan Belajarmu! 🚀',
              html: `
