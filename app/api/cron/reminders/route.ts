@@ -48,7 +48,7 @@ export async function GET(req: Request) {
          if (!userAuth || !userAuth.email) return null;
 
          const { data, error: resendError } = await resend.emails.send({
-             from: 'Klas Konstruksi <onboarding@resend.dev>', 
+          from: 'Klas Konstruksi <halo@klaskonstruksi.com>',
              to: userAuth.email, // Pastikan ini SAMA PERSIS dengan email akun Resend kamu
              subject: 'Sobat Klas, Yuk Lanjutkan Belajarmu! 🚀',
              html: `
