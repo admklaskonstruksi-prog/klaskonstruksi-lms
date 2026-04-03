@@ -27,12 +27,11 @@ export async function GET(req: Request) {
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    // --- UBAH DI BAGIAN INI ---
     const { data: inactiveProfiles, error } = await supabase
       .from('profiles')
       .select('id, full_name, role')
       .eq('send_reminder', true)
-      .in('role', ['student', 'siswa']) // Sekarang dia akan mencari keduanya!
+      .in('role', ['student', 'siswa'])
       .lt('last_active_at', threeDaysAgo.toISOString());
 
     if (error) throw error;
@@ -43,13 +42,14 @@ export async function GET(req: Request) {
     const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
     if (authError) throw authError;
 
+    // --- BAGIAN INI KITA PERKETAT AGAR RESEND MENGELUARKAN ERROR ASLINYA ---
     const emailPromises = inactiveProfiles.map(async (profile) => {
          const userAuth = authUsers.find(u => u.id === profile.id);
          if (!userAuth || !userAuth.email) return null;
 
-         return resend.emails.send({
+         const { data, error: resendError } = await resend.emails.send({
              from: 'Klas Konstruksi <onboarding@resend.dev>', 
-             to: userAuth.email,
+             to: userAuth.email, // Pastikan ini SAMA PERSIS dengan email akun Resend kamu
              subject: 'Sobat Klas, Yuk Lanjutkan Belajarmu! 🚀',
              html: `
                 <div style="font-family: sans-serif; max-w: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
@@ -60,12 +60,19 @@ export async function GET(req: Request) {
                 </div>
              `
          });
+
+         // Jika Resend menolak, kita lemparkan error-nya ke layar!
+         if (resendError) {
+             throw new Error(`Resend menolak pengiriman ke ${userAuth.email}: ${resendError.message}`);
+         }
+         return data;
     });
 
     await Promise.all(emailPromises);
     return NextResponse.json({ message: `Selesai! Berhasil mengirim ${inactiveProfiles.length} email pengingat.` });
 
   } catch (err: any) {
+    // Error akan tertangkap di sini dan dikembalikan ke terminal
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
