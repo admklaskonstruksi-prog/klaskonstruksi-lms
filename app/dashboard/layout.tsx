@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import DashboardSidebar from "./components/DashboardSidebar";
 import AutoLogout from "./components/AutoLogout"; 
 import KlasAIWidget from "./components/KlasAIWidget";
+// 1. IMPORT ACTIVITY TRACKER DI SINI
+import ActivityTracker from "./components/ActivityTracker";
 import { ReactNode } from "react";
 import { revalidatePath } from "next/cache";
 
@@ -61,6 +63,9 @@ export default async function DashboardLayout({
 
   return (
     <AutoLogout>
+      {/* 2. PASANG SENSOR PELACAK AKTIVITAS (TIDAK TERLIHAT DI LAYAR) */}
+      <ActivityTracker userId={user.id} />
+
       {/* UBAH: flex-col untuk HP, md:flex-row untuk Desktop */}
       <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 relative">
         <DashboardSidebar user={userData} />
