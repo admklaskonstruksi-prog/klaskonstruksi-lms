@@ -6,20 +6,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    // 1. PINDAHKAN INISIALISASI RESEND KE DALAM SINI!
-    // Ini mencegah error "Missing API Key" saat proses build di Cloudflare
     if (!process.env.RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY belum diatur di Environment Variables.");
     }
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // 2. VERIFIKASI KEAMANAN
     const authHeader = req.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return new Response('Akses Ditolak. Kunci Salah.', { status: 401 });
     }
 
-    // 3. KONEKSI SUPABASE DENGAN MASTER KEY
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error("Kredensial Supabase (URL atau Service Key) belum diatur.");
     }
@@ -28,16 +24,15 @@ export async function GET(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // 4. HITUNG MUNDUR 3 HARI
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    // 5. CARI SISWA YANG BOLOS > 3 HARI DAN MENGIZINKAN NOTIFIKASI
+    // --- UBAH DI BAGIAN INI ---
     const { data: inactiveProfiles, error } = await supabase
       .from('profiles')
       .select('id, full_name, role')
       .eq('send_reminder', true)
-      .eq('role', 'student')
+      .in('role', ['student', 'siswa']) // Sekarang dia akan mencari keduanya!
       .lt('last_active_at', threeDaysAgo.toISOString());
 
     if (error) throw error;
@@ -45,17 +40,15 @@ export async function GET(req: Request) {
         return NextResponse.json({ message: "Aman! Semua siswa aktif belajar hari ini." });
     }
 
-    // 6. AMBIL DATA EMAIL ASLI DARI AUTH SUPABASE
     const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
     if (authError) throw authError;
 
-    // 7. EKSEKUSI PENGIRIMAN EMAIL MASSAL
     const emailPromises = inactiveProfiles.map(async (profile) => {
          const userAuth = authUsers.find(u => u.id === profile.id);
          if (!userAuth || !userAuth.email) return null;
 
          return resend.emails.send({
-             from: 'Klas Konstruksi <onboarding@resend.dev>', // Ganti jika domain sudah verified
+             from: 'Klas Konstruksi <onboarding@resend.dev>', 
              to: userAuth.email,
              subject: 'Sobat Klas, Yuk Lanjutkan Belajarmu! 🚀',
              html: `
