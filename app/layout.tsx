@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     ],
   },
   
-  // SEO untuk Twitter / X
+
   twitter: {
     card: "summary_large_image",
     title: "KLAS : Kursus Online Konstruksi",
