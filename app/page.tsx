@@ -45,6 +45,7 @@ export default function LandingPage() {
         const { data } = await supabase
           .from("ebooks")
           .select("*")
+          .eq("is_published", true) // <-- PERBAIKAN: Filter hanya e-book yang di-publish
           .order("created_at", { ascending: false })
           .limit(4);
         if (data) setLatestEbooks(data);

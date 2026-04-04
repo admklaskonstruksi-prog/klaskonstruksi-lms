@@ -4,7 +4,7 @@ const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com;
   style-src 'self' 'unsafe-inline';
-  img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in https://images.unsplash.com https://*.mediadelivery.net https://*.b-cdn.net;
+  img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in https://images.unsplash.com https://*.mediadelivery.net https://*.b-cdn.net https://picsum.photos;
   media-src 'self' blob: https://*.supabase.co https://*.bunnycdn.com https://*.b-cdn.net https://*.mediadelivery.net;
   connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in https://api.groq.com https://*.bunnycdn.com accounts.google.com https://*.mediadelivery.net;
   frame-src 'self' https://*.mediadelivery.net https://*.b-cdn.net https://*.bunnycdn.com; 
