@@ -23,6 +23,9 @@ export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [highlightCourses, setHighlightCourses] = useState<any[]>([]);
   const [latestEbooks, setLatestEbooks] = useState<any[]>([]);
+  
+  // TAMBAHAN: State untuk menangkap pesan error agar tidak blank
+  const [courseError, setCourseError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
@@ -34,16 +37,19 @@ export default function LandingPage() {
           .from("courses")
           .select("*")
           .eq("is_published", true)
-          // PERBAIKAN: Diganti ke created_at karena kolom sales_count belum ada
+          // Diganti ke created_at karena sales_count belum ada di database
           .order("created_at", { ascending: false }) 
           .limit(6);
           
         if (error) {
           console.error("Error fetching courses:", error);
+          setCourseError(error.message); // Simpan pesan error
+        } else if (data) {
+          setHighlightCourses(data);
         }
-        if (data) setHighlightCourses(data);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Fetch exception:", err);
+        setCourseError(err.message || "Terjadi kesalahan sistem.");
       }
     }
 
@@ -182,8 +188,16 @@ export default function LandingPage() {
                 Lihat Semua <ArrowRight size={18} />
              </Link>
           </div>
+          
           <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {highlightCourses.length > 0 ? (
+            {/* TAMBAHAN: Render pesan error jika ada, cegah aplikasi blank */}
+            {courseError ? (
+               <div className="w-full text-center py-10 bg-red-50 border border-red-100 rounded-xl">
+                 <p className="text-red-500 font-bold">Gagal memuat program kelas.</p>
+                 <p className="text-sm text-red-400 mt-2">{courseError}</p>
+                 <p className="text-xs mt-4 text-gray-500">Saran: Periksa kebijakan RLS (Row Level Security) tabel courses di Supabase.</p>
+               </div>
+            ) : highlightCourses.length > 0 ? (
                highlightCourses.map((course) => (
                   <Link href={`/program/${course.id}`} key={course.id} className="min-w-[280px] sm:min-w-[320px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-[#00C9A7]/50 hover:-translate-y-1 transition-all duration-300 snap-start flex flex-col group">
                      <div className="aspect-video relative bg-gray-100 border-b border-gray-100 overflow-hidden">
