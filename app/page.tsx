@@ -23,27 +23,37 @@ export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [highlightCourses, setHighlightCourses] = useState<any[]>([]);
   const [latestEbooks, setLatestEbooks] = useState<any[]>([]);
+  
+  // State baru agar bisa melacak loading & error
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [courseError, setCourseError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        setCourseError("Kunci ENV Supabase belum diatur.");
+        setIsLoadingCourses(false);
+        return;
+    }
     const supabase = createClient();
     
     async function fetchHighlightCourses() {
       try {
+        // Saya hapus .order() untuk menghindari error kolom tidak ada (silent crash)
         const { data, error } = await supabase
           .from("courses")
           .select("*")
           .eq("is_published", true)
-          // PERBAIKAN: Diganti ke created_at karena kolom sales_count belum ada
-          .order("created_at", { ascending: false }) 
           .limit(6);
           
         if (error) {
-          console.error("Error fetching courses:", error);
+          setCourseError(error.message);
+        } else {
+          setHighlightCourses(data || []);
         }
-        if (data) setHighlightCourses(data);
-      } catch (err) {
-        console.error("Fetch exception:", err);
+      } catch (err: any) {
+        setCourseError(err.message || "Terjadi kesalahan fetch");
+      } finally {
+        setIsLoadingCourses(false);
       }
     }
 
@@ -158,8 +168,9 @@ export default function LandingPage() {
             </div>
             <div className="relative lg:h-[550px] w-full flex items-center justify-center z-10">
                <div className="absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#00C9A7]/20 rounded-full blur-3xl -z-10"></div>
-               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white w-full max-w-md aspect-[4/5] transform lg:rotate-2 hover:rotate-0 transition-all duration-500">
-                  <Image src="https://picsum.photos/id/249/1000/1250" alt="Engineer in action" fill className="object-cover" priority/>
+               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white w-full max-w-md aspect-[4/5] transform lg:rotate-2 hover:rotate-0 transition-all duration-500 bg-gray-50">
+                  {/* PERBAIKAN: Menggunakan file gambar lokal agar tidak pernah error CSP */}
+                  <Image src="/hero-anime.png" alt="Engineer in action" fill className="object-cover" priority/>
                   <div className="absolute bottom-6 -left-4 bg-white p-4 rounded-xl shadow-xl flex items-center gap-3 animate-bounce hidden sm:flex border border-gray-100">
                     <div className="w-10 h-10 bg-teal-100 text-[#00C9A7] rounded-full flex items-center justify-center"><CheckCircle size={20} /></div>
                     <div><p className="font-bold text-gray-900 text-sm">100% Praktis</p><p className="text-xs text-gray-500">Studi kasus nyata</p></div>
@@ -182,15 +193,24 @@ export default function LandingPage() {
                 Lihat Semua <ArrowRight size={18} />
              </Link>
           </div>
+          
           <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {highlightCourses.length > 0 ? (
+            {courseError ? (
+               <div className="w-full p-8 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-center flex flex-col items-center justify-center gap-3">
+                  <span className="font-bold text-lg">Gagal Memuat Database ⚠️</span>
+                  <p className="text-sm max-w-lg">{courseError}</p>
+                  <p className="text-xs text-red-400 mt-2">Saran: Periksa apakah ada aturan RLS (Row Level Security) di tabel "courses" Supabase yang memblokir akses publik membaca data.</p>
+               </div>
+            ) : isLoadingCourses ? (
+               <>{[1,2,3,4].map((i) => (<div key={i} className="min-w-[280px] sm:min-w-[320px] aspect-[3/4] bg-gray-200 rounded-2xl animate-pulse snap-start border border-gray-200 shadow-inner"></div>))}</>
+            ) : highlightCourses.length > 0 ? (
                highlightCourses.map((course) => (
                   <Link href={`/program/${course.id}`} key={course.id} className="min-w-[280px] sm:min-w-[320px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-[#00C9A7]/50 hover:-translate-y-1 transition-all duration-300 snap-start flex flex-col group">
                      <div className="aspect-video relative bg-gray-100 border-b border-gray-100 overflow-hidden">
                         {course.thumbnail_url ? (
                            <Image src={course.thumbnail_url} alt={course.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                         ) : (
-                           <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div>
+                           <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs bg-gray-100"><BookOpen className="mb-2 opacity-50" />No Image</div>
                         )}
                         <div className="absolute top-3 left-3 bg-[#F97316] text-white text-[10px] font-bold px-2.5 py-1 rounded shadow-sm tracking-wider uppercase">Terlaris</div>
                      </div>
@@ -219,7 +239,11 @@ export default function LandingPage() {
                   </Link>
                ))
             ) : (
-               <>{[1,2,3,4].map((i) => (<div key={i} className="min-w-[280px] sm:min-w-[320px] aspect-[3/4] bg-gray-100 rounded-2xl animate-pulse snap-start border border-gray-200"></div>))}</>
+               <div className="w-full p-10 text-center text-gray-500 bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
+                  <BookOpen className="w-12 h-12 text-gray-300 mb-3" />
+                  <p className="font-bold text-gray-900 text-xl mb-2">Belum Ada Program Kelas</p>
+                  <p className="text-sm max-w-md">Saat ini belum ada kelas yang dirilis, atau pastikan pengaturan RLS di database sudah mengizinkan akses public read.</p>
+               </div>
             )}
           </div>
         </div>
@@ -300,28 +324,67 @@ export default function LandingPage() {
               </Link>
             </div>
             <div className="md:w-1/2 relative z-10 w-full max-w-md mx-auto">
-              <div className="aspect-square relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white transform lg:-rotate-3 hover:rotate-0 transition-all duration-500">
-                <Image src="https://picsum.photos/id/60/800/800" alt="Menjadi Mentor" fill className="object-cover"/>
+              <div className="aspect-square relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white transform lg:-rotate-3 hover:rotate-0 transition-all duration-500 bg-gray-50">
+                {/* PERBAIKAN: Menggunakan file gambar lokal agar tidak pernah error CSP */}
+                <Image src="/cyber-grid.jpg" alt="Menjadi Mentor" fill className="object-cover"/>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* --- FOOTER--- */}
       <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#00C9A7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
+          
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-6">
-              <Image src="/logo.png" alt="Logo Bawah" width={80} height={80} className="rounded object-contain opacity-90 bg-white" />
+              <Image 
+                 src="/logo.png" 
+                 alt="Logo Bawah" 
+                 width={80} 
+                 height={80} 
+                 className="rounded object-contain opacity-90 grayscale hover:grayscale-0 transition-all bg-white" 
+              />
             </Link>
             <p className="text-gray-400 text-sm max-w-md leading-relaxed mt-4">
-            Platform e-learning konstruksi pertama dan terlengkap di Indonesia. Kami berdedikasi untuk mencetak insinyur dan praktisi handal yang siap menghadapi tantangan proyek nyata.
+            Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer dan praktisi handal yang siap menghadapi tantangan proyek nyata.
             </p>
           </div>
+
+          <div>
+            <h4 className="font-bold text-lg mb-6 text-white">Menu Navigasi</h4>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li><Link href="/" className="hover:text-[#00C9A7] transition-colors">Beranda</Link></li>
+              <li><Link href="/program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Program Klas
+              </Link></li>
+              <li><Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+                Katalog E-Book
+              </Link></li>
+              <li><Link href="/#mentor" className="hover:text-[#00C9A7] transition-colors">Daftar Mentor</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-lg mb-6 text-white">Informasi Lain</h4>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li><Link href="/about" className="hover:text-[#00C9A7] transition-colors">Tentang Kami</Link></li>
+              <li><Link href="/contact" className="hover:text-[#00C9A7] transition-colors">Hubungi Kami</Link></li>
+              <li><Link href="#" className="hover:text-[#00C9A7] transition-colors">Syarat & Ketentuan</Link></li>
+              <li><Link href="#" className="hover:text-[#00C9A7] transition-colors">Kebijakan Privasi</Link></li>
+            </ul>
+          </div>
+
         </div>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 gap-4">
           <p>© {new Date().getFullYear()} Klas Konstruksi. Hak Cipta Dilindungi.</p>
+          <div className="flex gap-6">
+             <Link href="https://www.instagram.com/klaskonstruksi" className="hover:text-white transition-colors">Instagram</Link>
+             <Link href="#" className="hover:text-white transition-colors">LinkedIn</Link>
+             <Link href="#" className="hover:text-white transition-colors">YouTube</Link>
+          </div>
         </div>
       </footer>
     </div>
