@@ -24,7 +24,8 @@ export default function LandingPage() {
   const [highlightCourses, setHighlightCourses] = useState<any[]>([]);
   const [latestEbooks, setLatestEbooks] = useState<any[]>([]);
   
-  // TAMBAHAN: State untuk menangkap pesan error agar tidak blank
+  // TAMBAHAN PENTING: State loading dan error
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [courseError, setCourseError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,24 +33,26 @@ export default function LandingPage() {
     const supabase = createClient();
     
     async function fetchHighlightCourses() {
+      setIsLoadingCourses(true); // Mulai loading
       try {
         const { data, error } = await supabase
           .from("courses")
           .select("*")
           .eq("is_published", true)
-          // Diganti ke created_at karena sales_count belum ada di database
-          .order("created_at", { ascending: false }) 
+          // Dihapus sementara order() nya untuk mencegah silent error jika kolom tidak ada
           .limit(6);
           
         if (error) {
           console.error("Error fetching courses:", error);
-          setCourseError(error.message); // Simpan pesan error
+          setCourseError(error.message);
         } else if (data) {
           setHighlightCourses(data);
         }
       } catch (err: any) {
         console.error("Fetch exception:", err);
         setCourseError(err.message || "Terjadi kesalahan sistem.");
+      } finally {
+        setIsLoadingCourses(false); // Matikan loading apapun yang terjadi
       }
     }
 
@@ -190,12 +193,12 @@ export default function LandingPage() {
           </div>
           
           <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {/* TAMBAHAN: Render pesan error jika ada, cegah aplikasi blank */}
-            {courseError ? (
-               <div className="w-full text-center py-10 bg-red-50 border border-red-100 rounded-xl">
-                 <p className="text-red-500 font-bold">Gagal memuat program kelas.</p>
-                 <p className="text-sm text-red-400 mt-2">{courseError}</p>
-                 <p className="text-xs mt-4 text-gray-500">Saran: Periksa kebijakan RLS (Row Level Security) tabel courses di Supabase.</p>
+            {/* LOGIKA RENDERING YANG DIPERBAIKI */}
+            {isLoadingCourses ? (
+               <>{[1,2,3,4].map((i) => (<div key={i} className="min-w-[280px] sm:min-w-[320px] aspect-[3/4] bg-gray-200 rounded-2xl animate-pulse snap-start border border-gray-200 shadow-inner"></div>))}</>
+            ) : courseError ? (
+               <div className="w-full text-center py-8 bg-red-50 text-red-500 rounded-xl font-medium text-sm">
+                 Gagal memuat data: {courseError}
                </div>
             ) : highlightCourses.length > 0 ? (
                highlightCourses.map((course) => (
@@ -233,7 +236,11 @@ export default function LandingPage() {
                   </Link>
                ))
             ) : (
-               <>{[1,2,3,4].map((i) => (<div key={i} className="min-w-[280px] sm:min-w-[320px] aspect-[3/4] bg-gray-100 rounded-2xl animate-pulse snap-start border border-gray-200"></div>))}</>
+               <div className="w-full py-12 flex flex-col items-center justify-center bg-white border border-gray-200 rounded-2xl text-gray-500">
+                  <BookOpen className="w-12 h-12 text-gray-300 mb-3" />
+                  <p className="font-bold text-gray-800 text-lg">Belum Ada Program Kelas</p>
+                  <p className="text-sm mt-1 text-gray-400">Pastikan kelas di-publish & RLS mengizinkan Public Select.</p>
+               </div>
             )}
           </div>
         </div>
