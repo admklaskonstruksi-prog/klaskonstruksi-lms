@@ -309,7 +309,7 @@ export default function LandingPage() {
               <Image src="/logo.png" alt="Logo Bawah" width={80} height={80} className="rounded object-contain opacity-90 bg-white" />
             </Link>
             <p className="text-gray-400 text-sm max-w-md leading-relaxed mt-4">
-              Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer dan praktisi handal yang siap menghadapi tantangan proyek nyata.
+            Platform e-learning konstruksi pertama dan terlengkap di Indonesia. Kami berdedikasi untuk mencetak insinyur dan praktisi handal yang siap menghadapi tantangan proyek nyata.
             </p>
           </div>
         </div>
