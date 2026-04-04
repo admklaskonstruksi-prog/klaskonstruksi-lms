@@ -158,7 +158,7 @@ export default function ContactPage() {
         </div>
       </main>
 
-      {/* --- FOOTER (Disamakan dengan Homepage) --- */}
+      {/* --- FOOTER--- */}
       <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#00C9A7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
           
@@ -173,7 +173,7 @@ export default function ContactPage() {
               />
             </Link>
             <p className="text-gray-400 text-sm max-w-md leading-relaxed mt-4">
-            Platform e-learning konstruksi pertama dan terlengkap di Indonesia. Kami berdedikasi untuk mencetak insinyur dan praktisi handal yang siap menghadapi tantangan proyek nyata.
+            Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer dan praktisi handal yang siap menghadapi tantangan proyek nyata.
             </p>
           </div>
 
@@ -181,12 +181,12 @@ export default function ContactPage() {
             <h4 className="font-bold text-lg mb-6 text-white">Menu Navigasi</h4>
             <ul className="space-y-3 text-sm text-gray-400">
               <li><Link href="/" className="hover:text-[#00C9A7] transition-colors">Beranda</Link></li>
-              <Link href="/program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+              <li><Link href="/program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Program Klas
-              </Link>
-              <Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
+              </Link></li>
+              <li><Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
                 Katalog E-Book
-              </Link>
+              </Link></li>
               <li><Link href="/#mentor" className="hover:text-[#00C9A7] transition-colors">Daftar Mentor</Link></li>
             </ul>
           </div>
@@ -206,7 +206,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 gap-4">
           <p>© {new Date().getFullYear()} Klas Konstruksi. Hak Cipta Dilindungi.</p>
           <div className="flex gap-6">
-             <Link href="#" className="hover:text-white transition-colors">Instagram</Link>
+             <Link href="https://www.instagram.com/klaskonstruksi" className="hover:text-white transition-colors">Instagram</Link>
              <Link href="#" className="hover:text-white transition-colors">LinkedIn</Link>
              <Link href="#" className="hover:text-white transition-colors">YouTube</Link>
           </div>

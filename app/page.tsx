@@ -30,14 +30,21 @@ export default function LandingPage() {
     
     async function fetchHighlightCourses() {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("courses")
           .select("*")
           .eq("is_published", true)
-          .order("sales_count", { ascending: false })
+          // PERBAIKAN: Diganti ke created_at karena kolom sales_count belum ada
+          .order("created_at", { ascending: false }) 
           .limit(6);
+          
+        if (error) {
+          console.error("Error fetching courses:", error);
+        }
         if (data) setHighlightCourses(data);
-      } catch {}
+      } catch (err) {
+        console.error("Fetch exception:", err);
+      }
     }
 
     async function fetchEbooks() {
@@ -45,7 +52,7 @@ export default function LandingPage() {
         const { data } = await supabase
           .from("ebooks")
           .select("*")
-          .eq("is_published", true) // <-- PERBAIKAN: Filter hanya e-book yang di-publish
+          .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(4);
         if (data) setLatestEbooks(data);
