@@ -11,10 +11,48 @@ import {
 export default function ContactPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // State untuk form input
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    message: ""
+  });
+
+  // Fungsi untuk mengirim pesan ke WhatsApp
+  const handleWhatsAppSubmit = () => {
+    const { firstName, lastName, email, message } = formData;
+    
+    // Validasi sederhana
+    if (!firstName || !message) {
+      alert("Mohon isi minimal Nama Depan dan Pesan Anda.");
+      return;
+    }
+
+    // Nomor WA Admin Klas Konstruksi (Gunakan kode negara 62)
+    const phoneNumber = "6282120002589"; 
+
+    // Format pesan yang akan dikirim
+    const waText = `Halo Tim Klas Konstruksi,\n\nPerkenalkan saya berminat untuk mendaftar sebagai Mentor / bertanya informasi:\n\n*Nama:* ${firstName} ${lastName}\n*Email:* ${email}\n\n*Pesan:* \n${message}`;
+
+    // Encode text untuk URL (mengubah spasi menjadi %20, dll)
+    const encodedText = encodeURIComponent(waText);
+    
+    // Buka link WhatsApp di tab baru
+    window.open(`https://wa.me/${phoneNumber}?text=${encodedText}`, '_blank');
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-[#00C9A7] selection:text-white">
       
-      {/* --- NAVBAR (Disamakan dengan Homepage) --- */}
+      {/* --- NAVBAR --- */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -88,13 +126,13 @@ export default function ContactPage() {
         <div className="text-center mb-16">
             <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">Hubungi Kami</h1>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-                Punya pertanyaan tentang program belajar atau butuh konsultasi? Tim kami siap membantu Anda.
+                Tertarik menjadi mentor, punya pertanyaan tentang program, atau butuh konsultasi? Tim kami siap membantu Anda.
             </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             
-            {/* Info Kontak (Maps Sudah Dihapus) */}
+            {/* Info Kontak */}
             <div className="space-y-8">
                 <div className="bg-[#00C9A7] rounded-3xl p-8 md:p-10 text-white shadow-xl relative overflow-hidden">
                     <div className="relative z-10">
@@ -104,21 +142,21 @@ export default function ContactPage() {
                                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0"><MapPin /></div>
                                 <div>
                                     <p className="font-bold">Kantor Pusat</p>
-                                    <p className="text-orange-50 text-sm leading-relaxed">Gedung Konstruksi Center Lt. 3,<br/> Jl. Jendral Sudirman Kav 50,<br/> Jakarta Selatan</p>
+                                    <p className="text-teal-50 text-sm leading-relaxed">PT. Klas Mahir Konstruksi<br/>Vila Bukit Tidar Blok E4 Astera No. 108<br/>Kota Malang</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0"><Phone /></div>
                                 <div>
                                     <p className="font-bold">Telepon / WhatsApp</p>
-                                    <p className="text-orange-50 text-sm">+62 812-3456-7890</p>
+                                    <p className="text-teal-50 text-sm">0821-2000-2589</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0"><Mail /></div>
                                 <div>
                                     <p className="font-bold">Email</p>
-                                    <p className="text-orange-50 text-sm">halo@klaskonstruksi.id</p>
+                                    <p className="text-teal-50 text-sm">halo@klaskonstruksi.id</p>
                                 </div>
                             </div>
                         </div>
@@ -127,30 +165,64 @@ export default function ContactPage() {
                 </div>
             </div>
 
-            {/* Form Pesan */}
+            {/* Form Pesan ke WhatsApp */}
             <div className="bg-white p-8 md:p-10 rounded-3xl border border-gray-100 shadow-lg">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Kirim Pesan</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">Daftar Mentor / Kirim Pesan</h3>
                 <form className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Nama Depan</label>
-                            <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" placeholder="Budi" />
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Nama Depan <span className="text-red-500">*</span></label>
+                            <input 
+                              type="text" 
+                              name="firstName"
+                              value={formData.firstName}
+                              onChange={handleChange}
+                              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" 
+                              placeholder="Budi" 
+                              required
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Nama Belakang</label>
-                            <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" placeholder="Santoso" />
+                            <input 
+                              type="text" 
+                              name="lastName"
+                              value={formData.lastName}
+                              onChange={handleChange}
+                              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" 
+                              placeholder="Santoso" 
+                            />
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
-                        <input type="email" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" placeholder="nama@email.com" />
+                        <input 
+                          type="email" 
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" 
+                          placeholder="nama@email.com" 
+                        />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Pesan Anda</label>
-                        <textarea rows={4} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" placeholder="Tulis pesan atau pertanyaan Anda disini..."></textarea>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Pesan Anda <span className="text-red-500">*</span></label>
+                        <textarea 
+                          rows={4} 
+                          name="message"
+                          value={formData.message}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]" 
+                          placeholder="Saya tertarik menjadi mentor untuk bidang struktur. Berikut pengalaman saya..."
+                          required
+                        ></textarea>
                     </div>
-                    <button type="button" className="w-full py-4 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition flex items-center justify-center gap-2">
-                        <Send size={18} /> Kirim Pesan
+                    <button 
+                      type="button" 
+                      onClick={handleWhatsAppSubmit}
+                      className="w-full py-4 bg-[#25D366] text-white font-bold rounded-xl hover:bg-[#128C7E] transition flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/30"
+                    >
+                        <Send size={18} /> Kirim via WhatsApp
                     </button>
                 </form>
             </div>
