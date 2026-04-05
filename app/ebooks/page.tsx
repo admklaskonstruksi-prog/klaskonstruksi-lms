@@ -186,71 +186,37 @@ export default function PublicEbooksCatalog() {
       {/* ================= FLOATING CART ================= */}
       <FloatingCartPublic />
 
-      {/* --- FOOTER--- */}
-      <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#00C9A7]">
+    {/* --- FOOTER --- */}
+    <footer className="bg-gray-900 text-white pt-20 pb-10 border-t-4 border-[#00C9A7]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
-          
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-6">
-              <Image 
-                 src="/logo.png" 
-                 alt="Logo Bawah" 
-                 width={80} 
-                 height={80} 
-                 className="rounded object-contain opacity-90 grayscale hover:grayscale-0 transition-all bg-white" 
-              />
+              <Image src="/logo.png" alt="Logo Bawah" width={80} height={80} className="rounded object-contain bg-white" />
             </Link>
-            <p className="text-gray-400 text-sm max-w-md leading-relaxed mt-4">
-            Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer dan praktisi handal yang siap menghadapi tantangan proyek nyata.
-            </p>
+            <p className="text-gray-400 text-sm max-w-md">Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer handal yang siap kerja.</p>
           </div>
-
           <div>
-            <h4 className="font-bold text-lg mb-6 text-white">Menu Navigasi</h4>
+            <h4 className="font-bold text-lg mb-6">Menu Navigasi</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><Link href="/" className="hover:text-[#00C9A7] transition-colors">Beranda</Link></li>
-              <li><Link href="/program" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
-                Program Klas
-              </Link></li>
-              <li><Link href="/ebooks" className="text-gray-600 hover:text-[#00C9A7] font-medium transition-colors">
-                Katalog E-Book
-              </Link></li>
-              <li><Link href="/#mentor" className="hover:text-[#00C9A7] transition-colors">Daftar Mentor</Link></li>
+              <li><Link href="/" className="hover:text-[#00C9A7]">Beranda</Link></li>
+              <li><Link href="/program" className="hover:text-[#00C9A7]">Program Klas</Link></li>
+              <li><Link href="/ebooks" className="hover:text-[#00C9A7]">Katalog E-Book</Link></li>
             </ul>
           </div>
-
           <div>
-            <h4 className="font-bold text-lg mb-6 text-white">Informasi Lain</h4>
+            <h4 className="font-bold text-lg mb-6">Informasi Lain</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><Link href="/about" className="hover:text-[#00C9A7] transition-colors">Tentang Kami</Link></li>
-              <li><Link href="/contact" className="hover:text-[#00C9A7] transition-colors">Hubungi Kami</Link></li>
-              <li><Link href="#" className="hover:text-[#00C9A7] transition-colors">Syarat & Ketentuan</Link></li>
-              <li><Link href="#" className="hover:text-[#00C9A7] transition-colors">Kebijakan Privasi</Link></li>
+              <li><Link href="/about" className="hover:text-[#00C9A7]">Tentang Kami</Link></li>
+              <li><Link href="/contact" className="hover:text-[#00C9A7]">Hubungi Kami</Link></li>
+              <li><Link href="/syarat-ketentuan" className="text-[#00C9A7]">Syarat & Ketentuan</Link></li>
+              <li><Link href="/kebijakan-privasi" className="hover:text-[#00C9A7]">Kebijakan Privasi</Link></li>
             </ul>
           </div>
-
         </div>
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 gap-4">
-          <p>
-  © {new Date().getFullYear()} Klas Konstruksi. Hak Cipta Dilindungi. Dev by{" "}
-  <a 
-    href="https://askaraindonesia.com" 
-    target="_blank" 
-    rel="noopener noreferrer" 
-    className="font-medium text-gray-400 hover:text-[#00C9A7] transition-colors"
-  >
-    Askara Indonesia
-  </a>
-</p>
-          <div className="flex gap-6">
-             <Link href="https://www.instagram.com/klaskonstruksi" className="hover:text-white transition-colors">Instagram</Link>
-             <Link href="#" className="hover:text-white transition-colors">LinkedIn</Link>
-             <Link href="#" className="hover:text-white transition-colors">YouTube</Link>
-          </div>
+          <p>© {new Date().getFullYear()} Klas Konstruksi. Hak Cipta Dilindungi. Dev by <a href="https://askaraindonesia.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#00C9A7]">Askara Indonesia</a></p>
         </div>
       </footer>
-
     </div>
   );
 }
