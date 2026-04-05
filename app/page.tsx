@@ -368,7 +368,17 @@ export default function LandingPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 gap-4">
-          <p>© {new Date().getFullYear()} Klas Konstruksi. Hak Cipta Dilindungi.</p>
+          <p>
+  © {new Date().getFullYear()} Klas Konstruksi. Hak Cipta Dilindungi. Dev by{" "}
+  <a 
+    href="https://askaraindonesia.com" 
+    target="_blank" 
+    rel="noopener noreferrer" 
+    className="font-medium text-gray-400 hover:text-[#00C9A7] transition-colors"
+  >
+    Askara Indonesia
+  </a>
+</p>
           <div className="flex gap-6">
              <Link href="https://www.instagram.com/klaskonstruksi" className="hover:text-white transition-colors">Instagram</Link>
              <Link href="#" className="hover:text-white transition-colors">LinkedIn</Link>
