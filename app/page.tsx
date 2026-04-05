@@ -345,7 +345,7 @@ export default function LandingPage() {
               <li><Link href="/about" className="hover:text-[#00C9A7]">Tentang Kami</Link></li>
               <li><Link href="/contact" className="hover:text-[#00C9A7]">Hubungi Kami</Link></li>
               <li><Link href="/syarat-ketentuan" className="text-[#00C9A7]">Syarat & Ketentuan</Link></li>
-              <li><Link href="/kebijakan-privasi" className="hover:text-[#00C9A7]">Kebijakan Privasi</Link></li>
+              <li><Link href="/kebijakan-privasi" className="hover:text-[#00C9A7]">Kebijakan Privasi</Link></li> 
             </ul>
           </div>
         </div>
