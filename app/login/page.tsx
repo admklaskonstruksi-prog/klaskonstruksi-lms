@@ -90,7 +90,7 @@ function LoginPageShell() {
   const [successMsg, setSuccessMsg] = useState("");
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // State untuk konfirmasi password
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResetPending, startResetTransition] = useTransition();
@@ -126,14 +126,11 @@ function LoginPageShell() {
 
     startTransition(async () => {
       if (isRegister) {
-        // Hapus field confirm_password sebelum dikirim ke backend jika backend tidak membutuhkannya
-        // formData.delete("confirm_password"); 
-
         const res = await signUpAction(formData);
         if (res?.error) setErrorMsg(res.error);
         if (res?.success) {
           setSuccessMsg(res.success);
-          setIsRegister(false);
+          setIsRegister(false); // Otomatis pindah ke mode login setelah sukses
         }
       } else {
         const res = await signInAction(formData);
@@ -222,7 +219,6 @@ function LoginPageShell() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* NAMA - Hanya muncul saat Register */}
               {isRegister && (
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap</label>
@@ -236,7 +232,6 @@ function LoginPageShell() {
                 </div>
               )}
 
-              {/* EMAIL */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
                 <input
@@ -248,7 +243,6 @@ function LoginPageShell() {
                 />
               </div>
 
-              {/* PASSWORD */}
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="block text-sm font-bold text-gray-700">Password</label>
@@ -286,7 +280,6 @@ function LoginPageShell() {
                 </div>
               </div>
 
-              {/* KONFIRMASI PASSWORD - Hanya muncul saat Register */}
               {isRegister && (
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Konfirmasi Password</label>

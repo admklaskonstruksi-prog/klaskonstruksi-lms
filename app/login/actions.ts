@@ -12,7 +12,6 @@ function normalizeSiteUrl(input: unknown): string | null {
 }
 
 async function getRequestOrigin(): Promise<string | null> {
-  // Saat dipanggil dari client, `origin` kadang ada. Kalau tidak, pakai `referer`.
   const hdrs = await headers();
   const originHeader = hdrs.get("origin");
   const referer = hdrs.get("referer");
@@ -35,7 +34,6 @@ export async function signInAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   
-  // Tangkap callbackUrl dari input hidden/formData, default ke /dashboard
   const callbackUrl = (formData.get("callbackUrl") as string) || "/dashboard";
   
   const supabase = await createClient();
@@ -43,7 +41,6 @@ export async function signInAction(formData: FormData) {
   
   if (error) return { error: "Email atau password salah." };
   
-  // Jangan gunakan redirect() di sini, kembalikan URL ke client untuk di-push
   return { success: true, redirectUrl: callbackUrl };
 }
 
@@ -51,15 +48,17 @@ export async function signUpAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const full_name = formData.get("full_name") as string;
-  const phone = formData.get("phone") as string;
-  const address = formData.get("address") as string;
+  
+  // Berikan nilai default karena form input di UI sudah dihapus
+  const phone = (formData.get("phone") as string) || "-";
+  const address = (formData.get("address") as string) || "-";
 
   const supabase = await createClient();
 
   if (!email || !password) return { error: "Email dan password wajib diisi." };
   if (!full_name || full_name.trim().length < 2) return { error: "Nama lengkap minimal 2 karakter." };
-  if (!phone || phone.trim().length < 6) return { error: "No. WhatsApp tidak valid." };
-  if (!address || address.trim().length < 2) return { error: "Kota/Domisili wajib diisi." };
+  
+  // VALIDASI PHONE DAN ADDRESS DIHAPUS DARI SINI
 
   const siteUrl =
     (await getRequestOrigin()) ||
@@ -68,7 +67,6 @@ export async function signUpAction(formData: FormData) {
     "https://www.klaskonstruksi.com";
 
   // 1. Daftarkan user ke sistem Auth Supabase.
-  // Simpan data penting di user_metadata agar tidak tergantung insert ke tabel profiles (yang sering kena RLS saat email confirmation aktif).
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -86,7 +84,6 @@ export async function signUpAction(formData: FormData) {
   if (error) return { error: error.message };
 
   // 2. Simpan data ke tabel profiles jika memungkinkan.
-  // Catatan: pada konfigurasi Supabase yang mewajibkan verifikasi email, session bisa null → RLS bisa menolak insert/update.
   if (data.user) {
     const { data: sessionData } = await supabase.auth.getSession();
     if (sessionData?.session) {
@@ -98,26 +95,20 @@ export async function signUpAction(formData: FormData) {
         role: "siswa",
       });
       if (profileError) {
-        // Jangan gagalkan signup kalau hanya gagal tulis profile.
         console.error("Profile upsert gagal:", profileError.message);
       }
     }
   }
 
-  // Jika email confirmation aktif, Supabase biasanya minta user klik link di email dulu.
   return { success: "Pendaftaran berhasil! Silakan cek email untuk verifikasi, lalu login." };
 }
 
-// Tambahkan parameter callbackUrl
 export async function signInWithGoogle(callbackUrl: string = "/dashboard") {
   const supabase = await createClient();
   
-  // Prioritaskan origin yang sedang dipakai user (biar tidak nyasar ke www.klaskonstruksi.com kalau domainnya beda).
-  // Fallback ke env, lalu fallback terakhir.
   const siteUrl =
     normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) || "https://www.klaskonstruksi.com";
   
-  // Pastikan URL callback lengkap dan membawa parameter 'next' yang dinamis
   const redirectUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(callbackUrl)}`;
   
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -132,8 +123,6 @@ export async function signInWithGoogle(callbackUrl: string = "/dashboard") {
   });
 
   if (error) return { error: error.message };
-  
-  // Kembalikan URL OAuth Google ke client
   if (data.url) return { success: true, url: data.url };
 }
 
