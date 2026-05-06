@@ -24,11 +24,22 @@ export default function CartPage() {
   const [isSnapLoaded, setIsSnapLoaded] = useState(false);
 
   useEffect(() => {
-    // 1. Muat Item dari Keranjang di Local Storage
-    const items = JSON.parse(localStorage.getItem("klas_cart") || "[]");
-    setCartItems(items);
+    // 1. Muat Item dari Keranjang
+    const loadCart = () => {
+      const items = JSON.parse(localStorage.getItem("klas_cart") || "[]");
+      setCartItems(items);
+    };
+    loadCart();
 
-    // 2. Ambil Rekomendasi Kelas
+    // 2. TAMBAHAN: Hapus keranjang jika user Log Out
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        localStorage.removeItem("klas_cart");
+        setCartItems([]); // Kosongkan tampilan keranjang
+      }
+    });
+
+    // 3. Ambil Rekomendasi Kelas
     async function fetchRecommendations() {
       const { data } = await supabase
         .from("courses")
@@ -40,6 +51,10 @@ export default function CartPage() {
       if (data) setRecommendations(data);
     }
     fetchRecommendations();
+
+    return () => {
+      authListener.subscription.unsubscribe(); // Bersihkan listener
+    };
   }, [supabase]);
 
   const removeItem = (id: string) => {
@@ -53,7 +68,6 @@ export default function CartPage() {
 
   // --- FUNGSI INTEGRASI MIDTRANS ---
   const handleCheckout = async () => {
-    // Guard: Pastikan script Snap sudah ada
     if (!window.snap) {
       toast.error("Sistem pembayaran belum siap atau diblokir oleh Adblocker. Silakan muat ulang halaman.");
       return;
@@ -63,7 +77,6 @@ export default function CartPage() {
     toast.loading("Menyiapkan transaksi aman...");
 
     try {
-      // 1. Cek Sesi User
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.dismiss();
@@ -74,17 +87,15 @@ export default function CartPage() {
 
       const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
 
-      // 2. Susun Payload (Perhatikan penambahan userId di sini!)
       const payload = {
         courseId: cartItems.length === 1 ? cartItems[0].id : "BUNDLE-CART", 
         price: totalPrice,
         title: cartItems.length === 1 ? cartItems[0].title : `Pembelian ${cartItems.length} Item KlasKonstruksi`,
         userEmail: user.email,
         userName: profile?.full_name || "Siswa",
-        userId: user.id // <-- WAJIB ADA AGAR TERCATAT 'PENDING' DI DATABASE OLEH BACKEND
+        userId: user.id 
       };
 
-      // 3. Panggil API Route untuk ambil Token
       const res = await fetch("/api/midtrans/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,17 +109,14 @@ export default function CartPage() {
         throw new Error(data.error || "Gagal mendapatkan token dari Midtrans.");
       }
 
-      // 4. Eksekusi Jendela Pembayaran Midtrans (Snap)
       window.snap.pay(data.token, {
         onSuccess: async function (result: any) {
           toast.loading("Pembayaran Berhasil! Memproses pesanan Anda...");
 
           try {
-             // Pisahkan tipe item yang dibeli
              const courses = cartItems.filter(item => item.type === "course" || !item.type);
              const ebooks = cartItems.filter(item => item.type === "ebook");
 
-             // Masukkan Hak Akses Kelas
              if (courses.length > 0) {
                 const enrollmentsData = courses.map((item) => ({
                    user_id: user.id,
@@ -118,7 +126,6 @@ export default function CartPage() {
                 if (courseError) throw new Error(`Gagal mendaftar kelas: ${courseError.message}`);
              }
 
-             // Masukkan Hak Akses E-Book
              if (ebooks.length > 0) {
                 const ebookPurchasesData = ebooks.map((item) => ({
                    user_id: user.id,
@@ -128,15 +135,12 @@ export default function CartPage() {
                 if (ebookError) throw new Error(`Gagal memproses E-Book: ${ebookError.message}`);
              }
 
-             // Sukses
              toast.dismiss();
              toast.success("Hore! Pesanan berhasil ditambahkan.");
              
-             // Bersihkan keranjang lokal
              localStorage.removeItem("klas_cart");
              window.dispatchEvent(new Event("cartUpdated"));
              
-             // Arahkan ke ruang belajar
              router.push("/dashboard/learning-path");
 
           } catch (err: any) {
@@ -166,7 +170,6 @@ export default function CartPage() {
     }
   };
 
-  // Render jika keranjang kosong
   if (cartItems.length === 0) {
      return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 selection:bg-[#00C9A7] selection:text-white">
@@ -181,7 +184,6 @@ export default function CartPage() {
   return (
     <>
       <Script 
-        // Ganti ke URL Production jika website sudah live: "https://app.midtrans.com/snap/snap.js"
         src="https://app.midtrans.com/snap/snap.js"
         data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY} 
         strategy="lazyOnload" 
@@ -200,8 +202,6 @@ export default function CartPage() {
           <h1 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">Selesaikan Pembayaran</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-             
-             {/* BAGIAN DAFTAR ITEM KERANJANG */}
              <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white p-7 rounded-3xl shadow-sm border border-gray-100">
                    <h3 className="text-lg font-extrabold text-gray-950 mb-6 border-b border-gray-100 pb-4">Item Keranjang ({cartItems.length})</h3>
@@ -225,7 +225,6 @@ export default function CartPage() {
                    </div>
                 </div>
 
-                {/* BAGIAN REKOMENDASI PRODUK */}
                 {recommendations.filter(r => !cartItems.find(c => c.id === r.id)).length > 0 && (
                   <div className="bg-gradient-to-br from-orange-50 to-white border border-orange-100 p-7 rounded-3xl shadow-sm">
                      <h3 className="text-lg font-black text-gray-950 mb-2">Sering Dibeli Bersamaan 🔥</h3>
@@ -259,7 +258,6 @@ export default function CartPage() {
                 )}
              </div>
 
-             {/* BAGIAN RINGKASAN & TOMBOL BAYAR */}
              <div className="lg:col-span-1">
                 <div className="bg-white p-7 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 sticky top-28">
                    <h3 className="text-lg font-black text-gray-950 mb-6 border-b border-gray-100 pb-4">Ringkasan Belanja</h3>

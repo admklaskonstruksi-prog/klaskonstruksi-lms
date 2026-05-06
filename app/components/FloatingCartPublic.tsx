@@ -4,39 +4,49 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { createClient } from "@/utils/supabase/client"; // 1. Import Supabase Client
 
 export default function FloatingCartPublic() {
   const [cartCount, setCartCount] = useState(0);
-  const [isMounted, setIsMounted] = useState(false); // Penyelamat error Hydration
-  const [isPopping, setIsPopping] = useState(false); // Efek animasi saat ditambah
+  const [isMounted, setIsMounted] = useState(false); 
+  const [isPopping, setIsPopping] = useState(false); 
   const pathname = usePathname();
+  const supabase = createClient(); // 2. Inisialisasi Supabase
 
   useEffect(() => {
-    setIsMounted(true); // Beritahu Next.js bahwa komponen sudah aman di render di browser
+    setIsMounted(true);
 
     const updateCartCount = () => {
       const cart = JSON.parse(localStorage.getItem("klas_cart") || "[]");
       setCartCount(cart.length);
 
-      // Mainkan efek animasi
-      setIsPopping(true);
-      setTimeout(() => setIsPopping(false), 300);
+      // Mainkan efek animasi hanya jika ada isinya
+      if (cart.length > 0) {
+        setIsPopping(true);
+        setTimeout(() => setIsPopping(false), 300);
+      }
     };
     
-    // Panggil saat pertama render
     updateCartCount();
 
-    // Dengarkan event perubahan keranjang
     window.addEventListener("cartUpdated", updateCartCount);
     window.addEventListener("storage", updateCartCount);
+
+    // 3. TAMBAHAN: Otomatis hapus cart jika user Log Out
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        localStorage.removeItem("klas_cart");
+        updateCartCount(); // Set angka keranjang jadi 0
+      }
+    });
 
     return () => {
       window.removeEventListener("cartUpdated", updateCartCount);
       window.removeEventListener("storage", updateCartCount);
+      authListener.subscription.unsubscribe(); // Bersihkan listener
     };
-  }, []);
+  }, [supabase]);
 
-  // JANGAN RENDER APAPUN JIKA: Belum mounted, keranjang kosong, dashboard, atau sedang di halaman cart
   if (!isMounted) return null;
   if (cartCount === 0 || pathname === "/cart" || pathname.startsWith("/dashboard")) return null;
 
@@ -49,7 +59,6 @@ export default function FloatingCartPublic() {
     >
       <ShoppingCart size={28} className="group-hover:-rotate-12 transition-transform" />
       
-      {/* Badge Angka */}
       <span className="absolute -top-2 -right-2 bg-white text-[#F97316] text-xs font-black w-7 h-7 rounded-full flex items-center justify-center shadow-md border-2 border-[#F97316]">
         {cartCount}
       </span>
