@@ -1,9 +1,8 @@
-
 "use client";
 export const runtime = 'nodejs';
 
 import { useState, useTransition, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation"; // 1. Tambahkan useRouter
+import { useSearchParams, useRouter } from "next/navigation"; 
 import {
   signInAction,
   signUpAction,
@@ -11,10 +10,8 @@ import {
   requestPasswordResetAction,
 } from "./actions";
 import { Loader2, Chrome, Eye, EyeOff } from "lucide-react";
-// 1. IMPORT DYNAMIC DARI NEXT.JS
 import dynamic from "next/dynamic";
 
-// 2. LOAD LOTTIE PLAYER HANYA DI SISI CLIENT (BROWSER)
 const LottiePlayer = dynamic(
   () => import('@lottiefiles/react-lottie-player').then((mod) => mod.Player),
   { ssr: false, loading: () => <div className="h-[400px] w-[400px] flex items-center justify-center"><Loader2 className="animate-spin text-[#F97316] w-8 h-8" /></div> }
@@ -93,6 +90,7 @@ function LoginPageShell() {
   const [successMsg, setSuccessMsg] = useState("");
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // State untuk konfirmasi password
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResetPending, startResetTransition] = useTransition();
@@ -109,12 +107,28 @@ function LoginPageShell() {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
+    
     const formData = new FormData(e.currentTarget);
+    
+    // Validasi Confirm Password saat Mendaftar
+    if (isRegister) {
+        const password = formData.get("password") as string;
+        const confirmPassword = formData.get("confirm_password") as string;
+        
+        if (password !== confirmPassword) {
+            setErrorMsg("Password dan Konfirmasi Password tidak cocok.");
+            return;
+        }
+    }
+
     formData.append("callbackUrl", callbackUrl);
     formData.append("siteUrl", window.location.origin);
 
     startTransition(async () => {
       if (isRegister) {
+        // Hapus field confirm_password sebelum dikirim ke backend jika backend tidak membutuhkannya
+        // formData.delete("confirm_password"); 
+
         const res = await signUpAction(formData);
         if (res?.error) setErrorMsg(res.error);
         if (res?.success) {
@@ -166,7 +180,6 @@ function LoginPageShell() {
         isPending={isResetPending}
       />
 
-      {/* Reuse the original component tree but with this shell state */}
       <div className="flex min-h-screen bg-white font-sans">
         <div className="hidden lg:flex w-1/2 bg-orange-50 p-12 flex-col justify-center items-center relative overflow-hidden border-r border-orange-100">
           <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-orange-200/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
@@ -209,43 +222,21 @@ function LoginPageShell() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* NAMA - Hanya muncul saat Register */}
               {isRegister && (
-                <>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap</label>
-                    <input
-                      type="text"
-                      name="full_name"
-                      required
-                      placeholder="Budi Santoso"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">No. WhatsApp</label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        required
-                        placeholder="0812..."
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">Kota / Domisili</label>
-                      <input
-                        type="text"
-                        name="address"
-                        required
-                        placeholder="Jakarta"
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white"
-                      />
-                    </div>
-                  </div>
-                </>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap</label>
+                  <input
+                    type="text"
+                    name="full_name"
+                    required
+                    placeholder="Budi Santoso"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white"
+                  />
+                </div>
               )}
 
+              {/* EMAIL */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
                 <input
@@ -257,6 +248,7 @@ function LoginPageShell() {
                 />
               </div>
 
+              {/* PASSWORD */}
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="block text-sm font-bold text-gray-700">Password</label>
@@ -294,6 +286,30 @@ function LoginPageShell() {
                 </div>
               </div>
 
+              {/* KONFIRMASI PASSWORD - Hanya muncul saat Register */}
+              {isRegister && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Konfirmasi Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirm_password"
+                      required
+                      placeholder="••••••••"
+                      minLength={6}
+                      className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#F97316] outline-none transition bg-gray-50 focus:bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isPending}
@@ -325,6 +341,7 @@ function LoginPageShell() {
                   setErrorMsg("");
                   setSuccessMsg("");
                   setShowPassword(false);
+                  setShowConfirmPassword(false);
                 }}
                 className="text-[#F97316] font-bold ml-2 hover:underline"
               >

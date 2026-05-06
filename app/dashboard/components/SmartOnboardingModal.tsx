@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, GraduationCap, Target, Briefcase, LayoutGrid, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { Sparkles, GraduationCap, Target, Briefcase, LayoutGrid, ArrowRight, Loader2, CheckCircle2, X } from "lucide-react";
 import { saveOnboardingResult } from "../onboarding-actions";
 
 interface Props {
@@ -62,11 +62,29 @@ export default function SmartOnboardingModal({ categories, isCompleted }: Props)
     }, 1500);
   };
 
-  // ... (SISA KODE RENDER SAMA SEPERTI SEBELUMNYA)
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300"
+      onClick={(e) => {
+        // Cek jika yang di-klik adalah background gelapnya, bukan modal content
+        if (e.target === e.currentTarget && !isSaving) {
+          setIsOpen(false);
+        }
+      }}
+    >
       <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-[450px] relative animate-in slide-in-from-bottom-8 duration-500">
         
+        {/* Tombol X (Close) - Disembunyikan saat sedang loading step 6 */}
+        {step !== 6 && (
+          <button 
+            onClick={() => setIsOpen(false)}
+            className="absolute top-4 right-4 z-50 p-2 text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-full transition-all"
+            title="Lewati"
+          >
+            <X size={20} />
+          </button>
+        )}
+
         {step > 1 && step < 6 && (
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gray-100">
                 <div className="h-full bg-[#00C9A7] transition-all duration-500" style={{ width: `${((step - 1) / 4) * 100}%` }}></div>
@@ -93,8 +111,7 @@ export default function SmartOnboardingModal({ categories, isCompleted }: Props)
             )}
 
             {step === 2 && (
-                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                    <button onClick={() => setIsOpen(false)} className="text-xs font-bold text-gray-400 hover:text-gray-600 mb-4 self-start">Tutup</button>
+                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 mt-4">
                     <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center text-[#00C9A7] mb-6"><GraduationCap size={24} /></div>
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Apa background pendidikan Anda saat ini?</h2>
                     <p className="text-gray-500 text-sm mb-8">Bantu kami menyesuaikan gaya bahasa dan tingkat materi.</p>
@@ -114,7 +131,7 @@ export default function SmartOnboardingModal({ categories, isCompleted }: Props)
             )}
 
             {step === 3 && (
-                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 mt-4">
                     <button onClick={() => setStep(2)} className="text-xs font-bold text-gray-400 hover:text-gray-600 mb-4 self-start">← Kembali</button>
                     <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-[#F97316] mb-6"><Target size={24} /></div>
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Apa tujuan utama Anda belajar di sini?</h2>
@@ -135,7 +152,7 @@ export default function SmartOnboardingModal({ categories, isCompleted }: Props)
             )}
 
             {step === 4 && (
-                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 mt-4">
                     <button onClick={() => setStep(3)} className="text-xs font-bold text-gray-400 hover:text-gray-600 mb-4 self-start">← Kembali</button>
                     <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 mb-6"><Briefcase size={24} /></div>
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Berapa lama pengalaman kerja Anda?</h2>
@@ -156,7 +173,7 @@ export default function SmartOnboardingModal({ categories, isCompleted }: Props)
             )}
 
             {step === 5 && (
-                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 mt-4">
                     <button onClick={() => setStep(4)} className="text-xs font-bold text-gray-400 hover:text-gray-600 mb-4 self-start">← Kembali</button>
                     <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-500 mb-6"><LayoutGrid size={24} /></div>
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Terakhir, apa bidang yang paling Anda minati?</h2>
