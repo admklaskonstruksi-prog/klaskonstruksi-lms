@@ -1,13 +1,11 @@
 // app/api/midtrans/token/route.ts
 
-export const runtime = 'edge'; // WAJIB 'edge' untuk Cloudflare Pages/Workers, bukan 'nodejs'
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
   try {
-    // 1. Pengecekan Environment Variables
     const serverKey = process.env.MIDTRANS_SERVER_KEY || "";
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -19,16 +17,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { courseId, price, title, userEmail, userName, userId } = body;
 
-    // 2. Validasi Keamanan Input Dasar
     if (!price || price < 100) {
       return NextResponse.json({ error: "Nominal transaksi tidak valid" }, { status: 400 });
     }
 
-    // 3. Buat Order ID Unik (Sanitasi karakter agar Midtrans tidak menolak)
     const safeCourseId = (courseId || "TRX").toString().substring(0, 4).replace(/[^a-zA-Z0-9]/g, '');
     const order_id = `KLAS-${Date.now()}-${safeCourseId}`;
 
-    // 4. Susun Parameter Midtrans
     const parameter = {
       transaction_details: {
         order_id: order_id,
@@ -38,7 +33,6 @@ export async function POST(request: Request) {
         id: (courseId || "id-unknown").substring(0, 50),
         price: price,
         quantity: 1,
-        // Midtrans sangat ketat pada batas karakter, pastikan dipotong maks 50 karakter
         name: (title || "Pembelian KlasKonstruksi").substring(0, 50), 
       }],
       customer_details: {
@@ -47,12 +41,11 @@ export async function POST(request: Request) {
       },
     };
 
-    // 5. Deteksi otomatis URL API (Sandbox atau Production)
     const midtransUrl = serverKey.startsWith("SB-") 
       ? "https://app.sandbox.midtrans.com/snap/v1/transactions"
       : "https://app.midtrans.com/snap/v1/transactions";
 
-    // Enkripsi auth untuk Edge (btoa adalah standar Web API pengganti Buffer Node.js)
+    // Tetap menggunakan btoa yang aman untuk Cloudflare Workers
     const auth = btoa(serverKey + ":");
     const res = await fetch(midtransUrl, {
       method: "POST",
@@ -73,22 +66,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. SIMPAN TRANSAKSI "PENDING" KE DATABASE
     if (userId && supabaseUrl && supabaseServiceKey) {
-      // Menggunakan Service Role Key untuk menembus RLS karena ini operasi backend internal
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
       
       const { error: dbError } = await supabaseAdmin.from("transactions").insert({
         order_id: order_id,
         user_id: userId,
         item_id: courseId,
-        item_type: courseId === "BUNDLE-CART" ? "bundle" : "course", // Penanganan jika keranjang berisi banyak item
+        item_type: courseId === "BUNDLE-CART" ? "bundle" : "course",
         amount: price,
         status: "PENDING"
       });
 
       if (dbError) {
-        // Kita hanya mencatat log error, JANGAN gagalkan transaksi Midtrans jika DB hanya telat merespons
         console.error("Peringatan: Gagal insert transaksi PENDING:", dbError.message);
       }
     } else if (!userId) {
