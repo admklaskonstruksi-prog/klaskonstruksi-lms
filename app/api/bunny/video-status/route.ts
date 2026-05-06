@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
     if (!apiKey || !libraryId) {
       return NextResponse.json(
-        { error: 'Missing Bunny.net configuration' },
+        { error: 'Missing Video configuration' },
         { status: 500 }
       );
     }

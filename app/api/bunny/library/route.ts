@@ -9,7 +9,7 @@ export async function GET() {
     const API_KEY = process.env.BUNNY_API_KEY;
 
     if (!LIBRARY_ID || !API_KEY) {
-      return NextResponse.json({ error: "Kredensial BunnyCDN belum lengkap" }, { status: 500 });
+      return NextResponse.json({ error: "Kredensial belum lengkap" }, { status: 500 });
     }
 
     const options = {
