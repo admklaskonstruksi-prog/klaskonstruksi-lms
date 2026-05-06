@@ -7,7 +7,7 @@ import FloatingCartPublic from "@/app/components/FloatingCartPublic";
 export const metadata: Metadata = {
   metadataBase: new URL("https://klaskonstruksi.com"),
   title: {
-    default: "KLAS : Kursus Online Konstruksi",
+    default: "KLAS : Kursus Konstruksi Online No.1 di Indonesia",
     template: "%s | KLAS", // Jika buka halaman E-Book, tab akan otomatis jadi "Katalog E-Book | KLAS"
   },
   description: "Platform e-learning teknik sipil dan konstruksi terlengkap. Pelajari skill teknik sipil, manajemen proyek, dan arsitektur langsung dari praktisi industri.",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "id_ID",
     url: "https://klaskonstruksi.com",
-    title: "KLAS : Kursus Online Konstruksi",
+    title: "KLAS : Kursus Konstruksi Online No.1 di Indonesia",
     description: "Bangun karir impian di dunia konstruksi bersama praktisi industri. Materi terstruktur dan 100% praktis.",
     siteName: "KLAS Konstruksi",
     images: [
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "KLAS : Kursus Online Konstruksi",
+    title: "KLAS : Kursus Konstruksi Online No.1 di Indonesia",
     description: "Platform e-learning teknik sipil dan konstruksi terlengkap di Indonesia.",
     images: ["/logo.png"],
   },

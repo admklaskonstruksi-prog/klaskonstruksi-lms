@@ -76,7 +76,7 @@ export default function PrivacyPolicyPage() {
         <div className="prose prose-lg text-gray-700 space-y-8 max-w-none">
             <section>
                 <p>
-                    Selamat datang di <strong>KLAS Konstruksi</strong> (dioperasikan oleh PT. Klas Mahir Konstruksi). Kami menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi yang Anda bagikan kepada kami. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, melindungi, dan membagikan informasi Anda saat Anda menggunakan website dan layanan kami.
+                    Selamat datang di <strong>KLAS Konstruksi</strong> (dioperasikan oleh PT. Ardewa Digital Inovasi). Kami menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi yang Anda bagikan kepada kami. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, melindungi, dan membagikan informasi Anda saat Anda menggunakan website dan layanan kami.
                 </p>
             </section>
 
@@ -138,7 +138,7 @@ export default function PrivacyPolicyPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Hubungi Kami</h2>
                 <p>Jika ada pertanyaan mengenai kebijakan privasi ini, Anda dapat menghubungi kami melalui informasi di bawah ini:</p>
                 <div className="bg-gray-50 p-6 rounded-xl mt-4 border border-gray-100">
-                    <p className="font-bold text-gray-900">PT. Klas Mahir Konstruksi</p>
+                    <p className="font-bold text-gray-900">PT. Ardewa Digital Inovasi</p>
                     <p className="mt-1">Vila Bukit Tidar Blok E4 Astera No. 108, Kota Malang</p>
                     <p className="mt-1"><strong>Email:</strong> halo@klaskonstruksi.id</p>
                     <p className="mt-1"><strong>WhatsApp:</strong> 0821-2000-2589</p>

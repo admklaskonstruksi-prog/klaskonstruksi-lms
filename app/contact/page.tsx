@@ -142,7 +142,7 @@ export default function ContactPage() {
                                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0"><MapPin /></div>
                                 <div>
                                     <p className="font-bold">Kantor Pusat</p>
-                                    <p className="text-teal-50 text-sm leading-relaxed">PT. Klas Mahir Konstruksi<br/>Vila Bukit Tidar Blok E4 Astera No. 108<br/>Kota Malang</p>
+                                    <p className="text-teal-50 text-sm leading-relaxed">PT. Ardewa Digital Inovasi<br/>Vila Bukit Tidar Blok E4 Astera No. 108<br/>Kota Malang</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">

@@ -59,7 +59,7 @@ export default function TermsAndConditionsPage() {
             <section>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 border-l-4 border-[#00C9A7] pl-4">1. Ketentuan Penggunaan</h2>
                 <p>
-                    Dengan mengakses dan menggunakan situs <strong>Klas Konstruksi</strong> (PT. Klas Mahir Konstruksi), Anda dianggap telah membaca, memahami, dan menyetujui untuk terikat oleh syarat dan ketentuan ini. Jika Anda tidak menyetujui bagian mana pun dari ketentuan ini, Anda wajib menghentikan penggunaan situs ini segera.
+                    Dengan mengakses dan menggunakan situs <strong>Klas Konstruksi</strong> (PT. Ardewa Digital Inovasi), Anda dianggap telah membaca, memahami, dan menyetujui untuk terikat oleh syarat dan ketentuan ini. Jika Anda tidak menyetujui bagian mana pun dari ketentuan ini, Anda wajib menghentikan penggunaan situs ini segera.
                 </p>
             </section>
 
@@ -90,7 +90,7 @@ export default function TermsAndConditionsPage() {
             <section>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 border-l-4 border-[#00C9A7] pl-4">5. Hak Kekayaan Intelektual</h2>
                 <p>
-                    Seluruh konten yang tersedia di situs ini, termasuk namun tidak terbatas pada teks, video, desain grafis, e-book, dan logo, adalah milik sah dari PT. Klas Mahir Konstruksi. Anda dilarang keras menyalin, mendistribusikan ulang, menjual, atau menyebarluaskan materi kami tanpa izin tertulis resmi dari kami.
+                    Seluruh konten yang tersedia di situs ini, termasuk namun tidak terbatas pada teks, video, desain grafis, e-book, dan logo, adalah milik sah dari PT. Ardewa Digital Inovasi. Anda dilarang keras menyalin, mendistribusikan ulang, menjual, atau menyebarluaskan materi kami tanpa izin tertulis resmi dari kami.
                 </p>
             </section>
 
