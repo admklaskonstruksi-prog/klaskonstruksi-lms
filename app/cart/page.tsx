@@ -1,5 +1,4 @@
 "use client";
-export const runtime = 'nodejs';
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -22,13 +21,14 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isSnapLoaded, setIsSnapLoaded] = useState(false);
 
   useEffect(() => {
-    // 1. Muat Item dari Keranjang
+    // 1. Muat Item dari Keranjang di Local Storage
     const items = JSON.parse(localStorage.getItem("klas_cart") || "[]");
     setCartItems(items);
 
-    // 2. Ambil Rekomendasi dari Database
+    // 2. Ambil Rekomendasi Kelas
     async function fetchRecommendations() {
       const { data } = await supabase
         .from("courses")
@@ -53,10 +53,17 @@ export default function CartPage() {
 
   // --- FUNGSI INTEGRASI MIDTRANS ---
   const handleCheckout = async () => {
+    // Guard: Pastikan script Snap sudah ada
+    if (!window.snap) {
+      toast.error("Sistem pembayaran belum siap atau diblokir oleh Adblocker. Silakan muat ulang halaman.");
+      return;
+    }
+
     setIsCheckingOut(true);
     toast.loading("Menyiapkan transaksi aman...");
 
     try {
+      // 1. Cek Sesi User
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.dismiss();
@@ -67,14 +74,17 @@ export default function CartPage() {
 
       const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
 
+      // 2. Susun Payload (Perhatikan penambahan userId di sini!)
       const payload = {
         courseId: cartItems.length === 1 ? cartItems[0].id : "BUNDLE-CART", 
         price: totalPrice,
         title: cartItems.length === 1 ? cartItems[0].title : `Pembelian ${cartItems.length} Item KlasKonstruksi`,
         userEmail: user.email,
-        userName: profile?.full_name || "Siswa"
+        userName: profile?.full_name || "Siswa",
+        userId: user.id // <-- WAJIB ADA AGAR TERCATAT 'PENDING' DI DATABASE OLEH BACKEND
       };
 
+      // 3. Panggil API Route untuk ambil Token
       const res = await fetch("/api/midtrans/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -88,16 +98,17 @@ export default function CartPage() {
         throw new Error(data.error || "Gagal mendapatkan token dari Midtrans.");
       }
 
+      // 4. Eksekusi Jendela Pembayaran Midtrans (Snap)
       window.snap.pay(data.token, {
         onSuccess: async function (result: any) {
           toast.loading("Pembayaran Berhasil! Memproses pesanan Anda...");
 
           try {
-             // 1. PISAHKAN BERDASARKAN TIPE (Course vs E-Book)
+             // Pisahkan tipe item yang dibeli
              const courses = cartItems.filter(item => item.type === "course" || !item.type);
              const ebooks = cartItems.filter(item => item.type === "ebook");
 
-             // 2. MASUKKAN KE TABEL ENROLLMENTS (Khusus Kelas)
+             // Masukkan Hak Akses Kelas
              if (courses.length > 0) {
                 const enrollmentsData = courses.map((item) => ({
                    user_id: user.id,
@@ -107,7 +118,7 @@ export default function CartPage() {
                 if (courseError) throw new Error(`Gagal mendaftar kelas: ${courseError.message}`);
              }
 
-             // 3. MASUKKAN KE TABEL EBOOK_PURCHASES (Khusus E-Book)
+             // Masukkan Hak Akses E-Book
              if (ebooks.length > 0) {
                 const ebookPurchasesData = ebooks.map((item) => ({
                    user_id: user.id,
@@ -117,10 +128,11 @@ export default function CartPage() {
                 if (ebookError) throw new Error(`Gagal memproses E-Book: ${ebookError.message}`);
              }
 
+             // Sukses
              toast.dismiss();
              toast.success("Hore! Pesanan berhasil ditambahkan.");
              
-             // Kosongkan keranjang
+             // Bersihkan keranjang lokal
              localStorage.removeItem("klas_cart");
              window.dispatchEvent(new Event("cartUpdated"));
              
@@ -154,6 +166,7 @@ export default function CartPage() {
     }
   };
 
+  // Render jika keranjang kosong
   if (cartItems.length === 0) {
      return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 selection:bg-[#00C9A7] selection:text-white">
@@ -168,9 +181,15 @@ export default function CartPage() {
   return (
     <>
       <Script 
+        // Ganti ke URL Production jika website sudah live: "https://app.midtrans.com/snap/snap.js"
         src="https://app.midtrans.com/snap/snap.js"
         data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY} 
-        strategy="afterInteractive"
+        strategy="lazyOnload" 
+        onLoad={() => setIsSnapLoaded(true)}
+        onError={() => {
+          console.error("Gagal memuat script Midtrans.");
+          toast.error("Sistem pembayaran terganggu. Matikan Adblocker Anda.");
+        }}
       />
 
       <div className="min-h-screen bg-gray-50 py-12 px-4 md:px-8 font-sans selection:bg-[#F97316] selection:text-white">
@@ -182,6 +201,7 @@ export default function CartPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
              
+             {/* BAGIAN DAFTAR ITEM KERANJANG */}
              <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white p-7 rounded-3xl shadow-sm border border-gray-100">
                    <h3 className="text-lg font-extrabold text-gray-950 mb-6 border-b border-gray-100 pb-4">Item Keranjang ({cartItems.length})</h3>
@@ -205,6 +225,7 @@ export default function CartPage() {
                    </div>
                 </div>
 
+                {/* BAGIAN REKOMENDASI PRODUK */}
                 {recommendations.filter(r => !cartItems.find(c => c.id === r.id)).length > 0 && (
                   <div className="bg-gradient-to-br from-orange-50 to-white border border-orange-100 p-7 rounded-3xl shadow-sm">
                      <h3 className="text-lg font-black text-gray-950 mb-2">Sering Dibeli Bersamaan 🔥</h3>
@@ -221,7 +242,6 @@ export default function CartPage() {
                                  <div className="flex items-center justify-between mt-2">
                                     <span className="text-sm font-black text-gray-900">Rp {rec.price.toLocaleString("id-ID")}</span>
                                     <button onClick={() => {
-                                      // PERUBAHAN: Tambahkan type: "course" pada rekomendasi
                                       const newCart = [...cartItems, { id: rec.id, title: rec.title, price: rec.price, thumbnail: rec.thumbnail_url, category: "Rekomendasi", type: "course" }];
                                       setCartItems(newCart);
                                       localStorage.setItem("klas_cart", JSON.stringify(newCart));
@@ -239,6 +259,7 @@ export default function CartPage() {
                 )}
              </div>
 
+             {/* BAGIAN RINGKASAN & TOMBOL BAYAR */}
              <div className="lg:col-span-1">
                 <div className="bg-white p-7 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 sticky top-28">
                    <h3 className="text-lg font-black text-gray-950 mb-6 border-b border-gray-100 pb-4">Ringkasan Belanja</h3>
@@ -261,10 +282,10 @@ export default function CartPage() {
 
                    <button 
                      onClick={handleCheckout} 
-                     disabled={isCheckingOut}
+                     disabled={isCheckingOut || !isSnapLoaded} 
                      className="w-full bg-[#00C9A7] text-white py-4.5 rounded-2xl font-black text-lg hover:bg-[#00b596] transition-all shadow-lg shadow-[#00C9A7]/30 flex justify-center items-center gap-2 mb-5 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-1"
                    >
-                     {isCheckingOut ? "Memproses..." : "Bayar Sekarang"} <ArrowRight size={20} />
+                     {isCheckingOut ? "Memproses..." : (!isSnapLoaded ? "Memuat Pembayaran..." : "Bayar Sekarang")} <ArrowRight size={20} />
                    </button>
 
                    <div className="flex items-center justify-center gap-2 text-[11px] font-bold text-gray-400 bg-gray-50 py-3 rounded-xl border border-gray-100">

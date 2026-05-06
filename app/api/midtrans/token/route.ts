@@ -1,44 +1,58 @@
-export const runtime = 'nodejs';
+// app/api/midtrans/token/route.ts
+
+export const runtime = 'edge'; // WAJIB 'edge' untuk Cloudflare Pages/Workers, bukan 'nodejs'
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
   try {
+    // 1. Pengecekan Environment Variables
     const serverKey = process.env.MIDTRANS_SERVER_KEY || "";
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
     if (!serverKey) {
-      return NextResponse.json({ error: "MIDTRANS_SERVER_KEY tidak dikonfigurasi" }, { status: 500 });
+      return NextResponse.json({ error: "Sistem pembayaran belum dikonfigurasi (Server Key hilang)" }, { status: 500 });
     }
 
     const body = await request.json();
-    // Menangkap userId yang dikirim dari frontend
     const { courseId, price, title, userEmail, userName, userId } = body;
 
-    // Buat Order ID Unik
-    const order_id = `KLAS-${Date.now()}-${(courseId || "TRX").toString().substring(0, 4)}`;
+    // 2. Validasi Keamanan Input Dasar
+    if (!price || price < 100) {
+      return NextResponse.json({ error: "Nominal transaksi tidak valid" }, { status: 400 });
+    }
 
+    // 3. Buat Order ID Unik (Sanitasi karakter agar Midtrans tidak menolak)
+    const safeCourseId = (courseId || "TRX").toString().substring(0, 4).replace(/[^a-zA-Z0-9]/g, '');
+    const order_id = `KLAS-${Date.now()}-${safeCourseId}`;
+
+    // 4. Susun Parameter Midtrans
     const parameter = {
       transaction_details: {
         order_id: order_id,
         gross_amount: price,
       },
       item_details: [{
-        id: courseId || "id-unknown",
+        id: (courseId || "id-unknown").substring(0, 50),
         price: price,
         quantity: 1,
-        name: (title || "Kursus Klas Konstruksi").substring(0, 50),
+        // Midtrans sangat ketat pada batas karakter, pastikan dipotong maks 50 karakter
+        name: (title || "Pembelian KlasKonstruksi").substring(0, 50), 
       }],
       customer_details: {
-        first_name: userName || "Siswa",
+        first_name: (userName || "Siswa").substring(0, 50),
         email: userEmail || "no-email@klas.id",
       },
     };
 
-    // Deteksi otomatis URL API (Sandbox atau Production)
+    // 5. Deteksi otomatis URL API (Sandbox atau Production)
     const midtransUrl = serverKey.startsWith("SB-") 
       ? "https://app.sandbox.midtrans.com/snap/v1/transactions"
       : "https://app.midtrans.com/snap/v1/transactions";
 
+    // Enkripsi auth untuk Edge (btoa adalah standar Web API pengganti Buffer Node.js)
     const auth = btoa(serverKey + ":");
     const res = await fetch(midtransUrl, {
       method: "POST",
@@ -52,38 +66,39 @@ export async function POST(request: Request) {
 
     const data = await res.json();
     if (!res.ok) {
+      console.error("Midtrans API Error:", data);
       return NextResponse.json(
         { error: data.error_messages?.[0] || data.status_message || "Gagal membuat token Midtrans" },
         { status: res.status }
       );
     }
 
-    // WAJIB: SIMPAN TRANSAKSI "PENDING" KE DATABASE AGAR WEBHOOK BISA BEKERJA
-    if (userId) {
-      // Gunakan Service Role Key untuk menembus RLS
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+    // 6. SIMPAN TRANSAKSI "PENDING" KE DATABASE
+    if (userId && supabaseUrl && supabaseServiceKey) {
+      // Menggunakan Service Role Key untuk menembus RLS karena ini operasi backend internal
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
       
       const { error: dbError } = await supabaseAdmin.from("transactions").insert({
         order_id: order_id,
         user_id: userId,
         item_id: courseId,
-        item_type: "course",
+        item_type: courseId === "BUNDLE-CART" ? "bundle" : "course", // Penanganan jika keranjang berisi banyak item
         amount: price,
         status: "PENDING"
       });
 
       if (dbError) {
-        console.error("Gagal insert transaksi PENDING:", dbError.message);
-        // Kita tidak gagalkan transaksi midtrans jika DB gagal tercatat, tapi dicatat di log
+        // Kita hanya mencatat log error, JANGAN gagalkan transaksi Midtrans jika DB hanya telat merespons
+        console.error("Peringatan: Gagal insert transaksi PENDING:", dbError.message);
       }
+    } else if (!userId) {
+      console.warn("Peringatan: userId tidak dikirim dari frontend. Transaksi PENDING tidak dicatat di database!");
     }
 
     return NextResponse.json({ token: data.token, order_id: order_id });
-  } catch (error: unknown) {
+  } catch (error: any) {
     const msg = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("Sistem API Error:", msg);
+    return NextResponse.json({ error: "Sistem sedang sibuk, gagal memproses pembayaran." }, { status: 500 });
   }
 }
