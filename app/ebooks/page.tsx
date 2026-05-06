@@ -193,7 +193,7 @@ export default function PublicEbooksCatalog() {
             <Link href="/" className="flex items-center gap-3 mb-6">
               <Image src="/logo.png" alt="Logo Bawah" width={80} height={80} className="rounded object-contain bg-white" />
             </Link>
-            <p className="text-gray-400 text-sm max-w-md">Platform e-learning teknik sipil dan konstruksi terlengkap. Kami berdedikasi untuk mencetak engineer handal yang siap kerja.</p>
+            <p className="text-gray-400 text-sm max-w-md">Kursus Konstruksi Online No. 1 di Indonesia</p>
           </div>
           <div>
             <h4 className="font-bold text-lg mb-6">Menu Navigasi</h4>
