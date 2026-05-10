@@ -117,42 +117,47 @@ export default function ChaptersList({ initialData, courseId }: Props) {
     setUploadProgress(0);
   };
 
+  // ==============================================================
+  // REVISI KEAMANAN: PROXY UPLOAD
+  // Video diunggah ke server Next.js kita, BUKAN langsung ke Bunny
+  // ==============================================================
   const processVideoUpload = async (title: string): Promise<string> => {
     if (videoSource === 'upload' && selectedFile) {
       setIsUploading(true);
       try {
-        const res = await fetch('/api/bunny/create', {
-          method: 'POST',
-          body: JSON.stringify({ title })
-        });
+        return await new Promise((resolve, reject) => {
+          const formData = new FormData();
+          formData.append("file", selectedFile);
+          formData.append("title", title);
 
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || "Gagal inisiasi video di Server");
-        }
-
-        const { videoId: newId, libraryId, apiKey } = await res.json();
-
-        await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
+          
+          // Memantau progress upload dari Browser ke Next.js API
           xhr.upload.addEventListener("progress", (event) => {
             if (event.lengthComputable) {
               setUploadProgress(Math.round((event.loaded / event.total) * 100));
             }
           });
+          
           xhr.addEventListener("load", () => {
-            if (xhr.status >= 200 && xhr.status < 300) resolve(newId);
-            else reject(new Error(`Upload ditolak server (Status: ${xhr.status})`));
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const response = JSON.parse(xhr.responseText);
+              if (response.videoId) {
+                 resolve(response.videoId);
+              } else {
+                 reject(new Error(response.error || "Gagal mendapatkan Video ID"));
+              }
+            } else {
+              reject(new Error(`Upload ditolak server (Status: ${xhr.status})`));
+            }
           });
+          
           xhr.addEventListener("error", () => reject(new Error("Koneksi internet terputus saat upload")));
 
-          xhr.open("PUT", `https://video.bunnycdn.com/library/${libraryId}/videos/${newId}`, true);
-          xhr.setRequestHeader("AccessKey", apiKey);
-          xhr.setRequestHeader("Content-Type", "application/octet-stream");
-          xhr.send(selectedFile);
+          // Kirim ke endpoint proxy kita yang aman
+          xhr.open("POST", "/api/bunny/upload", true);
+          xhr.send(formData);
         });
-
-        return newId;
       } catch (err: any) {
         throw err;
       } finally {

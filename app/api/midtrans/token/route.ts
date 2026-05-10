@@ -1,8 +1,6 @@
-// app/api/midtrans/token/route.ts
-
-
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/utils/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -14,11 +12,61 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Sistem pembayaran belum dikonfigurasi (Server Key hilang)" }, { status: 500 });
     }
 
-    const body = await request.json();
-    const { courseId, price, title, userEmail, userName, userId } = body;
+    // 1. SECURITY FIX: Verifikasi Otorisasi User (Jangan percaya userId dari body)
+    const supabaseAuth = await createServerClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
 
-    if (!price || price < 100) {
+    if (!user) {
+        return NextResponse.json({ error: "Anda harus login untuk melakukan transaksi." }, { status: 401 });
+    }
+
+    const body = await request.json();
+    // userId kita cabut dari destructuring body, kita pakai user.id dari sesi auth
+    const { courseId, price: clientPrice, title, userEmail, userName, itemType } = body;
+
+    if (!clientPrice || clientPrice < 100) {
       return NextResponse.json({ error: "Nominal transaksi tidak valid" }, { status: 400 });
+    }
+
+    // 2. SECURITY FIX: Validasi Harga Asli dari Database
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    let verifiedPrice = 0;
+    
+    // Tentukan tipe item untuk lookup. Default ke 'course' jika undefined.
+    const actualItemType = itemType || (courseId === "BUNDLE-CART" ? "bundle" : "course");
+
+    if (actualItemType === "course") {
+        const { data: courseData, error: courseError } = await supabaseAdmin
+            .from("courses")
+            .select("price")
+            .eq("id", courseId)
+            .single();
+            
+        if (courseError || !courseData) {
+             return NextResponse.json({ error: "Materi kursus tidak valid atau tidak ditemukan." }, { status: 404 });
+        }
+        verifiedPrice = courseData.price;
+        
+    } else if (actualItemType === "ebook") {
+        const { data: ebookData, error: ebookError } = await supabaseAdmin
+            .from("ebooks")
+            .select("price")
+            .eq("id", courseId)
+            .single();
+            
+        if (ebookError || !ebookData) {
+             return NextResponse.json({ error: "E-book tidak valid atau tidak ditemukan." }, { status: 404 });
+        }
+        verifiedPrice = ebookData.price;
+    } else if (actualItemType === "bundle") {
+         // Logika khusus jika kamu punya tabel bundles, atau biarkan pakai clientPrice jika memang bundle dinamis
+         verifiedPrice = clientPrice; 
+    }
+
+    // Cek apakah ada hacker yang mengubah harga di frontend
+    if (verifiedPrice > 0 && verifiedPrice !== clientPrice) {
+         console.warn(`🚨 Manipulasi harga terdeteksi untuk user ${user.id} pada item ${courseId}. Client: ${clientPrice}, DB: ${verifiedPrice}`);
+         return NextResponse.json({ error: "Terjadi ketidaksesuaian data transaksi." }, { status: 400 });
     }
 
     const safeCourseId = (courseId || "TRX").toString().substring(0, 4).replace(/[^a-zA-Z0-9]/g, '');
@@ -27,17 +75,17 @@ export async function POST(request: Request) {
     const parameter = {
       transaction_details: {
         order_id: order_id,
-        gross_amount: price,
+        gross_amount: verifiedPrice, // Gunakan harga terverifikasi
       },
       item_details: [{
         id: (courseId || "id-unknown").substring(0, 50),
-        price: price,
+        price: verifiedPrice,
         quantity: 1,
         name: (title || "Pembelian KlasKonstruksi").substring(0, 50), 
       }],
       customer_details: {
         first_name: (userName || "Siswa").substring(0, 50),
-        email: userEmail || "no-email@klas.id",
+        email: user.email || userEmail || "no-email@klas.id", // Prioritaskan email dari sesi
       },
     };
 
@@ -66,26 +114,22 @@ export async function POST(request: Request) {
       );
     }
 
-    if (userId && supabaseUrl && supabaseServiceKey) {
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-      
-      const { error: dbError } = await supabaseAdmin.from("transactions").insert({
+    // Insert ke tabel transactions menggunakan user.id asli dari auth session
+    const { error: dbError } = await supabaseAdmin.from("transactions").insert({
         order_id: order_id,
-        user_id: userId,
+        user_id: user.id, // PASTI ADA dan SAH
         item_id: courseId,
-        item_type: courseId === "BUNDLE-CART" ? "bundle" : "course",
-        amount: price,
+        item_type: actualItemType,
+        amount: verifiedPrice,
         status: "PENDING"
-      });
+    });
 
-      if (dbError) {
+    if (dbError) {
         console.error("Peringatan: Gagal insert transaksi PENDING:", dbError.message);
-      }
-    } else if (!userId) {
-      console.warn("Peringatan: userId tidak dikirim dari frontend. Transaksi PENDING tidak dicatat di database!");
     }
 
     return NextResponse.json({ token: data.token, order_id: order_id });
+    
   } catch (error: any) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("Sistem API Error:", msg);

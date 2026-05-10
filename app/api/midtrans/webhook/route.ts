@@ -29,7 +29,6 @@ export async function POST(req: Request) {
     }
 
     // 2. AKSES DATABASE SEBAGAI SUPERADMIN (Tembus RLS)
-    // Pastikan SUPABASE_SERVICE_ROLE_KEY sudah dimasukkan ke Cloudflare Pages Environment
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY! 
@@ -47,6 +46,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "success" }, { status: 200 }); // Tetap 200 agar Midtrans tidak spam error
     }
 
+    // SECURITY FIX: Cek apakah transaksi sudah pernah diproses (PAID) sebelumnya (Idempotency)
+    if (trxData.status === "PAID") {
+      console.log(`ℹ️ Transaksi ${order_id} sudah diproses sebelumnya (Idempotent Hit).`);
+      return NextResponse.json({ status: "success" }, { status: 200 });
+    }
+
     // 3. LOGIKA PEMROSESAN STATUS
     if (transaction_status === "capture" || transaction_status === "settlement") {
       if (fraud_status === "accept" || !fraud_status) {
@@ -54,24 +59,36 @@ export async function POST(req: Request) {
         // A. Update status transaksi menjadi PAID
         await supabaseAdmin.from("transactions").update({ status: "PAID" }).eq("order_id", order_id);
 
-// B. BERIKAN AKSES KELAS / EBOOK KE SISWA
-if (trxData.item_type === "course") {
-  // Masukkan ke tabel enrollments
-  await supabaseAdmin.from("enrollments").insert({
-    user_id: trxData.user_id,
-    course_id: trxData.item_id,
-    amount_paid: trxData.amount // HAPUS STATUS: ACTIVE DISINI
-  });
-  console.log(`✅ Akses KELAS diberikan untuk User: ${trxData.user_id}`);
+        // B. BERIKAN AKSES KELAS / EBOOK KE SISWA
+        if (trxData.item_type === "course") {
+          // Masukkan ke tabel enrollments
+          // Pastikan di database, kombinasi (user_id, course_id) punya Unique Constraint
+          const { error: enrollError } = await supabaseAdmin.from("enrollments").upsert({
+            user_id: trxData.user_id,
+            course_id: trxData.item_id,
+            amount_paid: trxData.amount,
+            status: 'active', // Menambahkan status jika table membutuhkannya
+            progress: 0
+          }, { onConflict: 'user_id, course_id' }); // Abaikan error constraint jika sudah ada
+          
+          if(enrollError) {
+             console.error(`🚨 Gagal memberikan akses kelas untuk User: ${trxData.user_id} Error: ${enrollError.message}`);
+          } else {
+             console.log(`✅ Akses KELAS diberikan untuk User: ${trxData.user_id}`);
+          }
           
         } else if (trxData.item_type === "ebook") {
-          // Masukkan ke tabel ebook_purchases (pastikan tabel ini sudah kamu buat)
-          await supabaseAdmin.from("ebook_purchases").insert({
+          const { error: ebookError } = await supabaseAdmin.from("ebook_purchases").upsert({
             user_id: trxData.user_id,
             ebook_id: trxData.item_id,
             amount_paid: trxData.amount
           });
-          console.log(`✅ Akses E-BOOK diberikan untuk User: ${trxData.user_id}`);
+          
+          if(ebookError){
+            console.error(`🚨 Gagal memberikan akses ebook untuk User: ${trxData.user_id} Error: ${ebookError.message}`);
+          } else {
+             console.log(`✅ Akses E-BOOK diberikan untuk User: ${trxData.user_id}`);
+          }
         }
       }
     } 

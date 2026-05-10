@@ -1,9 +1,18 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
+import { createClient } from "@/utils/supabase/server";
 
 export async function POST(request: Request) {
   try {
+    // 1. SECURITY FIX: Otorisasi
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: "Akses Ditolak" }, { status: 401 });
+    }
+
     const { title } = await request.json();
     const apiKey = process.env.BUNNY_API_KEY;
     const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
@@ -15,7 +24,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Request Video ID dari Bunny.net
     const response = await fetch(
       `https://video.bunnycdn.com/library/${libraryId}/videos`,
       {
@@ -39,8 +47,10 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
-    // 2. Kembalikan Video ID ke Frontend (Browser)
-    return NextResponse.json(data);
+    return NextResponse.json({
+        videoId: data.guid,
+        // Pastikan tidak ada kredensial sensitif di sini
+    });
   } catch (error) {
     console.error('Internal Server Error:', error);
     return NextResponse.json(
