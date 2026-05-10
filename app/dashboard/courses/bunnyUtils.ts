@@ -1,11 +1,11 @@
 // Gunakan process.env agar rahasia tidak bocor ke build output
 const ACCESS_KEY = process.env.BUNNY_API_KEY || "";
-const LIBRARY_ID = process.env.BUNNY_LIBRARY_ID || "628695";
+const LIBRARY_ID = process.env.BUNNY_LIBRARY_ID || "657290";
 const BASE_URL = `https://video.bunnycdn.com/library/${LIBRARY_ID}/videos`;
 
 export async function uploadVideoToBunny(file: File, title: string): Promise<string | null> {
   try {
-    console.log("--- MULAI UPLOAD BUNNY ---");
+    console.log("--- MULAI UPLOAD ---");
     console.log("1. Cek Config:", { 
         LibraryID: LIBRARY_ID, 
         KeyExists: !!ACCESS_KEY,
@@ -26,7 +26,7 @@ export async function uploadVideoToBunny(file: File, title: string): Promise<str
     if (!createResponse.ok) {
         const errorText = await createResponse.text();
         console.error("GAGAL CREATE VIDEO:", errorText);
-        throw new Error("Gagal Create Video di Bunny: " + errorText);
+        throw new Error("Gagal Create Video: " + errorText);
     }
     
     const entryData = await createResponse.json();
@@ -50,14 +50,14 @@ export async function uploadVideoToBunny(file: File, title: string): Promise<str
     if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
         console.error("GAGAL UPLOAD BINARY:", errorText);
-        throw new Error("Gagal Upload File ke Bunny: " + errorText);
+        throw new Error("Gagal Upload File ke Server: " + errorText);
     }
 
     console.log("3. Upload Sukses!");
     return videoId; 
 
   } catch (error) {
-    console.error("BUNNY ERROR TOTAL:", error);
+    console.error("Server ERROR TOTAL:", error);
     return null;
   }
 }
@@ -73,6 +73,6 @@ export async function deleteVideoFromBunny(videoId: string) {
             }
         });
     } catch (e) {
-        console.log("Gagal hapus di bunny (abaikan)", e);
+        console.log("Gagal hapus di server", e);
     }
 }

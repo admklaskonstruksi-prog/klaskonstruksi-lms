@@ -29,7 +29,7 @@ export default function BunnyVideoPlayer({ videoId, title }: BunnyVideoPlayerPro
       <div className="w-full h-full min-h-[250px] flex flex-col items-center justify-center bg-red-950 text-red-400 p-4 text-center rounded-xl">
         <AlertCircle size={32} className="mb-2 text-red-500" />
         <p className="text-sm font-bold">Error Sistem</p>
-        <p className="text-xs mt-1 text-red-300">NEXT_PUBLIC_BUNNY_LIBRARY_ID belum diatur.</p>
+        <p className="text-xs mt-1 text-red-300">ID belum diatur.</p>
       </div>
     );
   }

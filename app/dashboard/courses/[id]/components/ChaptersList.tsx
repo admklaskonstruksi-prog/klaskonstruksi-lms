@@ -128,7 +128,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
 
         if (!res.ok) {
           const errData = await res.json();
-          throw new Error(errData.error || "Gagal inisiasi video di BunnyCDN");
+          throw new Error(errData.error || "Gagal inisiasi video di Server");
         }
 
         const { videoId: newId, libraryId, apiKey } = await res.json();
@@ -142,7 +142,7 @@ export default function ChaptersList({ initialData, courseId }: Props) {
           });
           xhr.addEventListener("load", () => {
             if (xhr.status >= 200 && xhr.status < 300) resolve(newId);
-            else reject(new Error(`Upload ditolak server BunnyCDN (Status: ${xhr.status})`));
+            else reject(new Error(`Upload ditolak server (Status: ${xhr.status})`));
           });
           xhr.addEventListener("error", () => reject(new Error("Koneksi internet terputus saat upload")));
 
